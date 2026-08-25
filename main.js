@@ -1,9 +1,9 @@
 const API_URL = 'https://script.google.com/macros/s/AKfycbw--515Ocaod1h_wkMMc8dfiUumw4XD7anSkhWcM4coEXQJAVjGSKORwIMGLgq9t6Fi/exec';
 
 let cachedPersonnelData = [];
+let currentActiveUid = null; // ตัวแปรเก็บรหัสของคนที่กำลังเปิด Profile อยู่ (Zero-Error Reference)
 
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('🚀 System Initialized. Dynamic Filters Active.');
   fetchData();
   
   const searchInput = document.getElementById('searchInput');
@@ -36,7 +36,6 @@ async function fetchData() {
     if (result.status === 'success') {
       cachedPersonnelData = result.data.list;
       
-      // วาด Dropdown ใหม่เสมอ โดยคงค่าที่เลือกไว้ล่าสุด
       populateDropdown('filterYear', result.data.filters.years, year, 'ทุกปีการศึกษา');
       populateDropdown('filterCourse', result.data.filters.courses, course, 'ทุกหลักสูตร');
       
@@ -68,22 +67,18 @@ async function fetchData() {
     }
   } catch (error) {
     showErrorState('การเชื่อมต่อกับฐานข้อมูลขัดข้อง');
-    console.error('Fetch Error:', error);
   }
 }
 
-// ฟังก์ชันสร้างตัวเลือก Dropdown อัตโนมัติ
 function populateDropdown(elementId, items, currentValue, defaultLabel) {
   const select = document.getElementById(elementId);
-  select.innerHTML = `<option value="">${defaultLabel}</option>`; // ล้างข้อมูลเดิมและใส่ค่าเริ่มต้น
-  
+  select.innerHTML = `<option value="">${defaultLabel}</option>`;
   items.forEach(item => {
     const option = document.createElement('option');
-    option.value = item;
-    option.textContent = item;
+    option.value = item; option.textContent = item;
     select.appendChild(option);
   });
-  select.value = currentValue; // คงค่าเดิมที่ User กำลังเลือกอยู่
+  select.value = currentValue;
 }
 
 function handleExcelUpload(e) {
@@ -113,16 +108,18 @@ function handleExcelUpload(e) {
          if(result.status === 'success') { alert(`✅ ${result.message}`); fetchData(); } 
          else { alert(`❌ เกิดข้อผิดพลาด: ${result.message}`); fetchData(); }
       }
-    } catch (error) {
-      alert("❌ เกิดข้อผิดพลาดในการอ่านไฟล์"); fetchData();
-    }
+    } catch (error) { alert("❌ เกิดข้อผิดพลาดในการอ่านไฟล์"); fetchData(); }
     e.target.value = ''; 
   };
   reader.readAsArrayBuffer(file);
 }
 
-// UX/UI Controller
+// ==========================================
+// UX/UI Controller & Data Submission
+// ==========================================
+
 window.viewProfile = function(uid) {
+  currentActiveUid = uid; // ล็อกเป้าหมาย
   const person = cachedPersonnelData.find(p => p.uid === uid);
   if (!person) return;
 
@@ -130,6 +127,7 @@ window.viewProfile = function(uid) {
   document.getElementById('profileUid').textContent = `รหัสอ้างอิง: ${person.uid}`;
   document.getElementById('profileAgency').textContent = `${person.agency} (${person.status})`;
 
+  // วาด Tab 1: การอบรม
   const timelineEl = document.getElementById('profileTrainings');
   if (person.trainings && person.trainings.length > 0) {
     const sortedTrainings = person.trainings.sort((a, b) => b.year - a.year);
@@ -142,6 +140,31 @@ window.viewProfile = function(uid) {
     `).join('');
   } else {
     timelineEl.innerHTML = `<li class="text-sm text-gray-400 pl-4">ยังไม่มีประวัติการอบรม</li>`;
+  }
+
+  // วาด Tab 2: การปฏิบัติหน้าที่
+  const dutyEl = document.getElementById('profileDuties');
+  if (person.duties && person.duties.length > 0) {
+    dutyEl.innerHTML = person.duties.map(d => `
+      <li class="bg-gray-50 p-3 rounded-lg border border-gray-100 flex flex-col gap-1">
+        <span class="text-sm font-bold text-gray-800">${d.sport}</span>
+        <span class="text-xs text-gray-500">สถานะ: ${d.role}</span>
+      </li>
+    `).join('');
+  } else {
+    dutyEl.innerHTML = `<li class="text-sm text-gray-400">ยังไม่มีประวัติลงพื้นที่</li>`;
+  }
+
+  // วาด Tab 3: การประเมินผล
+  const evalEl = document.getElementById('profileEvals');
+  if (person.evals && person.evals.length > 0) {
+    evalEl.innerHTML = person.evals.map(e => `
+      <div class="bg-gray-50 p-3 rounded-lg border border-gray-100 text-sm text-gray-700 italic">
+        "${e.feedback}"
+      </div>
+    `).join('');
+  } else {
+    evalEl.innerHTML = `<div class="text-sm text-gray-400">ยังไม่มีข้อเสนอแนะ</div>`;
   }
 
   const slideOver = document.getElementById('slideOver');
@@ -157,6 +180,7 @@ window.viewProfile = function(uid) {
 }
 
 window.closeProfile = function() {
+  currentActiveUid = null; // ปลดล็อก
   const backdrop = document.getElementById('slideOverBackdrop');
   const panel = document.getElementById('slideOverPanel');
   backdrop.classList.remove('opacity-100'); backdrop.classList.add('opacity-0');
@@ -178,6 +202,65 @@ window.switchTab = function(tabName) {
       content.classList.remove('block'); content.classList.add('hidden');
     }
   });
+}
+
+// 📌 ฟังก์ชันส่งข้อมูลเข้า Google Sheets (Zero-Error POST)
+window.submitDuty = async function() {
+  if (!currentActiveUid) return;
+  const sport = document.getElementById('inputDutySport').value.trim();
+  const role = document.getElementById('inputDutyRole').value.trim();
+  
+  if (!sport || !role) return alert('⚠️ กรุณากรอก ชนิดกีฬา และ ประเภทบุคลากร ให้ครบถ้วน');
+  
+  const btn = document.getElementById('btnSaveDuty');
+  btn.textContent = 'กำลังบันทึก...'; btn.disabled = true;
+
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'saveDuty', uid: currentActiveUid, sport: sport, role: role }),
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+    });
+    const result = await response.json();
+    if(result.status === 'success') {
+      alert('✅ บันทึกประวัติสำเร็จ');
+      document.getElementById('inputDutySport').value = '';
+      document.getElementById('inputDutyRole').value = '';
+      fetchData(); // สั่งรีเฟรชข้อมูลเบื้องหลัง
+    } else {
+      alert(`❌ ข้อผิดพลาด: ${result.message}`);
+    }
+  } catch(e) { alert('❌ การเชื่อมต่อล้มเหลว'); }
+  
+  btn.textContent = 'บันทึกข้อมูล'; btn.disabled = false;
+}
+
+window.submitEval = async function() {
+  if (!currentActiveUid) return;
+  const feedback = document.getElementById('inputEvalFeedback').value.trim();
+  
+  if (!feedback) return alert('⚠️ กรุณากรอกข้อเสนอแนะก่อนบันทึก');
+  
+  const btn = document.getElementById('btnSaveEval');
+  btn.textContent = 'กำลังบันทึก...'; btn.disabled = true;
+
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'saveEval', uid: currentActiveUid, feedback: feedback }),
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+    });
+    const result = await response.json();
+    if(result.status === 'success') {
+      alert('✅ บันทึกข้อเสนอแนะสำเร็จ');
+      document.getElementById('inputEvalFeedback').value = '';
+      fetchData(); // สั่งรีเฟรชข้อมูลเบื้องหลัง
+    } else {
+      alert(`❌ ข้อผิดพลาด: ${result.message}`);
+    }
+  } catch(e) { alert('❌ การเชื่อมต่อล้มเหลว'); }
+  
+  btn.textContent = 'บันทึกข้อเสนอแนะ'; btn.disabled = false;
 }
 
 function showLoadingState(message = "กำลังประมวลผลข้อมูล...") {
