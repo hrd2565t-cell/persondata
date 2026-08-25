@@ -25,27 +25,30 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('excelUpload').addEventListener('change', handleExcelUpload);
 });
 
-// 📌 ฟังก์ชันสลับหน้าจอ (Navigation Controller)
+// 📌 Navigation Controller
 window.switchPage = function(pageId) {
-  // 1. ซ่อนทุกหน้าจอ
-  const pages = ['dashboard', 'search', 'import'];
+  const pages = ['dashboard', 'search', 'timeline', 'import'];
   pages.forEach(p => {
-    document.getElementById(`page-${p}`).classList.add('hidden');
-    document.getElementById(`page-${p}`).classList.remove('block');
-    
-    // รีเซ็ตสไตล์ปุ่ม
+    const section = document.getElementById(`page-${p}`);
+    if (section) {
+      section.classList.toggle('hidden', p !== pageId);
+      section.classList.toggle('block', p === pageId);
+    }
     const btn = document.getElementById(`nav-btn-${p}`);
-    btn.classList.remove('border-blue-600', 'text-blue-700', 'font-bold');
-    btn.classList.add('border-transparent', 'text-gray-500', 'font-medium');
+    if (btn) {
+      btn.classList.toggle('border-blue-600', p === pageId);
+      btn.classList.toggle('text-blue-700', p === pageId);
+      btn.classList.toggle('font-bold', p === pageId);
+      btn.classList.toggle('border-transparent', p !== pageId);
+      btn.classList.toggle('text-gray-500', p !== pageId);
+      btn.classList.toggle('font-medium', p !== pageId);
+    }
   });
 
-  // 2. แสดงเฉพาะหน้าที่เลือก
-  document.getElementById(`page-${pageId}`).classList.remove('hidden');
-  document.getElementById(`page-${pageId}`).classList.add('block');
-  
-  const activeBtn = document.getElementById(`nav-btn-${pageId}`);
-  activeBtn.classList.remove('border-transparent', 'text-gray-500', 'font-medium');
-  activeBtn.classList.add('border-blue-600', 'text-blue-700', 'font-bold');
+  // ถ้ากดเปิดหน้า Timeline ให้สั่งวาดกราฟทันที
+  if (pageId === 'timeline' && globalFiltersMaster) {
+    renderTimeline(globalFiltersMaster.relations, globalFiltersMaster.years, globalFiltersMaster.courses);
+  }
 }
 
 async function fetchData() {
@@ -94,6 +97,45 @@ async function fetchData() {
   } catch (error) {
     showErrorState('การเชื่อมต่อกับฐานข้อมูลขัดข้อง');
   }
+}
+
+// 📌 ฟังก์ชันวาดตารางไทม์ไลน์ (Executive Timeline Builder)
+function renderTimeline(relations, years, courses) {
+  const headerRow = document.getElementById('timelineHeaderRow');
+  const bodyEl = document.getElementById('timelineBody');
+  
+  if (!headerRow || !bodyEl) return;
+
+  // จัดเรียงปีจากน้อยไปมากเพื่อให้ตารางเดินหน้าตามเวลา (เช่น 2567 -> 2568 -> 2569)
+  const sortedYears = [...years].sort((a, b) => a - b);
+
+  // 1. สร้างหัวตาราง (คอลัมน์ซ้ายสุดคือชื่อหลักสูตร ตามด้วยปีต่างๆ)
+  headerRow.innerHTML = `
+    <th class="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider w-1/3 border-r">ชื่อหลักสูตร</th>
+    ${sortedYears.map(y => `<th class="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider w-20 border-r">${y}</th>`).join('')}
+  `;
+
+  // 2. สร้างแถวข้อมูลแต่ละหลักสูตร
+  bodyEl.innerHTML = courses.map(course => {
+    const activeYears = relations.courseToYears[course] || {};
+    
+    return `
+      <tr class="hover:bg-gray-50 transition-colors">
+        <td class="px-6 py-4 text-sm font-bold text-gray-800 border-r">${course}</td>
+        ${sortedYears.map(y => {
+          const isActive = activeYears[y];
+          return `
+            <td class="px-2 py-4 text-center border-r">
+              ${isActive ? 
+                `<span class="inline-block w-full py-1.5 bg-blue-600 text-white text-xs font-semibold rounded shadow-sm">เปิดอบรม</span>` : 
+                `<span class="inline-block w-full py-1.5 bg-gray-100 text-gray-300 text-xs rounded">-</span>`
+              }
+            </td>
+          `;
+        }).join('')}
+      </tr>
+    `;
+  }).join('');
 }
 
 function handleCascadingFilter(changedType) {
@@ -160,11 +202,7 @@ function handleExcelUpload(e) {
       }
 
       if(confirm(`ตรวจพบข้อมูล ${jsonRows.length} รายการ\nต้องการบันทึกเข้าสู่ระบบใช่หรือไม่?`)) {
-         
-         // ป้องกันตารางบั๊ก จึงสลับหน้ามาที่ Dashboard แล้วแจ้งเตือนแทน
          switchPage('dashboard');
-         document.getElementById('stat-total').textContent = '...';
-         
          const response = await fetch(API_URL, {
             method: 'POST',
             body: JSON.stringify({ action: 'bulkImport', rows: jsonRows }),
@@ -175,7 +213,7 @@ function handleExcelUpload(e) {
             alert(`✅ ${result.message}`); 
             globalFiltersMaster = null; 
             fetchData(); 
-            switchPage('search'); // นำกลับมาหน้าตารางเพื่อดูข้อมูล
+            switchPage('search'); 
          } else { 
             alert(`❌ เกิดข้อผิดพลาด: ${result.message}`); fetchData(); 
          }
@@ -186,7 +224,6 @@ function handleExcelUpload(e) {
   reader.readAsArrayBuffer(file);
 }
 
-// UX/UI Controller & Data Submission
 window.viewProfile = function(uid) {
   currentActiveUid = uid;
   const person = cachedPersonnelData.find(p => p.uid === uid);
@@ -313,11 +350,17 @@ window.submitEval = async function() {
 }
 
 function showLoadingState(message = "กำลังประมวลผลข้อมูล...") {
-  document.getElementById('tableBody').innerHTML = `<tr><td colspan="5" class="px-6 py-12 text-center text-blue-600 font-medium">
-    <svg class="animate-spin -ml-1 mr-3 h-6 w-6 text-blue-600 inline mb-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-    ${message}</td></tr>`;
+  const tbody = document.getElementById('tableBody');
+  if (tbody) {
+    tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-12 text-center text-blue-600 font-medium">
+      <svg class="animate-spin -ml-1 mr-3 h-6 w-6 text-blue-600 inline mb-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+      ${message}</td></tr>`;
+  }
 }
 
 function showErrorState(message) {
-  document.getElementById('tableBody').innerHTML = `<tr><td colspan="5" class="px-6 py-12 text-center text-red-500 font-medium">❌ ${message}</td></tr>`;
+  const tbody = document.getElementById('tableBody');
+  if (tbody) {
+    tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-12 text-center text-red-500 font-medium">❌ ${message}</td></tr>`;
+  }
 }
