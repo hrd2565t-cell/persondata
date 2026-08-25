@@ -5,10 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ระบบทะเบียนบุคลากรกีฬา (Executive Dashboard)</title>
   
-  <!-- โหลด Tailwind CSS ผ่าน CDN (Executive Shortcut) -->
+  <!-- โหลด Tailwind CSS และ SheetJS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  
-  <!-- โหลด SheetJS สำหรับอ่านไฟล์ Excel หน้าบ้าน -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans antialiased selection:bg-blue-200">
@@ -117,7 +115,6 @@
             </tr>
           </thead>
           <tbody id="tableBody" class="bg-white divide-y divide-gray-200">
-            <!-- Loading State -->
             <tr>
               <td colspan="5" class="px-6 py-12 text-center">
                 <div class="flex flex-col items-center justify-center text-blue-600 font-medium">
@@ -133,8 +130,82 @@
         </table>
       </div>
     </section>
-
   </main>
+
+  <!-- 🟢 Slide-over Panel (ซ่อนเป็นค่าเริ่มต้น) -->
+  <div id="slideOver" class="fixed inset-0 z-50 hidden" aria-labelledby="slide-over-title" role="dialog" aria-modal="true">
+    <div id="slideOverBackdrop" class="fixed inset-0 bg-gray-900 bg-opacity-50 transition-opacity opacity-0" onclick="closeProfile()"></div>
+    <div class="fixed inset-y-0 right-0 z-50 flex max-w-full pl-10">
+      <div id="slideOverPanel" class="w-screen max-w-md transform transition ease-in-out duration-300 translate-x-full">
+        <div class="flex h-full flex-col bg-white shadow-2xl">
+          
+          <!-- Header -->
+          <div class="bg-blue-900 px-4 py-6 sm:px-6 shadow-md z-10">
+            <div class="flex items-start justify-between">
+              <div>
+                <h2 class="text-xl font-bold text-white" id="profileName">ชื่อ-นามสกุล</h2>
+                <p class="text-blue-200 text-sm mt-1" id="profileUid">UID: ---</p>
+              </div>
+              <div class="ml-3 flex h-7 items-center">
+                <button type="button" onclick="closeProfile()" class="rounded-md bg-blue-900 text-blue-200 hover:text-white focus:outline-none transition-colors">
+                  <span class="sr-only">ปิดหน้าต่าง</span>
+                  <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ระบบ Tabs นำทาง -->
+          <div class="border-b border-gray-200 bg-gray-50">
+            <nav class="-mb-px flex" aria-label="Tabs">
+              <button onclick="switchTab('general')" id="tab-btn-general" class="w-1/3 border-b-2 border-blue-600 py-3 px-1 text-center text-sm font-bold text-blue-700 transition-colors">ประวัติการอบรม</button>
+              <button onclick="switchTab('duty')" id="tab-btn-duty" class="w-1/3 border-b-2 border-transparent py-3 px-1 text-center text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700 transition-colors">การปฏิบัติหน้าที่</button>
+              <button onclick="switchTab('eval')" id="tab-btn-eval" class="w-1/3 border-b-2 border-transparent py-3 px-1 text-center text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700 transition-colors">การประเมินผล</button>
+            </nav>
+          </div>
+
+          <!-- เนื้อหาในแต่ละ Tab -->
+          <div class="relative flex-1 px-4 py-6 sm:px-6 overflow-y-auto bg-white">
+            
+            <!-- Tab 1: ประวัติการอบรม -->
+            <div id="tab-content-general" class="block space-y-6">
+              <div>
+                <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">หน่วยงานต้นสังกัด</h3>
+                <p class="text-sm font-medium text-gray-900 bg-gray-50 p-3 rounded-lg border border-gray-100" id="profileAgency">---</p>
+              </div>
+              <div>
+                <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">ไทม์ไลน์การอบรม (Training Timeline)</h3>
+                <ul class="space-y-4 relative border-l-2 border-blue-100 ml-3" id="profileTrainings">
+                  <!-- โค้ด JS จะวาด Timeline ตรงนี้ -->
+                </ul>
+              </div>
+            </div>
+
+            <!-- Tab 2: การปฏิบัติหน้าที่ -->
+            <div id="tab-content-duty" class="hidden">
+              <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                <h3 class="text-sm font-bold text-blue-900 mb-1">ระบบติดตามการปฏิบัติหน้าที่ของบุคลากรกีฬา</h3>
+                <p class="text-xs text-blue-700 mb-3">การแข่งขันกีฬาเยาวชนแห่งชาติ ครั้งที่ 41 (สุราษฎร์ธานีเกมส์) ระหว่างวันที่ 7 – 17 พฤษภาคม 2569</p>
+                <button class="w-full bg-white border border-blue-200 text-blue-700 text-sm font-medium py-2 rounded-md hover:bg-blue-100 transition-colors">+ บันทึกประวัติการปฏิบัติหน้าที่</button>
+              </div>
+            </div>
+
+            <!-- Tab 3: การประเมินผล -->
+            <div id="tab-content-eval" class="hidden">
+               <div class="space-y-4">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">ข้อคิดเห็นและข้อเสนอแนะอื่นๆ ที่เป็นประโยชน์ต่อการพัฒนาการบริหารงานตามหลักธรรมาภิบาลของสมาคมกีฬา</label>
+                    <textarea rows="4" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="บันทึกข้อเสนอแนะ..."></textarea>
+                  </div>
+                  <button class="w-full bg-blue-800 text-white font-medium py-2.5 rounded-lg shadow-sm hover:bg-blue-900 transition-colors">บันทึกข้อมูลการประเมิน</button>
+               </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
   
   <script src="./main.js"></script>
 </body>
