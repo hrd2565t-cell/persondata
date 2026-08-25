@@ -1,10 +1,13 @@
-// ล็อกเป้าหมาย API ของคุณ
+// ล็อกเป้าหมาย API
 const API_URL = 'https://script.google.com/macros/s/AKfycbw--515Ocaod1h_wkMMc8dfiUumw4XD7anSkhWcM4coEXQJAVjGSKORwIMGLgq9t6Fi/exec';
+
+// เก็บข้อมูลบุคลากรไว้ในหน่วยความจำ เพื่อให้แสดงผลแบบ Zero-Error Performance
+let cachedPersonnelData = [];
 
 document.addEventListener('DOMContentLoaded', () => {
   console.log('🚀 System Initialized. Zero-Error Standard Active.');
   
-  // 1. ดึงข้อมูลครั้งแรกเมื่อเปิดเว็บ
+  // 1. ดึงข้อมูลเมื่อเปิดเว็บ
   fetchData();
   
   // 2. ผูก Event Listener สำหรับระบบค้นหาและตัวกรอง
@@ -12,7 +15,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const filterYear = document.getElementById('filterYear');
   const filterCourse = document.getElementById('filterCourse');
   
-  // ระบบ Debounce ป้องกันการยิง API ถี่เกินไป
   let delayTimer;
   const triggerSearch = () => {
     clearTimeout(delayTimer);
@@ -26,11 +28,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 3. ผูก Event Listener สำหรับปุ่มนำเข้า Excel
   document.getElementById('excelUpload').addEventListener('change', handleExcelUpload);
-  
-  // 4. ปุ่มเพิ่มบุคคล (เตรียมไว้สำหรับเฟสต่อไป)
-  document.getElementById('addPersonBtn').addEventListener('click', () => {
-    alert('เตรียมพบกับฟีเจอร์ Slide-over Panel สำหรับเพิ่มรายบุคคลในเร็วๆ นี้ครับ!');
-  });
 });
 
 // ฟังก์ชันหลัก: ดึงข้อมูลและอัปเดตหน้าจอ
@@ -44,7 +41,9 @@ async function fetchData() {
     const result = await res.json();
     
     if (result.status === 'success') {
-      // อัปเดตตัวเลข KPI Dashboard
+      cachedPersonnelData = result.data.list; // จัดเก็บเข้า Cache
+      
+      // อัปเดต KPI Dashboard
       document.getElementById('stat-total').textContent = result.data.stats.total;
       document.getElementById('stat-recent').textContent = result.data.stats.recent;
       document.getElementById('stat-top-course').textContent = result.data.stats.topCourse;
@@ -91,13 +90,11 @@ function handleExcelUpload(e) {
       const firstSheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[firstSheetName];
       
-      // แปลงข้อมูลเป็น JSON
       const jsonRows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
       
-      // Zero-Error Check: ตรวจสอบหัวคอลัมน์
       if (jsonRows.length > 0 && !('ชื่อ-นามสกุล' in jsonRows[0])) {
         alert("❌ โครงสร้างไฟล์ผิดพลาด กรุณาใช้ Template มาตรฐานของระบบ");
-        e.target.value = ''; // เคลียร์ไฟล์ทิ้ง
+        e.target.value = ''; 
         return;
       }
 
@@ -113,10 +110,10 @@ function handleExcelUpload(e) {
          const result = await response.json();
          if(result.status === 'success') {
             alert(`✅ นำเข้าข้อมูลสำเร็จ!\n${result.message}`);
-            fetchData(); // รีเฟรชหน้าจอใหม่
+            fetchData(); 
          } else {
             alert(`❌ เกิดข้อผิดพลาด: ${result.message}`);
-            fetchData(); // โหลดข้อมูลเดิมกลับมา
+            fetchData(); 
          }
       }
     } catch (error) {
@@ -125,9 +122,88 @@ function handleExcelUpload(e) {
       fetchData();
     }
     
-    e.target.value = ''; // เคลียร์ช่อง input ให้พร้อมอัปโหลดรอบใหม่เสมอ
+    e.target.value = ''; 
   };
   reader.readAsArrayBuffer(file);
+}
+
+// ==========================================
+// UX/UI Controller สำหรับ Slide-over Panel
+// ==========================================
+window.viewProfile = function(uid) {
+  const person = cachedPersonnelData.find(p => p.uid === uid);
+  if (!person) return;
+
+  document.getElementById('profileName').textContent = person.fullName;
+  document.getElementById('profileUid').textContent = `รหัสอ้างอิง: ${person.uid}`;
+  document.getElementById('profileAgency').textContent = `${person.agency} (${person.status})`;
+
+  const timelineEl = document.getElementById('profileTrainings');
+  if (person.trainings && person.trainings.length > 0) {
+    const sortedTrainings = person.trainings.sort((a, b) => b.year - a.year);
+    timelineEl.innerHTML = sortedTrainings.map(t => `
+      <li class="relative pl-6 pb-4 border-b border-gray-50 last:border-0 last:pb-0">
+        <div class="absolute w-3 h-3 bg-blue-500 rounded-full -left-[7px] top-1.5 ring-4 ring-white"></div>
+        <p class="text-sm font-bold text-gray-800">${t.course}</p>
+        <p class="text-xs text-gray-500 mt-0.5">ปีการศึกษา: ${t.year}</p>
+      </li>
+    `).join('');
+  } else {
+    timelineEl.innerHTML = `<li class="text-sm text-gray-400 pl-4">ยังไม่มีประวัติการอบรม</li>`;
+  }
+
+  const slideOver = document.getElementById('slideOver');
+  const backdrop = document.getElementById('slideOverBackdrop');
+  const panel = document.getElementById('slideOverPanel');
+
+  slideOver.classList.remove('hidden');
+  
+  setTimeout(() => {
+    backdrop.classList.remove('opacity-0');
+    backdrop.classList.add('opacity-100');
+    
+    panel.classList.remove('translate-x-full');
+    panel.classList.add('translate-x-0');
+  }, 10);
+  
+  switchTab('general');
+}
+
+window.closeProfile = function() {
+  const slideOver = document.getElementById('slideOver');
+  const backdrop = document.getElementById('slideOverBackdrop');
+  const panel = document.getElementById('slideOverPanel');
+
+  backdrop.classList.remove('opacity-100');
+  backdrop.classList.add('opacity-0');
+  
+  panel.classList.remove('translate-x-0');
+  panel.classList.add('translate-x-full');
+
+  setTimeout(() => {
+    slideOver.classList.add('hidden');
+  }, 300);
+}
+
+window.switchTab = function(tabName) {
+  const tabs = ['general', 'duty', 'eval'];
+  
+  tabs.forEach(t => {
+    const btn = document.getElementById(`tab-btn-${t}`);
+    const content = document.getElementById(`tab-content-${t}`);
+    
+    if (t === tabName) {
+      btn.classList.add('border-blue-600', 'text-blue-700', 'font-bold');
+      btn.classList.remove('border-transparent', 'text-gray-500', 'font-medium');
+      content.classList.remove('hidden');
+      content.classList.add('block');
+    } else {
+      btn.classList.add('border-transparent', 'text-gray-500', 'font-medium');
+      btn.classList.remove('border-blue-600', 'text-blue-700', 'font-bold');
+      content.classList.remove('block');
+      content.classList.add('hidden');
+    }
+  });
 }
 
 // ฟังก์ชัน UI Utilities
@@ -146,8 +222,4 @@ function showLoadingState(message = "กำลังประมวลผลข�
 
 function showErrorState(message) {
   document.getElementById('tableBody').innerHTML = `<tr><td colspan="5" class="px-6 py-12 text-center text-red-500 font-medium">❌ ${message}</td></tr>`;
-}
-
-window.viewProfile = function(uid) {
-  alert('เปิดหน้าประวัติของรหัส: ' + uid);
 }
