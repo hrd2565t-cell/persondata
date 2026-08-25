@@ -3,221 +3,270 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ระบบทะเบียนบุคลากรกีฬา (Executive Dashboard)</title>
+  <title>ระบบทะเบียนบุคลากรกีฬา | Executive Dashboard</title>
+  
+  <!-- Tailwind CSS & Google Fonts (Plus Jakarta Sans / Inter) -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    /* Custom Scrollbar for Sleek Look */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  </style>
 </head>
-<body class="bg-gray-50 text-gray-800 font-sans antialiased selection:bg-blue-200">
+<body class="bg-slate-900 text-slate-800 antialiased selection:bg-blue-500 selection:text-white min-h-screen flex flex-col">
 
-  <!-- Navbar -->
-  <nav class="bg-blue-900 shadow-md border-b-4 border-blue-700">
+  <!-- 🔵 Modern Navbar with Glass Effect -->
+  <nav class="bg-slate-950/80 backdrop-blur-md border-b border-slate-800 sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between h-16 items-center">
-        <div class="flex-shrink-0 flex items-center gap-3">
-          <div class="bg-white text-blue-900 p-1.5 rounded-lg">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+        <div class="flex items-center gap-3">
+          <div class="bg-gradient-to-tr from-blue-600 to-indigo-600 text-white p-2 rounded-xl shadow-lg shadow-blue-500/20">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
           </div>
-          <h1 class="text-white text-lg font-bold tracking-wide">ระบบทะเบียนบุคลากรกีฬา</h1>
+          <div>
+            <h1 class="text-white text-base font-bold tracking-wide">Sports HR & Training System</h1>
+            <p class="text-xs text-slate-400">ระบบทะเบียนและประเมินบุคลากรกีฬาอัจฉริยะ</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-full">
+          <span class="relative flex h-2.5 w-2.5">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+          </span>
+          <span class="text-xs font-medium text-slate-300">API Connected</span>
         </div>
       </div>
     </div>
   </nav>
 
-  <!-- Top Tabs Menu (เพิ่มเมนูไทม์ไลน์) -->
-  <div class="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-40">
+  <!-- 🟢 Modern Top Tabs Navigation -->
+  <div class="bg-slate-900 border-b border-slate-800 shadow-sm sticky top-16 z-40 backdrop-blur-md">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <nav class="-mb-px flex space-x-8" aria-label="Tabs">
-        <button onclick="switchPage('dashboard')" id="nav-btn-dashboard" class="border-blue-600 text-blue-700 whitespace-nowrap py-4 px-1 border-b-2 font-bold text-sm transition-colors">
+      <nav class="flex space-x-1 sm:space-x-6 overflow-x-auto" aria-label="Tabs">
+        <button onclick="switchPage('dashboard')" id="nav-btn-dashboard" class="border-blue-500 text-blue-400 whitespace-nowrap py-4 px-3 border-b-2 font-bold text-sm transition-all flex items-center gap-2">
           📊 แดชบอร์ดสรุปผล
         </button>
-        <button onclick="switchPage('search')" id="nav-btn-search" class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors">
-          🔍 ค้นหาข้อมูลบุคลากร
+        <button onclick="switchPage('search')" id="nav-btn-search" class="border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700 whitespace-nowrap py-4 px-3 border-b-2 font-medium text-sm transition-all flex items-center gap-2">
+          🔍 ค้นหาบุคลากร
         </button>
-        <button onclick="switchPage('timeline')" id="nav-btn-timeline" class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors">
+        <button onclick="switchPage('timeline')" id="nav-btn-timeline" class="border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700 whitespace-nowrap py-4 px-3 border-b-2 font-medium text-sm transition-all flex items-center gap-2">
           📅 ไทม์ไลน์โครงการ
         </button>
-        <button onclick="switchPage('import')" id="nav-btn-import" class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors">
+        <button onclick="switchPage('import')" id="nav-btn-import" class="border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700 whitespace-nowrap py-4 px-3 border-b-2 font-medium text-sm transition-all flex items-center gap-2">
           📥 นำเข้าข้อมูล
         </button>
       </nav>
     </div>
   </div>
 
-  <!-- Main Content Area -->
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <!-- 🟢 Main Content Area -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
     
-    <!-- PAGE 1: Dashboard -->
+    <!-- ================= PAGE 1: Dashboard ================= -->
     <div id="page-dashboard" class="page-section block space-y-6">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-blue-600 transition hover:shadow-md">
-          <h2 class="text-sm font-semibold text-gray-500">บุคลากรในระบบทั้งหมด</h2>
-          <div class="flex items-baseline mt-3 gap-2">
-            <p class="text-4xl font-bold text-blue-900" id="stat-total">--</p>
-            <span class="text-sm text-gray-400 font-medium">คน</span>
+        <!-- Card 1 -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden group hover:border-blue-500/50 transition-all">
+          <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-blue-500/10 rounded-full blur-xl group-hover:bg-blue-500/20 transition-all"></div>
+          <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400">บุคลากรในระบบทั้งหมด</h2>
+          <div class="flex items-baseline mt-4 gap-2">
+            <p class="text-5xl font-extrabold text-white tracking-tight" id="stat-total">--</p>
+            <span class="text-sm text-slate-400 font-medium">คน</span>
           </div>
         </div>
-        <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-green-500 transition hover:shadow-md">
-          <h2 class="text-sm font-semibold text-gray-500">ผ่านการอบรมปีล่าสุด</h2>
-          <div class="flex items-baseline mt-3 gap-2">
-            <p class="text-4xl font-bold text-gray-800" id="stat-recent">--</p>
-            <span class="text-sm text-gray-400 font-medium">รายการ</span>
+        <!-- Card 2 -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden group hover:border-emerald-500/50 transition-all">
+          <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-emerald-500/10 rounded-full blur-xl group-hover:bg-emerald-500/20 transition-all"></div>
+          <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400">ผ่านการอบรมปีล่าสุด</h2>
+          <div class="flex items-baseline mt-4 gap-2">
+            <p class="text-5xl font-extrabold text-emerald-400 tracking-tight" id="stat-recent">--</p>
+            <span class="text-sm text-slate-400 font-medium">รายการ</span>
           </div>
         </div>
-        <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-amber-500 transition hover:shadow-md">
-          <h2 class="text-sm font-semibold text-gray-500">หลักสูตรที่มีผู้เรียนสูงสุด</h2>
-          <p class="text-2xl font-bold text-gray-800 mt-3 truncate" id="stat-top-course">กำลังประมวลผล...</p>
+        <!-- Card 3 -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden group hover:border-amber-500/50 transition-all">
+          <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-amber-500/10 rounded-full blur-xl group-hover:bg-amber-500/20 transition-all"></div>
+          <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400">หลักสูตรที่มีผู้เรียนสูงสุด</h2>
+          <p class="text-xl font-bold text-amber-300 mt-4 truncate" id="stat-top-course">กำลังประมวลผล...</p>
         </div>
       </div>
-      <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex items-center justify-center h-64">
-         <p class="text-gray-400 text-sm font-medium">พื้นที่สำหรับแสดงกราฟสรุปผล (Chart.js)</p>
+      
+      <!-- Analytics Placeholder -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-xl flex flex-col items-center justify-center h-72 text-center">
+         <div class="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 mb-3">
+           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+         </div>
+         <h3 class="text-white font-semibold text-base">ระบบวิเคราะห์เชิงลึก (Analytics & Insights)</h3>
+         <p class="text-slate-400 text-sm mt-1">เตรียมพบกับกราฟสรุปสถิติกองทุนและการปฏิบัติหน้าที่ในอัปเดตถัดไป</p>
       </div>
     </div>
 
-    <!-- PAGE 2: Search & Table -->
+    <!-- ================= PAGE 2: Search & Table ================= -->
     <div id="page-search" class="page-section hidden space-y-6">
-      <section class="bg-white rounded-xl shadow-sm p-5 flex flex-col md:flex-row justify-between items-center gap-4 border border-gray-100">
+      
+      <!-- Smart Search Filters -->
+      <section class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col md:flex-row justify-between items-center gap-4">
         <div class="w-full md:w-1/2 relative group">
-          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <svg class="h-5 w-5 text-gray-400 group-focus-within:text-blue-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+          <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+            <svg class="h-5 w-5 text-slate-500 group-focus-within:text-blue-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
           </div>
-          <input type="text" id="searchInput" placeholder="ค้นหาด้วยชื่อ, หน่วยงาน หรือรหัส UID..." class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+          <input type="text" id="searchInput" placeholder="ค้นหาด้วยชื่อ, หน่วยงาน หรือรหัส UID..." class="w-full pl-11 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm transition-all shadow-inner">
         </div>
+        
         <div class="w-full md:w-auto flex gap-3">
-          <select id="filterYear" class="bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-lg focus:ring-2 focus:ring-blue-500 p-2.5 outline-none cursor-pointer min-w-[140px]">
+          <select id="filterYear" class="bg-slate-950 border border-slate-800 text-slate-300 text-sm rounded-xl focus:ring-2 focus:ring-blue-500 p-3 outline-none cursor-pointer min-w-[150px] shadow-inner">
             <option value="">ทุกปีการศึกษา</option>
           </select>
-          <select id="filterCourse" class="bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-lg focus:ring-2 focus:ring-blue-500 p-2.5 outline-none cursor-pointer min-w-[160px]">
+          <select id="filterCourse" class="bg-slate-950 border border-slate-800 text-slate-300 text-sm rounded-xl focus:ring-2 focus:ring-blue-500 p-3 outline-none cursor-pointer min-w-[180px] shadow-inner">
             <option value="">ทุกหลักสูตร</option>
           </select>
         </div>
       </section>
 
-      <section class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
+      <!-- Data Table -->
+      <section class="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
         <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-blue-900 text-white">
+          <table class="min-w-full divide-y divide-slate-800">
+            <thead class="bg-slate-950/80 text-slate-400 text-xs font-semibold uppercase tracking-wider">
               <tr>
-                <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider w-32">รหัส UID</th>
-                <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">ชื่อ-นามสกุล</th>
-                <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">หน่วยงาน</th>
-                <th scope="col" class="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider w-32">สถานะ</th>
-                <th scope="col" class="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider w-24">จัดการ</th>
+                <th scope="col" class="px-6 py-4 text-left w-36">รหัส UID</th>
+                <th scope="col" class="px-6 py-4 text-left">ชื่อ-นามสกุล</th>
+                <th scope="col" class="px-6 py-4 text-left">หน่วยงาน</th>
+                <th scope="col" class="px-6 py-4 text-center w-32">สถานะ</th>
+                <th scope="col" class="px-6 py-4 text-right w-28">จัดการ</th>
               </tr>
             </thead>
-            <tbody id="tableBody" class="bg-white divide-y divide-gray-200">
-              <tr><td colspan="5" class="px-6 py-12 text-center text-blue-600 font-medium">กำลังเชื่อมต่อฐานข้อมูล...</td></tr>
+            <tbody id="tableBody" class="divide-y divide-slate-800/60 text-slate-300 text-sm">
+              <tr><td colspan="5" class="px-6 py-16 text-center text-blue-400 font-medium">กำลังเชื่อมต่อฐานข้อมูล...</td></tr>
             </tbody>
           </table>
         </div>
       </section>
     </div>
 
-    <!-- PAGE 3: Timeline (หน้าใหม่ตามแบบที่คุณต้องการ) -->
+    <!-- ================= PAGE 3: Timeline ================= -->
     <div id="page-timeline" class="page-section hidden space-y-6">
-      <div class="bg-white rounded-xl shadow-sm p-5 border border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col md:flex-row justify-between items-center gap-4">
         <div>
-          <h2 class="text-lg font-bold text-blue-900">แผนผังระยะเวลาดำเนินการหลักสูตร (Timeline)</h2>
-          <p class="text-xs text-gray-500 mt-0.5">แสดงความต่อเนื่องของการเปิดอบรมในแต่ละปีงบประมาณ</p>
+          <h2 class="text-lg font-bold text-white">แผนผังระยะเวลาดำเนินการหลักสูตร (Timeline)</h2>
+          <p class="text-xs text-slate-400 mt-1">แสดงความต่อเนื่องของการเปิดอบรมในแต่ละปีงบประมาณ</p>
         </div>
-        <div class="flex items-center gap-2 text-xs font-medium text-gray-600">
-          <span class="flex items-center gap-1"><span class="w-3 h-3 bg-blue-600 rounded-sm inline-block"></span> มีการจัดอบรม</span>
-          <span class="flex items-center gap-1 ml-3"><span class="w-3 h-3 bg-gray-200 rounded-sm inline-block"></span> ไม่มีประวัติการจัด</span>
+        <div class="flex items-center gap-3 text-xs font-medium text-slate-300 bg-slate-950 px-4 py-2 rounded-xl border border-slate-800">
+          <span class="flex items-center gap-1.5"><span class="w-3 h-3 bg-blue-600 rounded-sm inline-block shadow-sm shadow-blue-500/50"></span> มีการจัดอบรม</span>
+          <span class="flex items-center gap-1.5 ml-2"><span class="w-3 h-3 bg-slate-800 rounded-sm inline-block"></span> ไม่มีประวัติการจัด</span>
         </div>
       </div>
 
-      <!-- ตาราง Timeline แบบไดนามิก -->
-      <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
         <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200" id="timelineTable">
-            <thead class="bg-gray-100 text-gray-700">
-              <tr id="timelineHeaderRow">
-                <!-- JavaScript จะมาวาดหัวคอลัมน์ปี พ.ศ. ตรงนี้ -->
-              </tr>
+          <table class="min-w-full divide-y divide-slate-800" id="timelineTable">
+            <thead class="bg-slate-950/80 text-slate-400">
+              <tr id="timelineHeaderRow"></tr>
             </thead>
-            <tbody id="timelineBody" class="bg-white divide-y divide-gray-200">
-              <!-- JavaScript จะมาวาดแถวข้อมูลหลักสูตรและแท่ง Timeline ตรงนี้ -->
-            </tbody>
+            <tbody id="timelineBody" class="divide-y divide-slate-800/60 text-slate-300 text-sm"></tbody>
           </table>
         </div>
       </div>
     </div>
 
-    <!-- PAGE 4: Import Data -->
+    <!-- ================= PAGE 4: Import Data ================= -->
     <div id="page-import" class="page-section hidden">
-      <div class="max-w-2xl mx-auto bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center space-y-6">
-        <div class="inline-block p-4 bg-blue-50 rounded-full text-blue-600 mb-2">
-           <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+      <div class="max-w-xl mx-auto bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl p-10 text-center space-y-6">
+        
+        <div class="w-20 h-20 mx-auto bg-blue-500/10 border border-blue-500/20 rounded-2xl flex items-center justify-center text-blue-400 shadow-inner">
+           <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
         </div>
+        
         <div>
-          <h2 class="text-xl font-bold text-gray-800">นำเข้าข้อมูลบุคลากรแบบกลุ่ม (Bulk Import)</h2>
-          <p class="text-sm text-gray-500 mt-2">อัปโหลดไฟล์ Excel (.xlsx) ตามโครงสร้างเทมเพลตมาตรฐานของระบบ</p>
+          <h2 class="text-xl font-bold text-white">นำเข้าข้อมูลบุคลากรแบบกลุ่ม</h2>
+          <p class="text-sm text-slate-400 mt-2">อัปโหลดไฟล์ Excel (.xlsx) ตามโครงสร้างเทมเพลตมาตรฐานของระบบ</p>
         </div>
-        <div class="pt-6 border-t border-gray-100">
-           <label class="cursor-pointer bg-blue-800 hover:bg-blue-900 text-white font-medium py-3 px-8 rounded-lg shadow-sm transition-all inline-flex items-center gap-2">
+
+        <div class="pt-4 border-t border-slate-800">
+           <label class="cursor-pointer bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold py-3.5 px-8 rounded-xl shadow-lg shadow-blue-600/30 transition-all inline-flex items-center gap-2 text-sm">
              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
              เลือกไฟล์ Excel เพื่ออัปโหลด
              <input type="file" id="excelUpload" accept=".xlsx, .xls" class="hidden" />
            </label>
+           <p class="text-xs text-slate-500 mt-3">ระบบจะตรวจสอบความถูกต้องของโครงสร้างไฟล์ (Zero-Error Check) อัตโนมัติ</p>
         </div>
+
       </div>
     </div>
 
   </main>
 
-  <!-- Slide-over Panel (คงไว้เหมือนเดิม) -->
+  <!-- 🟢 Modern Slide-over Panel with Glass Backdrop -->
   <div id="slideOver" class="fixed inset-0 z-50 hidden" aria-labelledby="slide-over-title" role="dialog" aria-modal="true">
-    <div id="slideOverBackdrop" class="fixed inset-0 bg-gray-900 bg-opacity-50 transition-opacity opacity-0" onclick="closeProfile()"></div>
+    <div id="slideOverBackdrop" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity opacity-0" onclick="closeProfile()"></div>
     <div class="fixed inset-y-0 right-0 z-50 flex max-w-full pl-10">
       <div id="slideOverPanel" class="w-screen max-w-md transform transition ease-in-out duration-300 translate-x-full">
-        <div class="flex h-full flex-col bg-white shadow-2xl">
-          <div class="bg-blue-900 px-4 py-6 sm:px-6 shadow-md z-10 flex-shrink-0">
+        <div class="flex h-full flex-col bg-slate-900 border-l border-slate-800 shadow-2xl">
+          
+          <!-- Header -->
+          <div class="bg-slate-950 px-6 py-6 border-b border-slate-800 flex-shrink-0">
             <div class="flex items-start justify-between">
               <div>
-                <h2 class="text-xl font-bold text-white" id="profileName">ชื่อ-นามสกุล</h2>
-                <p class="text-blue-200 text-sm mt-1" id="profileUid">UID: ---</p>
+                <h2 class="text-lg font-bold text-white" id="profileName">ชื่อ-นามสกุล</h2>
+                <p class="text-blue-400 text-xs font-mono mt-1" id="profileUid">UID: ---</p>
               </div>
-              <button type="button" onclick="closeProfile()" class="rounded-md bg-blue-900 text-blue-200 hover:text-white">
-                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+              <button type="button" onclick="closeProfile()" class="rounded-xl bg-slate-900 p-2 text-slate-400 hover:text-white border border-slate-800 transition-colors">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
               </button>
             </div>
           </div>
-          <div class="border-b border-gray-200 bg-gray-50 flex-shrink-0">
-            <nav class="-mb-px flex" aria-label="Tabs">
-              <button onclick="switchTab('general')" id="tab-btn-general" class="w-1/3 border-b-2 border-blue-600 py-3 px-1 text-center text-sm font-bold text-blue-700 transition-colors">ประวัติอบรม</button>
-              <button onclick="switchTab('duty')" id="tab-btn-duty" class="w-1/3 border-b-2 border-transparent py-3 px-1 text-center text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors">ปฏิบัติหน้าที่</button>
-              <button onclick="switchTab('eval')" id="tab-btn-eval" class="w-1/3 border-b-2 border-transparent py-3 px-1 text-center text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors">ประเมินผล</button>
+
+          <!-- Tabs -->
+          <div class="border-b border-slate-800 bg-slate-950/50 flex-shrink-0 px-6">
+            <nav class="-mb-px flex space-x-6" aria-label="Tabs">
+              <button onclick="switchTab('general')" id="tab-btn-general" class="border-blue-500 text-blue-400 whitespace-nowrap py-3.5 border-b-2 font-bold text-xs transition-colors uppercase tracking-wider">ประวัติอบรม</button>
+              <button onclick="switchTab('duty')" id="tab-btn-duty" class="border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap py-3.5 border-b-2 font-medium text-xs transition-colors uppercase tracking-wider">ปฏิบัติหน้าที่</button>
+              <button onclick="switchTab('eval')" id="tab-btn-eval" class="border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap py-3.5 border-b-2 font-medium text-xs transition-colors uppercase tracking-wider">ประเมินผล</button>
             </nav>
           </div>
-          <div class="relative flex-1 px-4 py-6 sm:px-6 overflow-y-auto bg-white">
-            <div id="tab-content-general" class="block space-y-6">
+
+          <!-- Content -->
+          <div class="relative flex-1 px-6 py-6 overflow-y-auto space-y-6 bg-slate-900">
+            
+            <!-- Tab 1 -->
+            <div id="tab-content-general" class="block space-y-5">
               <div>
-                <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">หน่วยงานต้นสังกัด</h3>
-                <p class="text-sm font-medium text-gray-900 bg-gray-50 p-3 rounded-lg border border-gray-100" id="profileAgency">---</p>
+                <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">หน่วยงานต้นสังกัด</h3>
+                <p class="text-sm font-medium text-slate-200 bg-slate-950 p-3.5 rounded-xl border border-slate-800" id="profileAgency">---</p>
               </div>
               <div>
-                <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">ไทม์ไลน์การอบรม</h3>
-                <ul class="space-y-4 relative border-l-2 border-blue-100 ml-3" id="profileTrainings"></ul>
+                <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">ไทม์ไลน์การอบรม</h3>
+                <ul class="space-y-4 relative border-l-2 border-blue-500/30 ml-3 pl-4" id="profileTrainings"></ul>
               </div>
             </div>
-            <div id="tab-content-duty" class="hidden space-y-6">
-              <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
-                <h3 class="text-sm font-bold text-blue-900 mb-3">เพิ่มประวัติการปฏิบัติหน้าที่</h3>
-                <div class="space-y-3">
-                  <input type="text" id="inputDutySport" placeholder="ชนิดกีฬา" class="w-full text-sm border-gray-200 rounded-md p-2 outline-none border">
-                  <input type="text" id="inputDutyRole" placeholder="ประเภทบุคลากร" class="w-full text-sm border-gray-200 rounded-md p-2 outline-none border">
-                  <button id="btnSaveDuty" onclick="submitDuty()" class="w-full bg-blue-700 text-white text-sm font-medium py-2 rounded-md">บันทึกข้อมูล</button>
-                </div>
+
+            <!-- Tab 2 -->
+            <div id="tab-content-duty" class="hidden space-y-5">
+              <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
+                <h3 class="text-xs font-semibold text-blue-400 uppercase tracking-wider">เพิ่มประวัติการปฏิบัติหน้าที่</h3>
+                <input type="text" id="inputDutySport" placeholder="ชนิดกีฬา (เช่น ฟุตบอล, กรีฑา)" class="w-full text-sm bg-slate-900 border border-slate-800 rounded-xl p-3 text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" id="inputDutyRole" placeholder="ประเภทบุคลากร (เช่น ผู้ตัดสิน)" class="w-full text-sm bg-slate-900 border border-slate-800 rounded-xl p-3 text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-blue-500">
+                <button id="btnSaveDuty" onclick="submitDuty()" class="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold py-2.5 rounded-xl shadow-md transition-colors">บันทึกข้อมูล</button>
               </div>
-              <ul class="space-y-3" id="profileDuties"></ul>
+              <div class="space-y-3" id="profileDuties"></div>
             </div>
-            <div id="tab-content-eval" class="hidden space-y-6">
+
+            <!-- Tab 3 -->
+            <div id="tab-content-eval" class="hidden space-y-5">
                <div class="space-y-3">
-                  <label class="block text-sm font-bold text-blue-900">เพิ่มข้อเสนอแนะ</label>
-                  <textarea id="inputEvalFeedback" rows="4" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm outline-none border" placeholder="บันทึกข้อเสนอแนะ..."></textarea>
-                  <button id="btnSaveEval" onclick="submitEval()" class="w-full bg-blue-800 text-white font-medium py-2.5 rounded-lg">บันทึกข้อเสนอแนะ</button>
+                  <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider">เพิ่มข้อเสนอแนะเชิงธรรมาภิบาล</label>
+                  <textarea id="inputEvalFeedback" rows="4" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3.5 text-sm text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-blue-500" placeholder="บันทึกข้อคิดเห็นและข้อเสนอแนะ..."></textarea>
+                  <button id="btnSaveEval" onclick="submitEval()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 rounded-xl shadow-md transition-colors text-sm">บันทึกข้อเสนอแนะ</button>
                </div>
-               <div class="pt-4 border-t border-gray-100" id="profileEvals"></div>
+               <div class="pt-4 border-t border-slate-800 space-y-3" id="profileEvals"></div>
             </div>
+
           </div>
         </div>
       </div>
