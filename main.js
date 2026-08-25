@@ -1,78 +1,113 @@
-// URL API ของคุณ (ตรวจสอบให้ตรงกับเวอร์ชันล่าสุดหลังจาก Deploy ใหม่)
-const API_URL = 'https://script.google.com/macros/s/AKfycbw--515Ocaod1h_wkMMc8dfiUumw4XD7anSkhWcM4coEXQJAVjGSKORwIMGLgq9t6Fi/exec';
+const API_URL = 'ใส่_URL_WEB_APP_ของคุณที่นี่'; // << อย่าลืมแก้ตรงนี้
 
 document.addEventListener('DOMContentLoaded', () => {
-  // สั่งให้โหลดข้อมูลทันทีที่เปิดเว็บ
-  fetchDashboardStats();
-  fetchPersonnel(''); 
+  fetchData(); // โหลดครั้งแรก
   
+  // 1. จัดการระบบค้นหา และ ตัวกรอง (Smart Filters)
   const searchInput = document.getElementById('searchInput');
-  let searchTimeout;
+  const filterYear = document.getElementById('filterYear');
+  const filterCourse = document.getElementById('filterCourse');
   
-  // ระบบค้นหาแบบหน่วงเวลา (Debounce) ป้องกันการยิง API ถี่เกินไป
-  searchInput.addEventListener('input', (e) => {
-    clearTimeout(searchTimeout);
-    const keyword = e.target.value.trim();
-    
+  let delayTimer;
+  const triggerSearch = () => {
+    clearTimeout(delayTimer);
     document.getElementById('tableBody').innerHTML = `<tr><td colspan="5" class="px-6 py-12 text-center text-gray-500">กำลังประมวลผลข้อมูล...</td></tr>`;
-    
-    searchTimeout = setTimeout(() => {
-      fetchPersonnel(keyword);
-    }, 500);
-  });
+    delayTimer = setTimeout(fetchData, 500);
+  };
+
+  searchInput.addEventListener('input', triggerSearch);
+  filterYear.addEventListener('change', triggerSearch);
+  filterCourse.addEventListener('change', triggerSearch);
+
+  // 2. จัดการการอัปโหลดไฟล์ (SheetJS)
+  document.getElementById('excelUpload').addEventListener('change', handleExcelUpload);
 });
 
-// ฟังก์ชันดึง KPI ผู้บริหาร
-async function fetchDashboardStats() {
-  try {
-    const response = await fetch(`${API_URL}?action=getDashboardStats`);
-    const result = await response.json();
-    
-    if (result.status === 'success') {
-      document.getElementById('stat-total').textContent = result.data.total;
-      document.getElementById('stat-recent').textContent = result.data.recent;
-      document.getElementById('stat-top-course').textContent = result.data.topCourse;
-    }
-  } catch (error) {
-    console.error('API Error:', error);
-  }
-}
+// ฟังก์ชันหลัก: ดึงข้อมูลและอัปเดตหน้าจอ
+async function fetchData() {
+  const keyword = document.getElementById('searchInput').value.trim();
+  const year = document.getElementById('filterYear').value;
+  const course = document.getElementById('filterCourse').value;
 
-// ฟังก์ชันดึงตารางรายชื่อ
-async function fetchPersonnel(keyword) {
   try {
-    const response = await fetch(`${API_URL}?action=searchPersonnel&keyword=${encodeURIComponent(keyword)}`);
-    const result = await response.json();
-    const tbody = document.getElementById('tableBody');
+    const res = await fetch(`${API_URL}?action=getData&keyword=${encodeURIComponent(keyword)}&year=${year}&course=${encodeURIComponent(course)}`);
+    const result = await res.json();
     
     if (result.status === 'success') {
-      const data = result.data;
-      if (data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-12 text-center text-red-500 font-bold">ไม่พบข้อมูลที่ค้นหา</td></tr>`;
+      // อัปเดต Dashboard
+      document.getElementById('stat-total').textContent = result.data.stats.total;
+      document.getElementById('stat-recent').textContent = result.data.stats.recent;
+      document.getElementById('stat-top-course').textContent = result.data.stats.topCourse;
+      
+      // อัปเดต Table
+      const tbody = document.getElementById('tableBody');
+      if (result.data.list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-12 text-center text-red-500">ไม่พบข้อมูลที่ตรงกับเงื่อนไข</td></tr>`;
         return;
       }
       
-      // หยอดข้อมูลลงตาราง (Executive UI)
-      tbody.innerHTML = data.map(item => `
-        <tr class="hover:bg-blue-50 transition-colors">
+      tbody.innerHTML = result.data.list.map(item => `
+        <tr class="hover:bg-blue-50 border-b border-gray-100">
           <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-blue-900">${item.uid}</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">${item.fullName}</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">${item.agency}</td>
           <td class="px-6 py-4 whitespace-nowrap text-center">
-            <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${item.status === 'ปฏิบัติงาน' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">${item.status}</span>
+             <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">${item.status}</span>
           </td>
-          <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-            <button onclick="viewProfile('${item.uid}')" class="text-blue-600 hover:text-blue-900 bg-blue-50 px-3 py-1 rounded-md">ดูประวัติ</button>
+          <td class="px-6 py-4 whitespace-nowrap text-right text-sm">
+             <button class="text-blue-600 bg-blue-50 px-3 py-1 rounded-md hover:bg-blue-100">ดูประวัติ</button>
           </td>
         </tr>
       `).join('');
     }
   } catch (error) {
-    document.getElementById('tableBody').innerHTML = `<tr><td colspan="5" class="px-6 py-12 text-center text-red-500">การเชื่อมต่อขัดข้อง</td></tr>`;
+    console.error(error);
   }
 }
 
-// ฟังก์ชันจำลองเปิดหน้าประวัติ
-window.viewProfile = function(uid) {
-  alert('กำลังเปิดหน้าประวัติและแก้ไขข้อมูลของ: ' + uid + '\n(สเต็ปต่อไปเราจะทำเป็น Modal สวยๆ กันครับ!)');
+// ฟังก์ชันนำเข้าไฟล์ Excel แบบ Zero-Error
+function handleExcelUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = async function(event) {
+    const data = new Uint8Array(event.target.result);
+    const workbook = XLSX.read(data, {type: 'array'});
+    const firstSheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[firstSheetName];
+    
+    // แปลงข้อมูลเป็น JSON
+    const jsonRows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+    
+    // ตรวจสอบหัวคอลัมน์ (Zero-Error Check)
+    if (jsonRows.length > 0 && !('ชื่อ-นามสกุล' in jsonRows[0])) {
+      alert("❌ โครงสร้างไฟล์ผิดพลาด กรุณาใช้ Template ที่กำหนด");
+      return;
+    }
+
+    if(confirm(`ตรวจพบข้อมูล ${jsonRows.length} แถว ต้องการบันทึกเข้าสู่ระบบใช่หรือไม่?`)) {
+       try {
+         document.getElementById('tableBody').innerHTML = `<tr><td colspan="5" class="px-6 py-12 text-center text-blue-600 font-bold">กำลังอัปโหลดข้อมูลเข้าฐานข้อมูล...</td></tr>`;
+         
+         const response = await fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'bulkImport', rows: jsonRows }),
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' } // หลบ CORS
+         });
+         
+         const result = await response.json();
+         if(result.status === 'success') {
+            alert(`✅ ${result.message}`);
+            fetchData(); // รีเฟรชข้อมูลหน้าจอ
+         } else {
+            alert(`❌ เกิดข้อผิดพลาด: ${result.message}`);
+         }
+       } catch (error) {
+         alert("❌ การเชื่อมต่อล้มเหลว");
+       }
+    }
+    e.target.value = ''; // เคลียร์ช่อง input
+  };
+  reader.readAsArrayBuffer(file);
 }
