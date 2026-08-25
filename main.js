@@ -1,16 +1,11 @@
-// ล็อกเป้าหมาย API
 const API_URL = 'https://script.google.com/macros/s/AKfycbw--515Ocaod1h_wkMMc8dfiUumw4XD7anSkhWcM4coEXQJAVjGSKORwIMGLgq9t6Fi/exec';
 
-// เก็บข้อมูลบุคลากรไว้ในหน่วยความจำ เพื่อให้แสดงผลแบบ Zero-Error Performance
 let cachedPersonnelData = [];
 
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('🚀 System Initialized. Zero-Error Standard Active.');
-  
-  // 1. ดึงข้อมูลเมื่อเปิดเว็บ
+  console.log('🚀 System Initialized. Dynamic Filters Active.');
   fetchData();
   
-  // 2. ผูก Event Listener สำหรับระบบค้นหาและตัวกรอง
   const searchInput = document.getElementById('searchInput');
   const filterYear = document.getElementById('filterYear');
   const filterCourse = document.getElementById('filterCourse');
@@ -26,11 +21,9 @@ document.addEventListener('DOMContentLoaded', () => {
   filterYear.addEventListener('change', triggerSearch);
   filterCourse.addEventListener('change', triggerSearch);
 
-  // 3. ผูก Event Listener สำหรับปุ่มนำเข้า Excel
   document.getElementById('excelUpload').addEventListener('change', handleExcelUpload);
 });
 
-// ฟังก์ชันหลัก: ดึงข้อมูลและอัปเดตหน้าจอ
 async function fetchData() {
   const keyword = document.getElementById('searchInput').value.trim();
   const year = document.getElementById('filterYear').value;
@@ -41,14 +34,16 @@ async function fetchData() {
     const result = await res.json();
     
     if (result.status === 'success') {
-      cachedPersonnelData = result.data.list; // จัดเก็บเข้า Cache
+      cachedPersonnelData = result.data.list;
       
-      // อัปเดต KPI Dashboard
+      // วาด Dropdown ใหม่เสมอ โดยคงค่าที่เลือกไว้ล่าสุด
+      populateDropdown('filterYear', result.data.filters.years, year, 'ทุกปีการศึกษา');
+      populateDropdown('filterCourse', result.data.filters.courses, course, 'ทุกหลักสูตร');
+      
       document.getElementById('stat-total').textContent = result.data.stats.total;
       document.getElementById('stat-recent').textContent = result.data.stats.recent;
       document.getElementById('stat-top-course').textContent = result.data.stats.topCourse;
       
-      // อัปเดตตารางรายชื่อ
       const tbody = document.getElementById('tableBody');
       if (result.data.list.length === 0) {
         tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-12 text-center text-red-500 font-medium">ไม่พบข้อมูลที่ตรงกับเงื่อนไขการค้นหา</td></tr>`;
@@ -77,7 +72,20 @@ async function fetchData() {
   }
 }
 
-// ฟังก์ชันนำเข้าไฟล์ Excel แบบ Zero-Error
+// ฟังก์ชันสร้างตัวเลือก Dropdown อัตโนมัติ
+function populateDropdown(elementId, items, currentValue, defaultLabel) {
+  const select = document.getElementById(elementId);
+  select.innerHTML = `<option value="">${defaultLabel}</option>`; // ล้างข้อมูลเดิมและใส่ค่าเริ่มต้น
+  
+  items.forEach(item => {
+    const option = document.createElement('option');
+    option.value = item;
+    option.textContent = item;
+    select.appendChild(option);
+  });
+  select.value = currentValue; // คงค่าเดิมที่ User กำลังเลือกอยู่
+}
+
 function handleExcelUpload(e) {
   const file = e.target.files[0];
   if (!file) return;
@@ -87,49 +95,33 @@ function handleExcelUpload(e) {
     try {
       const data = new Uint8Array(event.target.result);
       const workbook = XLSX.read(data, {type: 'array'});
-      const firstSheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[firstSheetName];
-      
-      const jsonRows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+      const jsonRows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: "" });
       
       if (jsonRows.length > 0 && !('ชื่อ-นามสกุล' in jsonRows[0])) {
-        alert("❌ โครงสร้างไฟล์ผิดพลาด กรุณาใช้ Template มาตรฐานของระบบ");
-        e.target.value = ''; 
-        return;
+        alert("❌ โครงสร้างไฟล์ผิดพลาด กรุณาใช้ Template มาตรฐาน");
+        e.target.value = ''; return;
       }
 
-      if(confirm(`ตรวจพบข้อมูลบุคลากรจำนวน ${jsonRows.length} รายการ\nต้องการบันทึกเข้าสู่ระบบใช่หรือไม่?`)) {
-         showLoadingState("กำลังนำเข้าข้อมูล กรุณารอสักครู่...");
-         
+      if(confirm(`ตรวจพบข้อมูล ${jsonRows.length} รายการ\nต้องการบันทึกเข้าสู่ระบบใช่หรือไม่?`)) {
+         showLoadingState("กำลังนำเข้าข้อมูล...");
          const response = await fetch(API_URL, {
             method: 'POST',
             body: JSON.stringify({ action: 'bulkImport', rows: jsonRows }),
             headers: { 'Content-Type': 'text/plain;charset=utf-8' }
          });
-         
          const result = await response.json();
-         if(result.status === 'success') {
-            alert(`✅ นำเข้าข้อมูลสำเร็จ!\n${result.message}`);
-            fetchData(); 
-         } else {
-            alert(`❌ เกิดข้อผิดพลาด: ${result.message}`);
-            fetchData(); 
-         }
+         if(result.status === 'success') { alert(`✅ ${result.message}`); fetchData(); } 
+         else { alert(`❌ เกิดข้อผิดพลาด: ${result.message}`); fetchData(); }
       }
     } catch (error) {
-      alert("❌ เกิดข้อผิดพลาดในการอ่านไฟล์ Excel");
-      console.error(error);
-      fetchData();
+      alert("❌ เกิดข้อผิดพลาดในการอ่านไฟล์"); fetchData();
     }
-    
     e.target.value = ''; 
   };
   reader.readAsArrayBuffer(file);
 }
 
-// ==========================================
-// UX/UI Controller สำหรับ Slide-over Panel
-// ==========================================
+// UX/UI Controller
 window.viewProfile = function(uid) {
   const person = cachedPersonnelData.find(p => p.uid === uid);
   if (!person) return;
@@ -157,67 +149,41 @@ window.viewProfile = function(uid) {
   const panel = document.getElementById('slideOverPanel');
 
   slideOver.classList.remove('hidden');
-  
   setTimeout(() => {
-    backdrop.classList.remove('opacity-0');
-    backdrop.classList.add('opacity-100');
-    
-    panel.classList.remove('translate-x-full');
-    panel.classList.add('translate-x-0');
+    backdrop.classList.remove('opacity-0'); backdrop.classList.add('opacity-100');
+    panel.classList.remove('translate-x-full'); panel.classList.add('translate-x-0');
   }, 10);
-  
   switchTab('general');
 }
 
 window.closeProfile = function() {
-  const slideOver = document.getElementById('slideOver');
   const backdrop = document.getElementById('slideOverBackdrop');
   const panel = document.getElementById('slideOverPanel');
-
-  backdrop.classList.remove('opacity-100');
-  backdrop.classList.add('opacity-0');
-  
-  panel.classList.remove('translate-x-0');
-  panel.classList.add('translate-x-full');
-
-  setTimeout(() => {
-    slideOver.classList.add('hidden');
-  }, 300);
+  backdrop.classList.remove('opacity-100'); backdrop.classList.add('opacity-0');
+  panel.classList.remove('translate-x-0'); panel.classList.add('translate-x-full');
+  setTimeout(() => { document.getElementById('slideOver').classList.add('hidden'); }, 300);
 }
 
 window.switchTab = function(tabName) {
-  const tabs = ['general', 'duty', 'eval'];
-  
-  tabs.forEach(t => {
+  ['general', 'duty', 'eval'].forEach(t => {
     const btn = document.getElementById(`tab-btn-${t}`);
     const content = document.getElementById(`tab-content-${t}`);
-    
     if (t === tabName) {
       btn.classList.add('border-blue-600', 'text-blue-700', 'font-bold');
       btn.classList.remove('border-transparent', 'text-gray-500', 'font-medium');
-      content.classList.remove('hidden');
-      content.classList.add('block');
+      content.classList.remove('hidden'); content.classList.add('block');
     } else {
       btn.classList.add('border-transparent', 'text-gray-500', 'font-medium');
       btn.classList.remove('border-blue-600', 'text-blue-700', 'font-bold');
-      content.classList.remove('block');
-      content.classList.add('hidden');
+      content.classList.remove('block'); content.classList.add('hidden');
     }
   });
 }
 
-// ฟังก์ชัน UI Utilities
 function showLoadingState(message = "กำลังประมวลผลข้อมูล...") {
-  document.getElementById('tableBody').innerHTML = `
-    <tr>
-      <td colspan="5" class="px-6 py-12 text-center text-blue-600 font-medium">
-        <svg class="animate-spin -ml-1 mr-3 h-6 w-6 text-blue-600 inline mb-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-        ${message}
-      </td>
-    </tr>`;
+  document.getElementById('tableBody').innerHTML = `<tr><td colspan="5" class="px-6 py-12 text-center text-blue-600 font-medium">
+    <svg class="animate-spin -ml-1 mr-3 h-6 w-6 text-blue-600 inline mb-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+    ${message}</td></tr>`;
 }
 
 function showErrorState(message) {
