@@ -1,7 +1,8 @@
 const API_URL = 'https://script.google.com/macros/s/AKfycbw--515Ocaod1h_wkMMc8dfiUumw4XD7anSkhWcM4coEXQJAVjGSKORwIMGLgq9t6Fi/exec';
 
 let cachedPersonnelData = [];
-let currentActiveUid = null; // ตัวแปรเก็บรหัสของคนที่กำลังเปิด Profile อยู่ (Zero-Error Reference)
+let currentActiveUid = null;
+let globalFiltersMaster = null; // เก็บข้อมูลความสัมพันธ์ของ Filter (Zero-Error Cache)
 
 document.addEventListener('DOMContentLoaded', () => {
   fetchData();
@@ -18,8 +19,17 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   searchInput.addEventListener('input', triggerSearch);
-  filterYear.addEventListener('change', triggerSearch);
-  filterCourse.addEventListener('change', triggerSearch);
+  
+  // 📌 ลอจิก: กรอง Dropdown อัตโนมัติเมื่อตัวใดตัวหนึ่งเปลี่ยน (Cascading & Smart Keep)
+  filterCourse.addEventListener('change', () => {
+    handleCascadingFilter('course');
+    triggerSearch();
+  });
+  
+  filterYear.addEventListener('change', () => {
+    handleCascadingFilter('year');
+    triggerSearch();
+  });
 
   document.getElementById('excelUpload').addEventListener('change', handleExcelUpload);
 });
@@ -36,8 +46,11 @@ async function fetchData() {
     if (result.status === 'success') {
       cachedPersonnelData = result.data.list;
       
-      populateDropdown('filterYear', result.data.filters.years, year, 'ทุกปีการศึกษา');
-      populateDropdown('filterCourse', result.data.filters.courses, course, 'ทุกหลักสูตร');
+      // บันทึก Master Filters ในการโหลดครั้งแรก หรืออัปเดตใหม่เสมอ
+      if (!globalFiltersMaster) {
+        globalFiltersMaster = result.data.filters;
+        updateDropdownUI(); // วาด Dropdown ครั้งแรก
+      }
       
       document.getElementById('stat-total').textContent = result.data.stats.total;
       document.getElementById('stat-recent').textContent = result.data.stats.recent;
@@ -68,6 +81,58 @@ async function fetchData() {
   } catch (error) {
     showErrorState('การเชื่อมต่อกับฐานข้อมูลขัดข้อง');
   }
+}
+
+// 📌 ฟังก์ชันจัดการความสัมพันธ์ Dropdown (Smart Keep Logic)
+function handleCascadingFilter(changedType) {
+  if (!globalFiltersMaster) return;
+  const yearSelect = document.getElementById('filterYear');
+  const courseSelect = document.getElementById('filterCourse');
+  
+  const selectedYear = yearSelect.value;
+  const selectedCourse = courseSelect.value;
+  const relations = globalFiltersMaster.relations;
+
+  if (changedType === 'course' && selectedCourse) {
+    // ดึงเฉพาะปีที่มีจัดหลักสูตรที่เลือก
+    const validYears = Object.keys(relations.courseToYears[selectedCourse] || {});
+    // ถ้ายี่ที่ค้างอยู่ ไม่มีในหลักสูตรใหม่ ให้รีเซ็ตปีเป็นว่างเปล่า
+    if (selectedYear && !validYears.includes(selectedYear)) {
+      yearSelect.value = '';
+    }
+  } 
+  else if (changedType === 'year' && selectedYear) {
+    // ดึงเฉพาะหลักสูตรที่มีจัดในปีที่เลือก
+    const validCourses = Object.keys(relations.yearToCourses[selectedYear] || {});
+    // ถ้าหลักสูตรที่ค้างอยู่ ไม่ได้จัดในปีใหม่ ให้รีเซ็ตหลักสูตรเป็นว่างเปล่า
+    if (selectedCourse && !validCourses.includes(selectedCourse)) {
+      courseSelect.value = '';
+    }
+  }
+  
+  updateDropdownUI(); // วาดตัวเลือกใหม่
+}
+
+function updateDropdownUI() {
+  if (!globalFiltersMaster) return;
+  
+  const selectedYear = document.getElementById('filterYear').value;
+  const selectedCourse = document.getElementById('filterCourse').value;
+  const relations = globalFiltersMaster.relations;
+  
+  let availableYears = globalFiltersMaster.years;
+  let availableCourses = globalFiltersMaster.courses;
+
+  // กรองตัวเลือกให้เหลือเฉพาะที่มีความสัมพันธ์กัน
+  if (selectedCourse) {
+    availableYears = Object.keys(relations.courseToYears[selectedCourse] || {}).sort((a,b) => b-a);
+  }
+  if (selectedYear) {
+    availableCourses = Object.keys(relations.yearToCourses[selectedYear] || {}).sort();
+  }
+
+  populateDropdown('filterYear', availableYears, selectedYear, 'ทุกปีการศึกษา');
+  populateDropdown('filterCourse', availableCourses, selectedCourse, 'ทุกหลักสูตร');
 }
 
 function populateDropdown(elementId, items, currentValue, defaultLabel) {
@@ -105,8 +170,13 @@ function handleExcelUpload(e) {
             headers: { 'Content-Type': 'text/plain;charset=utf-8' }
          });
          const result = await response.json();
-         if(result.status === 'success') { alert(`✅ ${result.message}`); fetchData(); } 
-         else { alert(`❌ เกิดข้อผิดพลาด: ${result.message}`); fetchData(); }
+         if(result.status === 'success') { 
+            alert(`✅ ${result.message}`); 
+            globalFiltersMaster = null; // ล้างแคชเพื่อให้ระบบดึง Filter ใหม่จาก DB
+            fetchData(); 
+         } else { 
+            alert(`❌ เกิดข้อผิดพลาด: ${result.message}`); fetchData(); 
+         }
       }
     } catch (error) { alert("❌ เกิดข้อผิดพลาดในการอ่านไฟล์"); fetchData(); }
     e.target.value = ''; 
@@ -114,12 +184,8 @@ function handleExcelUpload(e) {
   reader.readAsArrayBuffer(file);
 }
 
-// ==========================================
-// UX/UI Controller & Data Submission
-// ==========================================
-
 window.viewProfile = function(uid) {
-  currentActiveUid = uid; // ล็อกเป้าหมาย
+  currentActiveUid = uid;
   const person = cachedPersonnelData.find(p => p.uid === uid);
   if (!person) return;
 
@@ -127,7 +193,6 @@ window.viewProfile = function(uid) {
   document.getElementById('profileUid').textContent = `รหัสอ้างอิง: ${person.uid}`;
   document.getElementById('profileAgency').textContent = `${person.agency} (${person.status})`;
 
-  // วาด Tab 1: การอบรม
   const timelineEl = document.getElementById('profileTrainings');
   if (person.trainings && person.trainings.length > 0) {
     const sortedTrainings = person.trainings.sort((a, b) => b.year - a.year);
@@ -138,11 +203,8 @@ window.viewProfile = function(uid) {
         <p class="text-xs text-gray-500 mt-0.5">ปีการศึกษา: ${t.year}</p>
       </li>
     `).join('');
-  } else {
-    timelineEl.innerHTML = `<li class="text-sm text-gray-400 pl-4">ยังไม่มีประวัติการอบรม</li>`;
-  }
+  } else { timelineEl.innerHTML = `<li class="text-sm text-gray-400 pl-4">ยังไม่มีประวัติการอบรม</li>`; }
 
-  // วาด Tab 2: การปฏิบัติหน้าที่
   const dutyEl = document.getElementById('profileDuties');
   if (person.duties && person.duties.length > 0) {
     dutyEl.innerHTML = person.duties.map(d => `
@@ -151,21 +213,14 @@ window.viewProfile = function(uid) {
         <span class="text-xs text-gray-500">สถานะ: ${d.role}</span>
       </li>
     `).join('');
-  } else {
-    dutyEl.innerHTML = `<li class="text-sm text-gray-400">ยังไม่มีประวัติลงพื้นที่</li>`;
-  }
+  } else { dutyEl.innerHTML = `<li class="text-sm text-gray-400">ยังไม่มีประวัติลงพื้นที่</li>`; }
 
-  // วาด Tab 3: การประเมินผล
   const evalEl = document.getElementById('profileEvals');
   if (person.evals && person.evals.length > 0) {
     evalEl.innerHTML = person.evals.map(e => `
-      <div class="bg-gray-50 p-3 rounded-lg border border-gray-100 text-sm text-gray-700 italic">
-        "${e.feedback}"
-      </div>
+      <div class="bg-gray-50 p-3 rounded-lg border border-gray-100 text-sm text-gray-700 italic">"${e.feedback}"</div>
     `).join('');
-  } else {
-    evalEl.innerHTML = `<div class="text-sm text-gray-400">ยังไม่มีข้อเสนอแนะ</div>`;
-  }
+  } else { evalEl.innerHTML = `<div class="text-sm text-gray-400">ยังไม่มีข้อเสนอแนะ</div>`; }
 
   const slideOver = document.getElementById('slideOver');
   const backdrop = document.getElementById('slideOverBackdrop');
@@ -180,7 +235,7 @@ window.viewProfile = function(uid) {
 }
 
 window.closeProfile = function() {
-  currentActiveUid = null; // ปลดล็อก
+  currentActiveUid = null;
   const backdrop = document.getElementById('slideOverBackdrop');
   const panel = document.getElementById('slideOverPanel');
   backdrop.classList.remove('opacity-100'); backdrop.classList.add('opacity-0');
@@ -204,12 +259,10 @@ window.switchTab = function(tabName) {
   });
 }
 
-// 📌 ฟังก์ชันส่งข้อมูลเข้า Google Sheets (Zero-Error POST)
 window.submitDuty = async function() {
   if (!currentActiveUid) return;
   const sport = document.getElementById('inputDutySport').value.trim();
   const role = document.getElementById('inputDutyRole').value.trim();
-  
   if (!sport || !role) return alert('⚠️ กรุณากรอก ชนิดกีฬา และ ประเภทบุคลากร ให้ครบถ้วน');
   
   const btn = document.getElementById('btnSaveDuty');
@@ -226,19 +279,15 @@ window.submitDuty = async function() {
       alert('✅ บันทึกประวัติสำเร็จ');
       document.getElementById('inputDutySport').value = '';
       document.getElementById('inputDutyRole').value = '';
-      fetchData(); // สั่งรีเฟรชข้อมูลเบื้องหลัง
-    } else {
-      alert(`❌ ข้อผิดพลาด: ${result.message}`);
-    }
+      fetchData(); 
+    } else { alert(`❌ ข้อผิดพลาด: ${result.message}`); }
   } catch(e) { alert('❌ การเชื่อมต่อล้มเหลว'); }
-  
   btn.textContent = 'บันทึกข้อมูล'; btn.disabled = false;
 }
 
 window.submitEval = async function() {
   if (!currentActiveUid) return;
   const feedback = document.getElementById('inputEvalFeedback').value.trim();
-  
   if (!feedback) return alert('⚠️ กรุณากรอกข้อเสนอแนะก่อนบันทึก');
   
   const btn = document.getElementById('btnSaveEval');
@@ -254,12 +303,9 @@ window.submitEval = async function() {
     if(result.status === 'success') {
       alert('✅ บันทึกข้อเสนอแนะสำเร็จ');
       document.getElementById('inputEvalFeedback').value = '';
-      fetchData(); // สั่งรีเฟรชข้อมูลเบื้องหลัง
-    } else {
-      alert(`❌ ข้อผิดพลาด: ${result.message}`);
-    }
+      fetchData(); 
+    } else { alert(`❌ ข้อผิดพลาด: ${result.message}`); }
   } catch(e) { alert('❌ การเชื่อมต่อล้มเหลว'); }
-  
   btn.textContent = 'บันทึกข้อเสนอแนะ'; btn.disabled = false;
 }
 
