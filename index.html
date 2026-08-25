@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ระบบทะเบียนบุคลากรกีฬา (Executive Dashboard)</title>
+  <!-- สมมติว่า Vite จัดการลิงก์ CSS ให้คุณแล้วผ่าน main.js -->
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans antialiased selection:bg-blue-200">
+
+  <!-- 🔵 Navbar -->
+  <nav class="bg-blue-900 shadow-md border-b-4 border-blue-700">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16 items-center">
+        <div class="flex-shrink-0 flex items-center gap-3">
+          <!-- โลโก้หรือไอคอน -->
+          <div class="bg-white text-blue-900 p-1.5 rounded-lg">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+          </div>
+          <h1 class="text-white text-lg font-bold tracking-wide">ระบบทะเบียนบุคลากรกีฬา</h1>
+        </div>
+        <div class="text-blue-200 text-sm hidden sm:block">
+          <span class="flex items-center gap-1">
+            <span class="relative flex h-3 w-3">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+            </span>
+            เชื่อมต่อ API ปกติ
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- 🟢 Main Content -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    
+    <!-- Section 1: Executive Dashboard (ซ่อนไว้ก่อน รอใส่ Chart.js) -->
+    <section id="dashboard-section" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="bg-white rounded-xl shadow-sm p-5 border-l-4 border-blue-600 transition hover:shadow-md">
+        <h2 class="text-sm font-semibold text-gray-500">บุคลากรในระบบทั้งหมด</h2>
+        <div class="flex items-baseline mt-2 gap-2">
+          <p class="text-3xl font-bold text-blue-900" id="stat-total">--</p>
+          <span class="text-sm text-gray-400">คน</span>
+        </div>
+      </div>
+      <div class="bg-white rounded-xl shadow-sm p-5 border-l-4 border-green-500 transition hover:shadow-md">
+        <h2 class="text-sm font-semibold text-gray-500">ผ่านการอบรมปีล่าสุด</h2>
+        <div class="flex items-baseline mt-2 gap-2">
+          <p class="text-3xl font-bold text-gray-800" id="stat-recent">--</p>
+          <span class="text-sm text-gray-400">รายการ</span>
+        </div>
+      </div>
+      <div class="bg-white rounded-xl shadow-sm p-5 border-l-4 border-amber-500 transition hover:shadow-md">
+        <h2 class="text-sm font-semibold text-gray-500">หลักสูตรที่มีผู้เรียนสูงสุด</h2>
+        <p class="text-xl font-bold text-gray-800 mt-2 truncate" id="stat-top-course">กำลังประมวลผล...</p>
+      </div>
+    </section>
+
+    <!-- Section 2: Smart Search & Actions -->
+    <section class="bg-white rounded-xl shadow-sm p-5 flex flex-col md:flex-row gap-4 justify-between items-center border border-gray-100">
+      <div class="w-full md:w-1/2 relative group">
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <svg class="h-5 w-5 text-gray-400 group-focus-within:text-blue-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        </div>
+        <input type="text" id="searchInput" placeholder="ค้นหาด้วยชื่อ, หน่วยงาน หรือรหัส UID..." 
+               class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:bg-white focus:border-blue-500 outline-none transition-all text-sm">
+      </div>
+      <button id="addPersonBtn" class="w-full md:w-auto bg-blue-800 hover:bg-blue-900 text-white font-medium py-2.5 px-6 rounded-lg shadow-sm transition-all flex items-center justify-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+        เพิ่มบุคลากรใหม่
+      </button>
+    </section>
+
+    <!-- Section 3: Data Table -->
+    <section class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-blue-900 text-white">
+            <tr>
+              <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider w-32">รหัส UID</th>
+              <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">ชื่อ-นามสกุล</th>
+              <th scope="col" class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider">หน่วยงาน</th>
+              <th scope="col" class="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider w-32">สถานะ</th>
+              <th scope="col" class="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider w-24">จัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody" class="bg-white divide-y divide-gray-200">
+            <!-- ข้อมูลจะถูกเขียนลงที่นี่ด้วย JavaScript -->
+            <tr>
+              <td colspan="5" class="px-6 py-12 text-center">
+                <div class="flex flex-col items-center justify-center text-gray-500">
+                  <svg class="w-10 h-10 mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                  <p class="text-sm">พิมพ์เพื่อค้นหา หรือคลิกโหลดข้อมูลทั้งหมด</p>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+  
+  <!-- เราจะเรียกใช้ไฟล์ JS ตรงนี้ (Vite จะจัดการให้ถ้าเป็น module) -->
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
