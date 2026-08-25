@@ -2,7 +2,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbw--515Ocaod1h_wkMMc8df
 
 let cachedPersonnelData = [];
 let currentActiveUid = null;
-let globalFiltersMaster = null; // เก็บข้อมูลความสัมพันธ์ของ Filter (Zero-Error Cache)
+let globalFiltersMaster = null; 
 
 document.addEventListener('DOMContentLoaded', () => {
   fetchData();
@@ -19,20 +19,34 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   searchInput.addEventListener('input', triggerSearch);
-  
-  // 📌 ลอจิก: กรอง Dropdown อัตโนมัติเมื่อตัวใดตัวหนึ่งเปลี่ยน (Cascading & Smart Keep)
-  filterCourse.addEventListener('change', () => {
-    handleCascadingFilter('course');
-    triggerSearch();
-  });
-  
-  filterYear.addEventListener('change', () => {
-    handleCascadingFilter('year');
-    triggerSearch();
-  });
+  filterCourse.addEventListener('change', () => { handleCascadingFilter('course'); triggerSearch(); });
+  filterYear.addEventListener('change', () => { handleCascadingFilter('year'); triggerSearch(); });
 
   document.getElementById('excelUpload').addEventListener('change', handleExcelUpload);
 });
+
+// 📌 ฟังก์ชันสลับหน้าจอ (Navigation Controller)
+window.switchPage = function(pageId) {
+  // 1. ซ่อนทุกหน้าจอ
+  const pages = ['dashboard', 'search', 'import'];
+  pages.forEach(p => {
+    document.getElementById(`page-${p}`).classList.add('hidden');
+    document.getElementById(`page-${p}`).classList.remove('block');
+    
+    // รีเซ็ตสไตล์ปุ่ม
+    const btn = document.getElementById(`nav-btn-${p}`);
+    btn.classList.remove('border-blue-600', 'text-blue-700', 'font-bold');
+    btn.classList.add('border-transparent', 'text-gray-500', 'font-medium');
+  });
+
+  // 2. แสดงเฉพาะหน้าที่เลือก
+  document.getElementById(`page-${pageId}`).classList.remove('hidden');
+  document.getElementById(`page-${pageId}`).classList.add('block');
+  
+  const activeBtn = document.getElementById(`nav-btn-${pageId}`);
+  activeBtn.classList.remove('border-transparent', 'text-gray-500', 'font-medium');
+  activeBtn.classList.add('border-blue-600', 'text-blue-700', 'font-bold');
+}
 
 async function fetchData() {
   const keyword = document.getElementById('searchInput').value.trim();
@@ -46,10 +60,9 @@ async function fetchData() {
     if (result.status === 'success') {
       cachedPersonnelData = result.data.list;
       
-      // บันทึก Master Filters ในการโหลดครั้งแรก หรืออัปเดตใหม่เสมอ
       if (!globalFiltersMaster) {
         globalFiltersMaster = result.data.filters;
-        updateDropdownUI(); // วาด Dropdown ครั้งแรก
+        updateDropdownUI(); 
       }
       
       document.getElementById('stat-total').textContent = result.data.stats.total;
@@ -83,7 +96,6 @@ async function fetchData() {
   }
 }
 
-// 📌 ฟังก์ชันจัดการความสัมพันธ์ Dropdown (Smart Keep Logic)
 function handleCascadingFilter(changedType) {
   if (!globalFiltersMaster) return;
   const yearSelect = document.getElementById('filterYear');
@@ -94,28 +106,18 @@ function handleCascadingFilter(changedType) {
   const relations = globalFiltersMaster.relations;
 
   if (changedType === 'course' && selectedCourse) {
-    // ดึงเฉพาะปีที่มีจัดหลักสูตรที่เลือก
     const validYears = Object.keys(relations.courseToYears[selectedCourse] || {});
-    // ถ้ายี่ที่ค้างอยู่ ไม่มีในหลักสูตรใหม่ ให้รีเซ็ตปีเป็นว่างเปล่า
-    if (selectedYear && !validYears.includes(selectedYear)) {
-      yearSelect.value = '';
-    }
+    if (selectedYear && !validYears.includes(selectedYear)) yearSelect.value = '';
   } 
   else if (changedType === 'year' && selectedYear) {
-    // ดึงเฉพาะหลักสูตรที่มีจัดในปีที่เลือก
     const validCourses = Object.keys(relations.yearToCourses[selectedYear] || {});
-    // ถ้าหลักสูตรที่ค้างอยู่ ไม่ได้จัดในปีใหม่ ให้รีเซ็ตหลักสูตรเป็นว่างเปล่า
-    if (selectedCourse && !validCourses.includes(selectedCourse)) {
-      courseSelect.value = '';
-    }
+    if (selectedCourse && !validCourses.includes(selectedCourse)) courseSelect.value = '';
   }
-  
-  updateDropdownUI(); // วาดตัวเลือกใหม่
+  updateDropdownUI(); 
 }
 
 function updateDropdownUI() {
   if (!globalFiltersMaster) return;
-  
   const selectedYear = document.getElementById('filterYear').value;
   const selectedCourse = document.getElementById('filterCourse').value;
   const relations = globalFiltersMaster.relations;
@@ -123,13 +125,8 @@ function updateDropdownUI() {
   let availableYears = globalFiltersMaster.years;
   let availableCourses = globalFiltersMaster.courses;
 
-  // กรองตัวเลือกให้เหลือเฉพาะที่มีความสัมพันธ์กัน
-  if (selectedCourse) {
-    availableYears = Object.keys(relations.courseToYears[selectedCourse] || {}).sort((a,b) => b-a);
-  }
-  if (selectedYear) {
-    availableCourses = Object.keys(relations.yearToCourses[selectedYear] || {}).sort();
-  }
+  if (selectedCourse) availableYears = Object.keys(relations.courseToYears[selectedCourse] || {}).sort((a,b) => b-a);
+  if (selectedYear) availableCourses = Object.keys(relations.yearToCourses[selectedYear] || {}).sort();
 
   populateDropdown('filterYear', availableYears, selectedYear, 'ทุกปีการศึกษา');
   populateDropdown('filterCourse', availableCourses, selectedCourse, 'ทุกหลักสูตร');
@@ -163,7 +160,11 @@ function handleExcelUpload(e) {
       }
 
       if(confirm(`ตรวจพบข้อมูล ${jsonRows.length} รายการ\nต้องการบันทึกเข้าสู่ระบบใช่หรือไม่?`)) {
-         showLoadingState("กำลังนำเข้าข้อมูล...");
+         
+         // ป้องกันตารางบั๊ก จึงสลับหน้ามาที่ Dashboard แล้วแจ้งเตือนแทน
+         switchPage('dashboard');
+         document.getElementById('stat-total').textContent = '...';
+         
          const response = await fetch(API_URL, {
             method: 'POST',
             body: JSON.stringify({ action: 'bulkImport', rows: jsonRows }),
@@ -172,8 +173,9 @@ function handleExcelUpload(e) {
          const result = await response.json();
          if(result.status === 'success') { 
             alert(`✅ ${result.message}`); 
-            globalFiltersMaster = null; // ล้างแคชเพื่อให้ระบบดึง Filter ใหม่จาก DB
+            globalFiltersMaster = null; 
             fetchData(); 
+            switchPage('search'); // นำกลับมาหน้าตารางเพื่อดูข้อมูล
          } else { 
             alert(`❌ เกิดข้อผิดพลาด: ${result.message}`); fetchData(); 
          }
@@ -184,6 +186,7 @@ function handleExcelUpload(e) {
   reader.readAsArrayBuffer(file);
 }
 
+// UX/UI Controller & Data Submission
 window.viewProfile = function(uid) {
   currentActiveUid = uid;
   const person = cachedPersonnelData.find(p => p.uid === uid);
