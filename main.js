@@ -8,7 +8,6 @@ let currentFilteredData = [];
 let currentPage = 1;
 const itemsPerPage = 10;
 
-// ตัวแปรสำหรับระบบ Preview แยกต่างหาก
 let pendingImportData = [];
 let currentPreviewPage = 1;
 const previewItemsPerPage = 10;
@@ -187,13 +186,12 @@ window.changePage = function(newPage) {
   }
 }
 
-// 📌 ฟังก์ชันจัดการหน้า Preview แบบแบ่งหน้าละ 10 รายการ
 function showPreviewSection(data) {
   document.getElementById('importUploadSection').classList.add('hidden');
   document.getElementById('importPreviewSection').classList.remove('hidden');
   
   pendingImportData = data;
-  currentPreviewPage = 1; // เริ่มต้นที่หน้า 1
+  currentPreviewPage = 1;
   renderPreviewTablePage();
 }
 
