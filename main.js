@@ -7,7 +7,7 @@ let globalFiltersMaster = null;
 let currentFilteredData = [];
 let currentPage = 1;
 const itemsPerPage = 10;
-let pendingImportData = null; // ตัวแปรสำหรับระบบ Preview ก่อนอัปโหลด
+let pendingImportData = null;
 
 document.addEventListener('DOMContentLoaded', () => {
   fetchData();
@@ -250,7 +250,6 @@ function populateDropdown(elementId, items, currentValue, defaultLabel) {
   select.value = currentValue;
 }
 
-// 📌 Export Excel (แบบ 1 ประวัติ = 1 บรรทัด เรียงตามปีอัตโนมัติ)
 window.exportToExcel = function() {
   const filterYear = document.getElementById('filterYear').value;
   const filterCourse = document.getElementById('filterCourse').value;
@@ -293,7 +292,6 @@ window.exportToExcel = function() {
   XLSX.writeFile(wb, filename);
 };
 
-// 📌 ฟังก์ชันดาวน์โหลดไฟล์ Template ก่อนนำเข้า
 window.downloadTemplate = function() {
   const templateData = [
     ["คำนำหน้า", "ชื่อ-นามสกุล", "กลุ่มหน่วยงาน", "หน่วยงาน", "สถานะ", "ชื่อหลักสูตร", "ปีที่อบรม"],
@@ -306,7 +304,6 @@ window.downloadTemplate = function() {
   XLSX.writeFile(wb, "Template_นำเข้าบุคลากร.xlsx");
 };
 
-// 📌 ฟังก์ชันอ่านไฟล์ Excel และแสดง Preview ก่อนบันทึก
 function handleExcelUpload(e) {
   const file = e.target.files[0];
   if (!file) return;
@@ -339,7 +336,6 @@ function handleExcelUpload(e) {
   reader.readAsArrayBuffer(file);
 }
 
-// 📌 ฟังก์ชันแสดง Preview ตาราง
 function showPreviewSection(data) {
   document.getElementById('importUploadSection').classList.add('hidden');
   document.getElementById('importPreviewSection').classList.remove('hidden');
@@ -364,7 +360,6 @@ function showPreviewSection(data) {
   }
 }
 
-// 📌 ฟังก์ชันยกเลิก / ยืนยันการนำเข้า
 window.cancelImport = function() {
   pendingImportData = null;
   document.getElementById('importPreviewSection').classList.add('hidden');
@@ -404,7 +399,6 @@ window.confirmImport = async function() {
   btn.disabled = false;
 };
 
-// 📌 Profile / Slide-over Logic
 window.viewProfile = function(uid) {
   currentActiveUid = uid; const person = cachedPersonnelData.find(p => p.uid === uid);
   if (!person) return;
