@@ -7,7 +7,11 @@ let globalFiltersMaster = null;
 let currentFilteredData = [];
 let currentPage = 1;
 const itemsPerPage = 10;
-let pendingImportData = null;
+
+// ตัวแปรสำหรับระบบ Preview แยกต่างหาก
+let pendingImportData = [];
+let currentPreviewPage = 1;
+const previewItemsPerPage = 10;
 
 document.addEventListener('DOMContentLoaded', () => {
   fetchData();
@@ -142,7 +146,6 @@ function renderTablePage() {
         <td class="px-6 py-4 whitespace-nowrap text-slate-600 truncate max-w-[250px] border-r border-slate-100">${item.agency}</td>
         <td class="px-6 py-4 whitespace-nowrap text-center border-r border-slate-100">${statusBadge}</td>
         <td class="px-6 py-4 whitespace-nowrap text-center">
-          <!-- 📌 แก้ไขให้ปุ่มเรียกฟังก์ชัน viewProfile('${item.uid}') ทำงานได้อย่างถูกต้อง -->
           <button onclick="viewProfile('${item.uid}')" class="text-slate-400 hover:text-blue-600 p-2 rounded-full hover:bg-blue-50 transition-colors outline-none cursor-pointer inline-flex items-center justify-center" title="ดูประวัติและจัดการ">
             <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
@@ -181,6 +184,70 @@ window.changePage = function(newPage) {
   if (newPage >= 1 && newPage <= totalPages) {
     currentPage = newPage;
     renderTablePage();
+  }
+}
+
+// 📌 ฟังก์ชันจัดการหน้า Preview แบบแบ่งหน้าละ 10 รายการ
+function showPreviewSection(data) {
+  document.getElementById('importUploadSection').classList.add('hidden');
+  document.getElementById('importPreviewSection').classList.remove('hidden');
+  
+  pendingImportData = data;
+  currentPreviewPage = 1; // เริ่มต้นที่หน้า 1
+  renderPreviewTablePage();
+}
+
+function renderPreviewTablePage() {
+  const tbody = document.getElementById('previewTableBody');
+  const previewInfo = document.getElementById('previewPaginationInfo');
+  const totalItems = pendingImportData.length;
+  const totalPages = Math.ceil(totalItems / previewItemsPerPage);
+
+  const startIndex = (currentPreviewPage - 1) * previewItemsPerPage;
+  const endIndex = Math.min(startIndex + previewItemsPerPage, totalItems);
+  const pageData = pendingImportData.slice(startIndex, endIndex);
+
+  document.getElementById('previewTotalText').innerHTML = `พบข้อมูลในไฟล์ทั้งหมด <span class="font-bold text-blue-600">${totalItems}</span> รายการ`;
+
+  tbody.innerHTML = pageData.map((row, idx) => `
+    <tr class="hover:bg-slate-50">
+      <td class="px-4 py-3 border-r border-slate-100 text-center font-mono text-xs text-slate-400">${startIndex + idx + 1}</td>
+      <td class="px-4 py-3 border-r border-slate-100 font-medium text-slate-800">${row['ชื่อ-นามสกุล'] || '-'}</td>
+      <td class="px-4 py-3 border-r border-slate-100 truncate max-w-[200px]">${row['หน่วยงาน'] || '-'}</td>
+      <td class="px-4 py-3 border-r border-slate-100 text-center"><span class="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-full text-xs font-medium">${row['สถานะ'] || 'ปฏิบัติงาน'}</span></td>
+      <td class="px-4 py-3 border-r border-slate-100">${row['ชื่อหลักสูตร'] || '-'}</td>
+      <td class="px-4 py-3 text-center font-mono text-slate-600">${row['ปีที่อบรม'] || '-'}</td>
+    </tr>
+  `).join('');
+
+  if (previewInfo) {
+    previewInfo.innerHTML = `แสดงรายการที่ <span class="font-bold text-slate-800 mx-1">${startIndex + 1} - ${endIndex}</span> จากทั้งหมด <span class="font-bold text-slate-800 mx-1">${totalItems}</span> รายการ`;
+  }
+
+  renderPreviewPaginationNav(totalPages);
+}
+
+function renderPreviewPaginationNav(totalPages) {
+  const nav = document.getElementById('previewPaginationNav');
+  if (!nav || totalPages === 0) { if(nav) nav.innerHTML = ''; return; }
+
+  let html = `
+    <button type="button" onclick="changePreviewPage(${currentPreviewPage - 1})" class="inline-flex items-center justify-center px-4 py-2 rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium shadow-sm" ${currentPreviewPage === 1 ? 'disabled' : ''}>
+      <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg> ก่อนหน้า
+    </button>
+    <span class="text-sm font-semibold text-blue-600 px-4 select-none">หน้า ${currentPreviewPage}/${totalPages}</span>
+    <button type="button" onclick="changePreviewPage(${currentPreviewPage + 1})" class="inline-flex items-center justify-center px-4 py-2 rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium shadow-sm" ${currentPreviewPage === totalPages ? 'disabled' : ''}>
+      ถัดไป <svg class="w-4 h-4 ml-1.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+    </button>
+  `;
+  nav.innerHTML = html;
+}
+
+window.changePreviewPage = function(newPage) {
+  const totalPages = Math.ceil(pendingImportData.length / previewItemsPerPage);
+  if (newPage >= 1 && newPage <= totalPages) {
+    currentPreviewPage = newPage;
+    renderPreviewTablePage();
   }
 }
 
@@ -388,7 +455,6 @@ function handleExcelUpload(e) {
         e.target.value = ''; return;
       }
 
-      pendingImportData = jsonRows;
       showPreviewSection(jsonRows);
 
     } catch (error) { 
@@ -399,32 +465,8 @@ function handleExcelUpload(e) {
   reader.readAsArrayBuffer(file);
 }
 
-function showPreviewSection(data) {
-  document.getElementById('importUploadSection').classList.add('hidden');
-  document.getElementById('importPreviewSection').classList.remove('hidden');
-  
-  document.getElementById('previewTotalText').innerHTML = `พบข้อมูลในไฟล์ทั้งหมด <span class="font-bold text-blue-600">${data.length}</span> รายการ (แสดงตัวอย่าง 5 รายการแรก)`;
-  
-  const previewData = data.slice(0, 5);
-  const tbody = document.getElementById('previewTableBody');
-  
-  tbody.innerHTML = previewData.map(row => `
-    <tr class="hover:bg-slate-50">
-      <td class="px-4 py-3 border-r border-slate-100 font-medium text-slate-800">${row['ชื่อ-นามสกุล'] || '-'}</td>
-      <td class="px-4 py-3 border-r border-slate-100 truncate max-w-[200px]">${row['หน่วยงาน'] || '-'}</td>
-      <td class="px-4 py-3 border-r border-slate-100 text-center"><span class="bg-blue-50 text-blue-600 px-2 py-1 rounded text-xs">${row['สถานะ'] || 'ปฏิบัติงาน'}</span></td>
-      <td class="px-4 py-3 border-r border-slate-100">${row['ชื่อหลักสูตร'] || '-'}</td>
-      <td class="px-4 py-3 text-center font-mono text-slate-500">${row['ปีที่อบรม'] || '-'}</td>
-    </tr>
-  `).join('');
-  
-  if (data.length > 5) {
-    tbody.innerHTML += `<tr><td colspan="5" class="px-4 py-3 text-center text-slate-400 text-xs italic bg-slate-50/50">... และข้อมูลอื่นๆ อีก ${data.length - 5} รายการ</td></tr>`;
-  }
-}
-
 window.cancelImport = function() {
-  pendingImportData = null;
+  pendingImportData = [];
   document.getElementById('importPreviewSection').classList.add('hidden');
   document.getElementById('importUploadSection').classList.remove('hidden');
 };
