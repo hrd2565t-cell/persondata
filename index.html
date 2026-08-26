@@ -6,7 +6,6 @@
   <title>ระบบทะเบียนบุคลากรกีฬา | Executive Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <!-- SheetJS Library (สำหรับระบบ นำเข้า/ส่งออก Excel) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
     body { font-family: 'Plus Jakarta Sans', sans-serif; }
@@ -45,10 +44,10 @@
   <div class="bg-white border-b border-slate-200 shadow-sm sticky top-16 z-40">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <nav class="flex space-x-2 sm:space-x-8 overflow-x-auto hide-scrollbar" aria-label="Tabs">
-        <button onclick="switchPage('dashboard')" id="nav-btn-dashboard" class="border-blue-600 text-blue-600 whitespace-nowrap py-4 px-2 border-b-2 font-bold text-sm transition-all">📊 แดชบอร์ดสรุปผล</button>
-        <button onclick="switchPage('search')" id="nav-btn-search" class="border-transparent text-slate-500 hover:text-slate-800 whitespace-nowrap py-4 px-2 border-b-2 font-medium text-sm transition-all">🔍 ค้นหาบุคลากร</button>
-        <button onclick="switchPage('timeline')" id="nav-btn-timeline" class="border-transparent text-slate-500 hover:text-slate-800 whitespace-nowrap py-4 px-2 border-b-2 font-medium text-sm transition-all">📅 ไทม์ไลน์โครงการ</button>
-        <button onclick="switchPage('import')" id="nav-btn-import" class="border-transparent text-slate-500 hover:text-slate-800 whitespace-nowrap py-4 px-2 border-b-2 font-medium text-sm transition-all">📥 นำเข้าข้อมูล</button>
+        <button onclick="switchPage('dashboard')" id="nav-btn-dashboard" class="border-blue-600 text-blue-600 whitespace-nowrap py-4 px-2 border-b-2 font-bold text-sm transition-all flex items-center gap-2">📊 แดชบอร์ดสรุปผล</button>
+        <button onclick="switchPage('search')" id="nav-btn-search" class="border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300 whitespace-nowrap py-4 px-2 border-b-2 font-medium text-sm transition-all flex items-center gap-2">🔍 ค้นหาบุคลากร</button>
+        <button onclick="switchPage('timeline')" id="nav-btn-timeline" class="border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300 whitespace-nowrap py-4 px-2 border-b-2 font-medium text-sm transition-all flex items-center gap-2">📅 ไทม์ไลน์โครงการ</button>
+        <button onclick="switchPage('import')" id="nav-btn-import" class="border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300 whitespace-nowrap py-4 px-2 border-b-2 font-medium text-sm transition-all flex items-center gap-2">📥 นำเข้าข้อมูล</button>
       </nav>
     </div>
   </div>
@@ -98,14 +97,9 @@
             <select id="filterYear" class="bg-slate-50 border border-slate-300 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-blue-500 p-2.5 outline-none min-w-[130px]"><option value="">ทุกปีการศึกษา</option></select>
             <select id="filterCourse" class="bg-slate-50 border border-slate-300 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-blue-500 p-2.5 outline-none min-w-[150px] max-w-[200px]"><option value="">ทุกหลักสูตร</option></select>
             
-            <!-- 📌 ปุ่มส่งออก Excel -->
             <button type="button" onclick="exportToExcel()" class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg px-4 py-2.5 transition-colors shadow-sm outline-none">
-              <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-              </svg> ส่งออกข้อมูล
+              <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg> ส่งออกข้อมูล
             </button>
-
-            <!-- ปุ่มนำเข้า Excel -->
             <button type="button" onclick="switchPage('import')" class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg px-4 py-2.5 transition-colors shadow-sm outline-none">
               <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg> นำเข้าข้อมูล
             </button>
@@ -141,15 +135,71 @@
       </div>
     </div>
 
-    <!-- PAGE 3 & 4 (ส่วนอื่นๆ คงเดิม) -->
+    <!-- PAGE 3: Timeline -->
     <div id="page-timeline" class="page-section hidden space-y-6">
-      <div class="bg-white border border-slate-200 rounded-2xl p-6 flex justify-between items-center"><h2 class="text-lg font-bold text-slate-800">ไทม์ไลน์โครงการ</h2></div>
-      <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-x-auto"><table class="min-w-full divide-y divide-slate-200" id="timelineTable"><thead class="bg-slate-50 text-slate-600"><tr id="timelineHeaderRow"></tr></thead><tbody id="timelineBody" class="divide-y divide-slate-200 text-sm"></tbody></table></div>
+      <div class="bg-white border border-slate-200 rounded-2xl p-6 flex justify-between items-center">
+        <h2 class="text-lg font-bold text-slate-800">แผนผังระยะเวลาดำเนินการหลักสูตร (Timeline)</h2>
+      </div>
+      <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-200" id="timelineTable"><thead class="bg-slate-50 text-slate-600"><tr id="timelineHeaderRow"></tr></thead><tbody id="timelineBody" class="divide-y divide-slate-200 text-sm"></tbody></table>
+      </div>
     </div>
-    <div id="page-import" class="page-section hidden"><div class="max-w-xl mx-auto bg-white border border-slate-200 rounded-3xl p-10 text-center space-y-6"><h2 class="text-xl font-bold text-slate-800">นำเข้าข้อมูล</h2></div></div>
+
+    <!-- PAGE 4: Import Data (อัปเดตระบบพรีวิว) -->
+    <div id="page-import" class="page-section hidden">
+      <div class="max-w-5xl mx-auto mt-8">
+        
+        <!-- โซน 1: อัปโหลด -->
+        <div id="importUploadSection" class="bg-white border border-slate-200 rounded-3xl shadow-lg p-10 text-center space-y-8">
+          <div class="w-20 h-20 mx-auto bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shadow-inner">
+             <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+          </div>
+          <div>
+            <h2 class="text-xl font-bold text-slate-800">นำเข้าข้อมูลบุคลากรแบบกลุ่ม</h2>
+            <p class="text-sm text-slate-500 mt-2">อัปโหลดไฟล์ Excel (.xlsx) ตามโครงสร้างเทมเพลตมาตรฐานของระบบ</p>
+          </div>
+          <div class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-6 border-t border-slate-100">
+             <button type="button" onclick="downloadTemplate()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3.5 px-6 rounded-xl transition-all inline-flex items-center gap-2 text-sm">
+               <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg> ดาวน์โหลดไฟล์ Template
+             </button>
+             <label class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3.5 px-8 rounded-xl shadow-md transition-all inline-flex items-center gap-2 text-sm">
+               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg> เลือกไฟล์ Excel เพื่อนำเข้า
+               <input type="file" id="excelUpload" accept=".xlsx, .xls" class="hidden" />
+             </label>
+          </div>
+        </div>
+
+        <!-- โซน 2: Preview -->
+        <div id="importPreviewSection" class="hidden bg-white border border-slate-200 rounded-3xl shadow-lg p-6 md:p-8 space-y-6">
+          <div class="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-slate-100 pb-4 gap-4">
+            <div>
+              <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                <svg class="w-6 h-6 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg> ตรวจสอบข้อมูลก่อนบันทึก (Preview)
+              </h2>
+              <p class="text-sm text-slate-500 mt-1" id="previewTotalText">พบข้อมูลทั้งหมด 0 รายการ (แสดงตัวอย่าง 5 รายการแรก)</p>
+            </div>
+            <div class="flex items-center gap-3">
+              <button onclick="cancelImport()" class="px-5 py-2.5 rounded-lg border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 text-sm transition-colors">ยกเลิก</button>
+              <button id="btnConfirmImport" onclick="confirmImport()" class="px-5 py-2.5 rounded-lg bg-emerald-600 text-white font-semibold hover:bg-emerald-700 text-sm shadow-md transition-colors flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> ยืนยันการนำเข้า
+              </button>
+            </div>
+          </div>
+          <div class="overflow-x-auto rounded-xl border border-slate-200">
+            <table class="w-full text-left text-sm text-slate-600">
+              <thead class="text-xs text-slate-500 font-semibold bg-slate-50 border-b border-slate-200">
+                <tr><th class="px-4 py-3 border-r border-slate-100">ชื่อ-นามสกุล</th><th class="px-4 py-3 border-r border-slate-100">หน่วยงาน</th><th class="px-4 py-3 border-r border-slate-100 text-center">สถานะ</th><th class="px-4 py-3 border-r border-slate-100">ชื่อหลักสูตร</th><th class="px-4 py-3 text-center">ปีที่อบรม</th></tr>
+              </thead>
+              <tbody id="previewTableBody" class="divide-y divide-slate-100 bg-white"></tbody>
+            </table>
+          </div>
+        </div>
+        
+      </div>
+    </div>
   </main>
 
-  <!-- Slide-over Panel (คงเดิม) -->
+  <!-- 🟢 Slide-over Panel -->
   <div id="slideOver" class="fixed inset-0 z-50 hidden" aria-labelledby="slide-over-title" role="dialog" aria-modal="true">
     <div id="slideOverBackdrop" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity opacity-0" onclick="closeProfile()"></div>
     <div class="fixed inset-y-0 right-0 z-50 flex max-w-full pl-10">
