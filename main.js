@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('excelUpload').addEventListener('change', handleExcelUpload);
 });
 
-// 📌 Navigation Controller
+// 📌 Navigation Controller (อัปเดตสีตามดีไซน์รูปภาพ)
 window.switchPage = function(pageId) {
   const pages = ['dashboard', 'search', 'timeline', 'import'];
   pages.forEach(p => {
@@ -36,12 +36,11 @@ window.switchPage = function(pageId) {
     }
     const btn = document.getElementById(`nav-btn-${p}`);
     if (btn) {
+      // เมื่อ Active ให้เป็นสีน้ำเงิน (ตามรูป image_1eb0e6.png)
       btn.classList.toggle('border-blue-500', p === pageId);
-      btn.classList.toggle('text-blue-400', p === pageId);
-      btn.classList.toggle('font-bold', p === pageId);
+      btn.classList.toggle('text-blue-500', p === pageId);
       btn.classList.toggle('border-transparent', p !== pageId);
       btn.classList.toggle('text-slate-400', p !== pageId);
-      btn.classList.toggle('font-medium', p !== pageId);
     }
   });
 
@@ -80,7 +79,6 @@ async function fetchData() {
         return;
       }
       
-      // 📌 วาดตารางด้วย UI แบบ Modern Dark Theme ที่ได้รับมาใหม่
       tbody.innerHTML = result.data.list.map(item => {
         const initials = item.fullName.substring(0, 2).toUpperCase() || 'U';
         const statusClass = item.status === 'ปฏิบัติงาน' 
@@ -120,7 +118,6 @@ async function fetchData() {
         `;
       }).join('');
       
-      // 📌 อัปเดตข้อความ Pagination แบบไดนามิก
       if (paginationInfo) {
         const count = result.data.list.length;
         paginationInfo.innerHTML = `แสดงผล <span class="font-medium text-slate-200">1</span> ถึง <span class="font-medium text-slate-200">${count}</span> จาก <span class="font-medium text-slate-200">${count}</span> รายการที่ค้นพบ`;
@@ -252,7 +249,6 @@ function handleExcelUpload(e) {
   reader.readAsArrayBuffer(file);
 }
 
-// 📌 UX/UI Controller & Data Submission
 window.viewProfile = function(uid) {
   currentActiveUid = uid;
   const person = cachedPersonnelData.find(p => p.uid === uid);
