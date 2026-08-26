@@ -25,7 +25,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('excelUpload').addEventListener('change', handleExcelUpload);
 });
 
-// 📌 Navigation Controller (Light Theme colors)
 window.switchPage = function(pageId) {
   const pages = ['dashboard', 'search', 'timeline', 'import'];
   pages.forEach(p => {
@@ -67,8 +66,8 @@ async function fetchData() {
         updateDropdownUI(); 
       }
       
-      // 📌 วาด Dashboard ใหม่: ภาพรวมแต่ละหลักสูตร
-      renderDashboard(globalFiltersMaster.courses, globalFiltersMaster.relations);
+      // 📌 นำข้อมูลที่คำนวณจากหลังบ้านมาแสดงใน Dashboard
+      renderDashboard(result.data.stats);
       
       const tbody = document.getElementById('tableBody');
       const paginationInfo = document.getElementById('tablePaginationInfo');
@@ -87,9 +86,9 @@ async function fetchData() {
         const dotClass = item.status === 'ปฏิบัติงาน' ? 'bg-emerald-500' : 'bg-amber-500';
 
         return `
-          <tr class="hover:bg-slate-50 transition-colors group">
-            <td class="px-6 py-4 whitespace-nowrap text-blue-600 font-mono text-xs">${item.uid}</td>
-            <td class="px-6 py-4 whitespace-nowrap">
+          <tr class="hover:bg-slate-50 transition-colors group border-b border-slate-100 last:border-0">
+            <td class="px-6 py-4 whitespace-nowrap text-blue-600 font-mono text-xs border-r border-slate-100">${item.uid}</td>
+            <td class="px-6 py-4 whitespace-nowrap border-r border-slate-100">
               <div class="flex items-center gap-3">
                 <div class="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xs shadow-sm border border-blue-200">
                   ${initials}
@@ -99,8 +98,8 @@ async function fetchData() {
                 </div>
               </div>
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-slate-600 truncate max-w-[200px]">${item.agency}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-center">
+            <td class="px-6 py-4 whitespace-nowrap text-slate-600 truncate max-w-[200px] border-r border-slate-100">${item.agency}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-center border-r border-slate-100">
               <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${statusClass}">
                 <span class="w-1.5 h-1.5 rounded-full mr-1.5 ${dotClass}"></span>
                 ${item.status}
@@ -108,10 +107,7 @@ async function fetchData() {
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-center">
               <button onclick="viewProfile('${item.uid}')" class="text-slate-400 hover:text-blue-600 hover:bg-blue-50 p-1.5 rounded-lg transition-colors outline-none cursor-pointer" title="ดูประวัติและปฏิบัติหน้าที่">
-                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
+                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
               </button>
             </td>
           </tr>
@@ -120,7 +116,7 @@ async function fetchData() {
       
       if (paginationInfo) {
         const count = result.data.list.length;
-        paginationInfo.innerHTML = `แสดงผล <span class="font-bold text-slate-800">1</span> ถึง <span class="font-bold text-slate-800">${count}</span> จาก <span class="font-bold text-slate-800">${count}</span> รายการที่ค้นพบ`;
+        paginationInfo.innerHTML = `แสดงผลจากข้อมูลที่ค้นพบจำนวน <span class="font-bold text-slate-800">${count}</span> รายการ`;
       }
       
     } else {
@@ -131,43 +127,37 @@ async function fetchData() {
   }
 }
 
-// 📌 ฟังก์ชันสร้างการ์ดสถิติแต่ละหลักสูตรในหน้า Dashboard
-function renderDashboard(courses, relations) {
-  const grid = document.getElementById('courseStatsGrid');
-  if (!grid) return;
-  
-  if (!courses || courses.length === 0) {
-    grid.innerHTML = `<div class="col-span-full text-center text-slate-500 py-8">ไม่มีข้อมูลหลักสูตรในระบบ</div>`;
+// 📌 ฟังก์ชันวาด Executive Summary Table หน้า Dashboard
+function renderDashboard(stats) {
+  document.getElementById('stat-total').textContent = stats.totalPersonnel;
+  document.getElementById('stat-top-year').textContent = stats.topYear;
+  document.getElementById('stat-top-course').textContent = stats.topCourse;
+
+  const tbody = document.getElementById('courseSummaryBody');
+  if (!tbody) return;
+
+  if (!stats.courseSummary || stats.courseSummary.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-12 text-center text-slate-500 font-medium">ไม่มีข้อมูลหลักสูตรในระบบ</td></tr>`;
     return;
   }
 
-  let html = '';
-  courses.forEach(course => {
-    // คำนวณจำนวนครั้งที่จัด (จำนวนปีที่มีหลักสูตรนี้)
-    const timesHeld = Object.keys(relations.courseToYears[course] || {}).length;
-    
-    // คำนวณจำนวนคนที่ผ่านการอบรมหลักสูตรนี้
-    const totalPeople = cachedPersonnelData.filter(p => p.trainings.some(t => t.course === course)).length;
-
-    html += `
-      <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
-        <h3 class="text-sm font-bold text-slate-800 line-clamp-2 min-h-[40px]" title="${course}">${course}</h3>
-        
-        <div class="mt-6 flex justify-between items-end border-t border-slate-100 pt-4">
-          <div>
-            <p class="text-xs text-slate-500 uppercase font-semibold">จำนวนคน (คน)</p>
-            <p class="text-3xl font-extrabold text-blue-600 mt-1">${totalPeople}</p>
-          </div>
-          <div class="text-right">
-            <p class="text-xs text-slate-500 uppercase font-semibold">จำนวนที่จัด (ครั้ง)</p>
-            <p class="text-3xl font-extrabold text-emerald-600 mt-1">${timesHeld}</p>
-          </div>
-        </div>
-      </div>
-    `;
-  });
-  
-  grid.innerHTML = html;
+  // วาดตารางคลีนๆ ตามหลัก Executive UI
+  tbody.innerHTML = stats.courseSummary.map((item, index) => `
+    <tr class="hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0">
+      <td class="px-6 py-4 text-center text-slate-400 font-mono text-xs border-r border-slate-100">${index + 1}</td>
+      <td class="px-6 py-4 font-semibold text-slate-700 border-r border-slate-100">${item.courseName}</td>
+      <td class="px-6 py-4 text-center border-r border-slate-100">
+        <span class="inline-flex items-center justify-center bg-slate-100 text-slate-600 font-semibold px-2.5 py-1 rounded-lg min-w-[3rem]">
+          ${item.yearsHeld}
+        </span>
+      </td>
+      <td class="px-6 py-4 text-center">
+        <span class="inline-flex items-center justify-center bg-blue-50 text-blue-600 font-semibold px-2.5 py-1 rounded-lg min-w-[3rem]">
+          ${item.totalPeople}
+        </span>
+      </td>
+    </tr>
+  `).join('');
 }
 
 function renderTimeline(relations, years, courses) {
@@ -206,7 +196,6 @@ function handleCascadingFilter(changedType) {
   if (!globalFiltersMaster) return;
   const yearSelect = document.getElementById('filterYear');
   const courseSelect = document.getElementById('filterCourse');
-  
   const selectedYear = yearSelect.value;
   const selectedCourse = courseSelect.value;
   const relations = globalFiltersMaster.relations;
@@ -416,8 +405,8 @@ window.submitEval = async function() {
 function showLoadingState(message = "กำลังประมวลผลข้อมูล...") {
   const tbody = document.getElementById('tableBody');
   if (tbody) {
-    tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-16 text-center text-blue-600 font-medium">
-      <svg class="animate-spin -ml-1 mr-3 h-6 w-6 text-blue-600 inline mb-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+    tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-16 text-center text-blue-500 font-medium">
+      <svg class="animate-spin -ml-1 mr-3 h-6 w-6 text-blue-500 inline mb-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
       ${message}</td></tr>`;
   }
 }
@@ -425,6 +414,6 @@ function showLoadingState(message = "กำลังประมวลผลข�
 function showErrorState(message) {
   const tbody = document.getElementById('tableBody');
   if (tbody) {
-    tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-16 text-center text-red-500 font-medium">❌ ${message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-16 text-center text-red-400 font-medium">❌ ${message}</td></tr>`;
   }
 }
