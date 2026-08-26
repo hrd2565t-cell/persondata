@@ -200,19 +200,73 @@ function renderDashboard(stats) {
   `).join('');
 }
 
+// 📌 ฟังก์ชันวาดแผนผังระยะเวลาโครงการแบบ Milestone Track Bar
 function renderTimeline(relations, years, courses) {
-  const headerRow = document.getElementById('timelineHeaderRow');
-  const bodyEl = document.getElementById('timelineBody');
-  if (!headerRow || !bodyEl) return;
+  const container = document.getElementById('timelineMilestoneContainer');
+  if (!container) return;
+
+  if (!courses || courses.length === 0 || !years || years.length === 0) {
+    container.innerHTML = `<div class="text-center text-slate-500 py-12">ไม่พบข้อมูลสำหรับสร้างไทม์ไลน์โครงการ</div>`;
+    return;
+  }
+
   const sortedYears = [...years].sort((a, b) => a - b);
-  headerRow.innerHTML = `<th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider w-1/3 border-r border-slate-200">ชื่อหลักสูตร</th>${sortedYears.map(y => `<th class="px-4 py-4 text-center text-xs font-bold text-blue-900 uppercase tracking-wider w-20 border-r border-slate-200 bg-blue-50/50">${y}</th>`).join('')}`;
-  bodyEl.innerHTML = courses.map(course => {
-    const activeYears = relations.courseToYears[course] || {};
-    return `<tr class="hover:bg-slate-50 transition-colors"><td class="px-6 py-4 text-sm font-semibold text-slate-700 border-r border-slate-100">${course}</td>${sortedYears.map(y => {
-      const isActive = activeYears[y];
-      return `<td class="px-2 py-4 text-center border-r border-slate-100">${isActive ? `<span class="inline-block w-full py-1.5 bg-blue-600 text-white text-xs font-semibold rounded shadow-sm">จัดอบรม</span>` : `<span class="inline-block w-full py-1.5 bg-slate-100 text-slate-400 text-xs rounded">-</span>`}</td>`;
-    }).join('')}</tr>`;
-  }).join('');
+
+  let html = `
+    <div class="hidden md:grid grid-cols-12 gap-4 pb-4 border-b border-slate-200 text-xs font-bold text-slate-400 uppercase tracking-wider">
+      <div class="col-span-4">ชื่อหลักสูตรการอบรม</div>
+      <div class="col-span-8 grid grid-cols-${sortedYears.length} text-center">
+        ${sortedYears.map(y => `<span>${y}</span>`).join('')}
+      </div>
+    </div>
+    <div class="space-y-6">
+  `;
+
+  courses.forEach((course, idx) => {
+    const activeYearsMap = relations.courseToYears[course] || {};
+    const totalTimesHeld = Object.keys(activeYearsMap).length;
+
+    html += `
+      <div class="bg-slate-50/60 border border-slate-200/80 rounded-2xl p-5 hover:border-blue-300 transition-all shadow-sm">
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+          <div class="md:col-span-4 flex flex-col justify-center">
+            <span class="text-xs font-mono text-blue-600 font-semibold mb-1">หลักสูตรที่ #${idx + 1}</span>
+            <h4 class="text-base font-bold text-slate-800 leading-snug">${course}</h4>
+            <div class="flex items-center gap-3 mt-2 text-xs text-slate-500">
+              <span class="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md font-semibold border border-blue-100">จัดแล้ว ${totalTimesHeld} ครั้ง</span>
+            </div>
+          </div>
+          <div class="md:col-span-8">
+            <div class="relative flex items-center justify-between px-2 py-4">
+              <div class="absolute left-4 right-4 h-1.5 bg-slate-200 rounded-full z-0"></div>
+              ${sortedYears.map(y => {
+                const isActive = activeYearsMap[y];
+                return `
+                  <div class="relative z-10 flex flex-col items-center group cursor-pointer">
+                    <span class="md:hidden text-[10px] text-slate-400 mb-1 font-bold">${y}</span>
+                    ${isActive ? `
+                      <div class="w-7 h-7 rounded-full bg-blue-600 border-4 border-white shadow-md flex items-center justify-center transform group-hover:scale-125 transition-all">
+                        <span class="w-2 h-2 bg-white rounded-full"></span>
+                      </div>
+                      <span class="absolute -bottom-6 text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 shadow-xs opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20">เปิดอบรมปี ${y}</span>
+                    ` : `
+                      <div class="w-5 h-5 rounded-full bg-slate-200 border-3 border-white shadow-xs flex items-center justify-center transform group-hover:scale-110 transition-all">
+                        <span class="w-1.5 h-1.5 bg-slate-400 rounded-full"></span>
+                      </div>
+                      <span class="absolute -bottom-6 text-[10px] text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20">เว้นช่วง (Gap)</span>
+                    `}
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+
+  html += `</div>`;
+  container.innerHTML = html;
 }
 
 function handleCascadingFilter(changedType) {
