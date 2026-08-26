@@ -7,6 +7,7 @@ let globalFiltersMaster = null;
 let currentFilteredData = [];
 let currentPage = 1;
 const itemsPerPage = 10;
+let pendingImportData = null; // ตัวแปรสำหรับระบบ Preview ก่อนอัปโหลด
 
 document.addEventListener('DOMContentLoaded', () => {
   fetchData();
@@ -74,6 +75,7 @@ async function fetchData() {
       
       currentFilteredData = result.data.list;
       currentPage = 1;
+      
       updateSmartSummary(course, year, currentFilteredData.length);
       renderTablePage();
     } else {
@@ -248,38 +250,14 @@ function populateDropdown(elementId, items, currentValue, defaultLabel) {
   select.value = currentValue;
 }
 
-function handleExcelUpload(e) {
-  const file = e.target.files[0]; if (!file) return;
-  const reader = new FileReader();
-  reader.onload = async function(event) {
-    try {
-      const data = new Uint8Array(event.target.result); const workbook = XLSX.read(data, {type: 'array'});
-      const jsonRows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: "" });
-      if (jsonRows.length > 0 && !('ชื่อ-นามสกุล' in jsonRows[0])) { alert("❌ โครงสร้างไฟล์ผิดพลาด กรุณาใช้ Template มาตรฐาน"); e.target.value = ''; return; }
-      if(confirm(`ตรวจพบข้อมูล ${jsonRows.length} รายการ\nต้องการบันทึกเข้าสู่ระบบใช่หรือไม่?`)) {
-         switchPage('dashboard');
-         const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'bulkImport', rows: jsonRows }), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
-         const result = await response.json();
-         if(result.status === 'success') { alert(`✅ ${result.message}`); globalFiltersMaster = null; fetchData(); switchPage('search'); } else { alert(`❌ เกิดข้อผิดพลาด: ${result.message}`); fetchData(); }
-      }
-    } catch (error) { alert("❌ เกิดข้อผิดพลาดในการอ่านไฟล์"); fetchData(); }
-    e.target.value = ''; 
-  };
-  reader.readAsArrayBuffer(file);
-}
-
-// 📌 ฟังก์ชันใหม่: ส่งออกข้อมูลเป็น Excel แบบ 1 ประวัติ = 1 บรรทัด (จัดเรียงปีอัตโนมัติ)
+// 📌 Export Excel (แบบ 1 ประวัติ = 1 บรรทัด เรียงตามปีอัตโนมัติ)
 window.exportToExcel = function() {
   const filterYear = document.getElementById('filterYear').value;
   const filterCourse = document.getElementById('filterCourse').value;
-
   let exportData = [];
 
-  // วนลูปข้อมูลคนที่ถูกกรองมาแล้ว
   currentFilteredData.forEach(user => {
     let userTrainings = user.trainings || [];
-
-    // กรองประวัติการอบรมย่อยให้ตรงกับ Dropdown ที่ถูกเลือก
     let matchedTrainings = userTrainings.filter(t => {
       const matchY = filterYear === '' || String(t.year) === String(filterYear);
       const matchC = filterCourse === '' || String(t.course) === String(filterCourse);
@@ -288,66 +266,145 @@ window.exportToExcel = function() {
 
     if (matchedTrainings.length > 0) {
       matchedTrainings.forEach(t => {
-        exportData.push({
-          'รหัส UID': user.uid,
-          'ชื่อ-นามสกุล': user.fullName,
-          'หน่วยงาน': user.agency,
-          'สถานะ': user.status,
-          'ชื่อหลักสูตร': t.course,
-          'ปีที่อบรม': parseInt(t.year) || t.year // แปลงเป็นตัวเลขเพื่อการ Sort ที่แม่นยำ
-        });
+        exportData.push({ 'รหัส UID': user.uid, 'ชื่อ-นามสกุล': user.fullName, 'หน่วยงาน': user.agency, 'สถานะ': user.status, 'ชื่อหลักสูตร': t.course, 'ปีที่อบรม': parseInt(t.year) || t.year });
       });
     } else if (filterYear === '' && filterCourse === '') {
-      // กรณีไม่ได้กรองอะไร และผู้ใช้ยังไม่มีประวัติการอบรม ให้เอามาแค่ชื่อ
-      exportData.push({
-        'รหัส UID': user.uid,
-        'ชื่อ-นามสกุล': user.fullName,
-        'หน่วยงาน': user.agency,
-        'สถานะ': user.status,
-        'ชื่อหลักสูตร': '-',
-        'ปีที่อบรม': '-'
-      });
+      exportData.push({ 'รหัส UID': user.uid, 'ชื่อ-นามสกุล': user.fullName, 'หน่วยงาน': user.agency, 'สถานะ': user.status, 'ชื่อหลักสูตร': '-', 'ปีที่อบรม': '-' });
     }
   });
 
-  // เรียงลำดับปีจากอดีต -> ปัจจุบัน (น้อยไปมาก)
   exportData.sort((a, b) => {
     const yearA = parseInt(a['ปีที่อบรม']) || 9999; 
     const yearB = parseInt(b['ปีที่อบรม']) || 9999;
     return yearA - yearB;
   });
 
-  if (exportData.length === 0) {
-    alert('⚠️ ไม่พบข้อมูลประวัติการอบรมสำหรับเงื่อนไขนี้');
-    return;
-  }
+  if (exportData.length === 0) { alert('⚠️ ไม่พบข้อมูลประวัติการอบรมสำหรับเงื่อนไขนี้'); return; }
 
-  // สร้าง WorkSheet ด้วย SheetJS
   const ws = XLSX.utils.json_to_sheet(exportData);
-  
-  // ปรับความกว้างคอลัมน์อัตโนมัติให้สวยงาม
-  ws['!cols'] = [
-    { wch: 15 }, // UID
-    { wch: 30 }, // ชื่อ
-    { wch: 40 }, // หน่วยงาน
-    { wch: 15 }, // สถานะ
-    { wch: 40 }, // ชื่อหลักสูตร
-    { wch: 15 }  // ปีที่อบรม
-  ];
-
+  ws['!cols'] = [{ wch: 15 }, { wch: 30 }, { wch: 40 }, { wch: 15 }, { wch: 40 }, { wch: 15 }];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Personnel_Training_Log");
 
-  // ตั้งชื่อไฟล์ตามเงื่อนไข (Smart Naming)
   let filename = "ข้อมูลบุคลากรกีฬา";
   if (filterCourse) filename += "_" + filterCourse.replace(/\s+/g, "");
   if (filterYear) filename += "_ปี" + filterYear;
   filename += ".xlsx";
-
-  // บังคับดาวน์โหลด
   XLSX.writeFile(wb, filename);
 };
 
+// 📌 ฟังก์ชันดาวน์โหลดไฟล์ Template ก่อนนำเข้า
+window.downloadTemplate = function() {
+  const templateData = [
+    ["คำนำหน้า", "ชื่อ-นามสกุล", "กลุ่มหน่วยงาน", "หน่วยงาน", "สถานะ", "ชื่อหลักสูตร", "ปีที่อบรม"],
+    ["นาย", "ทดสอบ ตัวอย่างการกรอก", "สมาคมกีฬา", "สมาคมกีฬาแห่งจังหวัดกรุงเทพมหานคร", "ปฏิบัติงาน", "TSLP", "2569"]
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(templateData);
+  ws['!cols'] = [{wch:10}, {wch:30}, {wch:20}, {wch:40}, {wch:15}, {wch:20}, {wch:15}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Import_Template");
+  XLSX.writeFile(wb, "Template_นำเข้าบุคลากร.xlsx");
+};
+
+// 📌 ฟังก์ชันอ่านไฟล์ Excel และแสดง Preview ก่อนบันทึก
+function handleExcelUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(event) {
+    try {
+      const data = new Uint8Array(event.target.result);
+      const workbook = XLSX.read(data, {type: 'array'});
+      const jsonRows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: "" });
+      
+      if (jsonRows.length > 0 && !('ชื่อ-นามสกุล' in jsonRows[0])) {
+        alert("❌ โครงสร้างไฟล์ผิดพลาด กรุณาใช้ไฟล์ Template มาตรฐานจากระบบเท่านั้น");
+        e.target.value = ''; return;
+      }
+
+      if (jsonRows.length === 0) {
+        alert("⚠️ ไม่พบข้อมูลในไฟล์ Excel");
+        e.target.value = ''; return;
+      }
+
+      pendingImportData = jsonRows;
+      showPreviewSection(jsonRows);
+
+    } catch (error) { 
+      alert("❌ เกิดข้อผิดพลาดในการอ่านไฟล์"); 
+    }
+    e.target.value = ''; 
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// 📌 ฟังก์ชันแสดง Preview ตาราง
+function showPreviewSection(data) {
+  document.getElementById('importUploadSection').classList.add('hidden');
+  document.getElementById('importPreviewSection').classList.remove('hidden');
+  
+  document.getElementById('previewTotalText').innerHTML = `พบข้อมูลในไฟล์ทั้งหมด <span class="font-bold text-blue-600">${data.length}</span> รายการ (แสดงตัวอย่าง 5 รายการแรก)`;
+  
+  const previewData = data.slice(0, 5);
+  const tbody = document.getElementById('previewTableBody');
+  
+  tbody.innerHTML = previewData.map(row => `
+    <tr class="hover:bg-slate-50">
+      <td class="px-4 py-3 border-r border-slate-100 font-medium text-slate-800">${row['ชื่อ-นามสกุล'] || '-'}</td>
+      <td class="px-4 py-3 border-r border-slate-100 truncate max-w-[200px]">${row['หน่วยงาน'] || '-'}</td>
+      <td class="px-4 py-3 border-r border-slate-100 text-center"><span class="bg-blue-50 text-blue-600 px-2 py-1 rounded text-xs">${row['สถานะ'] || 'ปฏิบัติงาน'}</span></td>
+      <td class="px-4 py-3 border-r border-slate-100">${row['ชื่อหลักสูตร'] || '-'}</td>
+      <td class="px-4 py-3 text-center font-mono text-slate-500">${row['ปีที่อบรม'] || '-'}</td>
+    </tr>
+  `).join('');
+  
+  if (data.length > 5) {
+    tbody.innerHTML += `<tr><td colspan="5" class="px-4 py-3 text-center text-slate-400 text-xs italic bg-slate-50/50">... และข้อมูลอื่นๆ อีก ${data.length - 5} รายการ</td></tr>`;
+  }
+}
+
+// 📌 ฟังก์ชันยกเลิก / ยืนยันการนำเข้า
+window.cancelImport = function() {
+  pendingImportData = null;
+  document.getElementById('importPreviewSection').classList.add('hidden');
+  document.getElementById('importUploadSection').classList.remove('hidden');
+};
+
+window.confirmImport = async function() {
+  if (!pendingImportData || pendingImportData.length === 0) return;
+  
+  const btn = document.getElementById('btnConfirmImport');
+  const originalText = btn.innerHTML;
+  btn.innerHTML = `<svg class="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> กำลังบันทึก...`;
+  btn.disabled = true;
+
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'bulkImport', rows: pendingImportData }),
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+    });
+    const result = await response.json();
+    
+    if (result.status === 'success') { 
+      alert(`✅ ${result.message}`); 
+      globalFiltersMaster = null; 
+      fetchData(); 
+      cancelImport(); 
+      switchPage('search'); 
+    } else { 
+      alert(`❌ เกิดข้อผิดพลาด: ${result.message}`); 
+    }
+  } catch (error) { 
+    alert("❌ การเชื่อมต่อล้มเหลว กรุณาลองใหม่อีกครั้ง"); 
+  }
+  
+  btn.innerHTML = originalText;
+  btn.disabled = false;
+};
+
+// 📌 Profile / Slide-over Logic
 window.viewProfile = function(uid) {
   currentActiveUid = uid; const person = cachedPersonnelData.find(p => p.uid === uid);
   if (!person) return;
