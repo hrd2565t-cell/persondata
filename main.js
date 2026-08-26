@@ -200,7 +200,7 @@ function renderDashboard(stats) {
   `).join('');
 }
 
-// 📌 ฟังก์ชันใหม่: วาดไทม์ไลน์โครงการแบบ Modern Cards สะอาดตา (เอาตารางทึบออกแล้ว)
+// 📌 ฟังก์ชันใหม่: วิเคราะห์และแสดงปีที่หายไป (Gap Analysis) ในการ์ดไทม์ไลน์
 function renderTimeline(relations, years, courses) {
   const container = document.getElementById('timelineCardsContainer');
   if (!container) return;
@@ -212,29 +212,37 @@ function renderTimeline(relations, years, courses) {
 
   container.innerHTML = courses.map((course, idx) => {
     const activeYearsMap = relations.courseToYears[course] || {};
-    // ดึงเฉพาะปีที่มีการจัดจริง และเรียงจากน้อยไปมาก
-    const activeYears = Object.keys(activeYearsMap).sort((a, b) => a - b);
-    const firstYear = activeYears[0] || '-';
-    const lastYear = activeYears[activeYears.length - 1] || '-';
-    const totalTimes = activeYears.length;
+    const activeYears = Object.keys(activeYearsMap).map(y => parseInt(y)).sort((a, b) => a - b);
+    
+    if (activeYears.length === 0) return '';
+
+    const firstYear = activeYears[0];
+    const lastYear = activeYears[activeYears.length - 1];
+
+    // คำนวณหาปีที่หายไป (Missing Years) ระหว่างปีแรกถึงปีล่าสุด
+    let missingYears = [];
+    for (let y = firstYear; y <= lastYear; y++) {
+      if (!activeYearsMap[y]) {
+        missingYears.push(y);
+      }
+    }
 
     return `
-      <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow space-y-4">
+      <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow space-y-5">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 border-b border-slate-100 pb-4">
           <div>
             <span class="text-xs font-semibold text-blue-600 uppercase tracking-wider">หลักสูตรที่ #${idx + 1}</span>
             <h3 class="text-lg font-bold text-slate-800 mt-0.5">${course}</h3>
           </div>
-          <div class="flex items-center gap-2">
-            <span class="bg-slate-100 text-slate-700 text-xs font-semibold px-3 py-1.5 rounded-lg">เริ่มต้น: <span class="text-blue-600">${firstYear}</span></span>
-            <span class="bg-slate-100 text-slate-700 text-xs font-semibold px-3 py-1.5 rounded-lg">ปัจจุบัน: <span class="text-emerald-600">${lastYear}</span></span>
-            <span class="bg-blue-50 text-blue-700 text-xs font-semibold px-3 py-1.5 rounded-lg border border-blue-100">จัดทั้งหมด ${totalTimes} ครั้ง</span>
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="bg-slate-100 text-slate-700 text-xs font-semibold px-3 py-1.5 rounded-lg">ช่วงเวลา: <span class="text-blue-600">${firstYear} - ${lastYear}</span></span>
+            <span class="bg-blue-50 text-blue-700 text-xs font-semibold px-3 py-1.5 rounded-lg border border-blue-100">จัดทั้งหมด ${activeYears.length} ปี</span>
           </div>
         </div>
 
-        <!-- แถบปีที่จัดอบรม (Badges เรียงต่อกันสะอาดตา) -->
+        <!-- โซนแสดงปีที่มีการจัดอบรม -->
         <div>
-          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2.5">ปีงบประมาณที่มีการเปิดอบรม:</p>
+          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2.5">✅ ปีที่มีการเปิดอบรม:</p>
           <div class="flex flex-wrap gap-2">
             ${activeYears.map(y => `
               <div class="flex items-center gap-1.5 bg-blue-600 text-white text-xs font-bold px-3.5 py-1.5 rounded-xl shadow-sm">
@@ -244,6 +252,27 @@ function renderTimeline(relations, years, courses) {
             `).join('')}
           </div>
         </div>
+
+        <!-- โซนแจ้งเตือนปีที่เว้นช่วง / หายไป (Gap Highlight) -->
+        ${missingYears.length > 0 ? `
+          <div class="pt-3 border-t border-slate-100">
+            <p class="text-xs font-semibold text-amber-600 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
+              ⚠️ ปีที่เว้นช่วงการจัด (Missing / Gap Years):
+            </p>
+            <div class="flex flex-wrap gap-2">
+              ${missingYears.map(my => `
+                <span class="bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold px-3 py-1 rounded-lg">
+                  ปี ${my} (งดจัด)
+                </span>
+              `).join('')}
+            </div>
+          </div>
+        ` : `
+          <div class="pt-3 border-t border-slate-100 text-xs text-emerald-600 font-semibold flex items-center gap-1.5">
+            <span>✨ จัดอบรมต่อเนื่องทุกปีโดยไม่มีช่วงว่าง (Continuous Lifecycle)</span>
+          </div>
+        `}
       </div>
     `;
   }).join('');
