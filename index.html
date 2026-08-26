@@ -5,18 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ระบบทะเบียนบุคลากรกีฬา | Executive Dashboard</title>
   
-  <!-- Tailwind CSS & Google Fonts -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   
   <style>
     body { font-family: 'Plus Jakarta Sans', sans-serif; }
-    /* Custom Scrollbar */
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: #0f172a; }
     ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
     ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
   </style>
 </head>
 <body class="bg-slate-900 text-slate-800 antialiased selection:bg-blue-500 selection:text-white min-h-screen flex flex-col">
@@ -45,20 +45,20 @@
     </div>
   </nav>
 
-  <!-- 🟢 Top Tabs Navigation -->
-  <div class="bg-slate-900 border-b border-slate-800 shadow-sm sticky top-16 z-40 backdrop-blur-md">
+  <!-- 🟢 Top Tabs Navigation (อัปเดตดีไซน์ตามรูปภาพ image_1eb0e6.png) -->
+  <div class="bg-[#0f1523] border-b border-slate-800 shadow-sm sticky top-16 z-40">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <nav class="flex space-x-1 sm:space-x-6 overflow-x-auto" aria-label="Tabs">
-        <button onclick="switchPage('dashboard')" id="nav-btn-dashboard" class="border-blue-500 text-blue-400 whitespace-nowrap py-4 px-3 border-b-2 font-bold text-sm transition-all flex items-center gap-2">
+      <nav class="flex space-x-2 sm:space-x-8 overflow-x-auto hide-scrollbar" aria-label="Tabs">
+        <button onclick="switchPage('dashboard')" id="nav-btn-dashboard" class="border-blue-500 text-blue-500 whitespace-nowrap py-4 px-2 border-b-2 font-medium text-sm transition-all flex items-center gap-2">
           📊 แดชบอร์ดสรุปผล
         </button>
-        <button onclick="switchPage('search')" id="nav-btn-search" class="border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700 whitespace-nowrap py-4 px-3 border-b-2 font-medium text-sm transition-all flex items-center gap-2">
+        <button onclick="switchPage('search')" id="nav-btn-search" class="border-transparent text-slate-400 hover:text-slate-300 whitespace-nowrap py-4 px-2 border-b-2 font-medium text-sm transition-all flex items-center gap-2">
           🔍 ค้นหาบุคลากร
         </button>
-        <button onclick="switchPage('timeline')" id="nav-btn-timeline" class="border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700 whitespace-nowrap py-4 px-3 border-b-2 font-medium text-sm transition-all flex items-center gap-2">
+        <button onclick="switchPage('timeline')" id="nav-btn-timeline" class="border-transparent text-slate-400 hover:text-slate-300 whitespace-nowrap py-4 px-2 border-b-2 font-medium text-sm transition-all flex items-center gap-2">
           📅 ไทม์ไลน์โครงการ
         </button>
-        <button onclick="switchPage('import')" id="nav-btn-import" class="border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700 whitespace-nowrap py-4 px-3 border-b-2 font-medium text-sm transition-all flex items-center gap-2">
+        <button onclick="switchPage('import')" id="nav-btn-import" class="border-transparent text-slate-400 hover:text-slate-300 whitespace-nowrap py-4 px-2 border-b-2 font-medium text-sm transition-all flex items-center gap-2">
           📥 นำเข้าข้อมูล
         </button>
       </nav>
@@ -68,7 +68,7 @@
   <!-- 🟢 Main Content Area -->
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
     
-    <!-- ================= PAGE 1: Dashboard ================= -->
+    <!-- PAGE 1: Dashboard -->
     <div id="page-dashboard" class="page-section block space-y-6">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden group hover:border-blue-500/50 transition-all">
@@ -98,18 +98,14 @@
            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
          </div>
          <h3 class="text-white font-semibold text-base">ระบบวิเคราะห์เชิงลึก (Analytics & Insights)</h3>
-         <p class="text-slate-400 text-sm mt-1">เตรียมพบกับกราฟสรุปสถิติกองทุนและการปฏิบัติหน้าที่ในอัปเดตถัดไป</p>
+         <p class="text-slate-400 text-sm mt-1">เตรียมพบกับกราฟสรุปสถิติในอัปเดตถัดไป</p>
       </div>
     </div>
 
-    <!-- ================= PAGE 2: Search & Table (UI ใหม่) ================= -->
+    <!-- PAGE 2: Search & Table -->
     <div id="page-search" class="page-section hidden space-y-6">
       <div class="w-full mx-auto bg-slate-900 rounded-2xl shadow-2xl border border-slate-800 font-sans overflow-hidden p-6 md:p-8">
-        
-        <!-- Header / Toolbar -->
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-          
-          <!-- Search -->
           <div class="relative w-full md:w-80 flex-shrink-0">
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <svg class="h-5 w-5 text-slate-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -118,8 +114,6 @@
             </div>
             <input type="text" id="searchInput" placeholder="ค้นหาด้วยชื่อ, หน่วยงาน หรือรหัส UID..." class="w-full bg-slate-950 border border-slate-700 text-slate-200 placeholder-slate-500 text-sm rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block pl-10 p-2.5 transition-colors shadow-sm outline-none">
           </div>
-
-          <!-- Actions & Smart Filters -->
           <div class="flex items-center gap-3 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
             <select id="filterYear" class="bg-slate-950 border border-slate-700 text-slate-300 text-sm rounded-lg focus:ring-2 focus:ring-blue-500 p-2.5 outline-none cursor-pointer min-w-[140px] shadow-sm transition-colors">
               <option value="">ทุกปีการศึกษา</option>
@@ -128,15 +122,11 @@
               <option value="">ทุกหลักสูตร</option>
             </select>
             <button type="button" onclick="switchPage('import')" class="flex-shrink-0 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg px-4 py-2.5 transition-colors shadow-lg shadow-blue-500/20 focus:ring-2 focus:ring-blue-400 outline-none">
-              <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-              </svg>
+              <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
               นำเข้าข้อมูล
             </button>
           </div>
         </div>
-
-        <!-- Table Container -->
         <div class="overflow-x-auto rounded-xl border border-slate-800 bg-slate-950/50 shadow-inner">
           <table class="w-full text-left text-sm text-slate-400">
             <thead class="text-xs text-slate-300 uppercase bg-slate-800/80 border-b border-slate-700">
@@ -153,27 +143,22 @@
             </tbody>
           </table>
         </div>
-
-        <!-- Footer / Pagination -->
         <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
-          <div class="text-sm text-slate-400" id="tablePaginationInfo">
-            กำลังประมวลผลข้อมูล...
-          </div>
+          <div class="text-sm text-slate-400" id="tablePaginationInfo">กำลังประมวลผลข้อมูล...</div>
           <nav class="flex items-center gap-1" aria-label="Pagination">
             <button type="button" class="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-slate-700 bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
               <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
             </button>
             <button type="button" aria-current="page" class="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-blue-500 bg-blue-600 text-white font-medium text-sm transition-colors hover:bg-blue-500">1</button>
-            <button type="button" class="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-slate-700 bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-slate-200 font-medium text-sm transition-colors">
+            <button type="button" class="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-slate-700 bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-colors">
               <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
             </button>
           </nav>
         </div>
-
       </div>
     </div>
 
-    <!-- ================= PAGE 3: Timeline ================= -->
+    <!-- PAGE 3: Timeline -->
     <div id="page-timeline" class="page-section hidden space-y-6">
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col md:flex-row justify-between items-center gap-4">
         <div>
@@ -197,7 +182,7 @@
       </div>
     </div>
 
-    <!-- ================= PAGE 4: Import Data ================= -->
+    <!-- PAGE 4: Import Data -->
     <div id="page-import" class="page-section hidden">
       <div class="max-w-xl mx-auto bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl p-10 text-center space-y-6">
         <div class="w-20 h-20 mx-auto bg-blue-500/10 border border-blue-500/20 rounded-2xl flex items-center justify-center text-blue-400 shadow-inner">
@@ -213,30 +198,57 @@
              เลือกไฟล์ Excel เพื่ออัปโหลด
              <input type="file" id="excelUpload" accept=".xlsx, .xls" class="hidden" />
            </label>
-           <p class="text-xs text-slate-500 mt-3">ระบบจะตรวจสอบความถูกต้องของโครงสร้างไฟล์ (Zero-Error Check) อัตโนมัติ</p>
         </div>
       </div>
     </div>
 
   </main>
 
-  <!-- 🟢 Modern Slide-over Panel -->
+  <!-- 🟢 Slide-over Panel (ผสานโค้ด Premium Breadcrumb ไว้ด้านบน) -->
   <div id="slideOver" class="fixed inset-0 z-50 hidden" aria-labelledby="slide-over-title" role="dialog" aria-modal="true">
     <div id="slideOverBackdrop" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity opacity-0" onclick="closeProfile()"></div>
     <div class="fixed inset-y-0 right-0 z-50 flex max-w-full pl-10">
       <div id="slideOverPanel" class="w-screen max-w-md transform transition ease-in-out duration-300 translate-x-full">
         <div class="flex h-full flex-col bg-slate-900 border-l border-slate-800 shadow-2xl">
+          
+          <!-- Header with Premium Breadcrumb -->
           <div class="bg-slate-950 px-6 py-6 border-b border-slate-800 flex-shrink-0">
-            <div class="flex items-start justify-between">
-              <div>
-                <h2 class="text-lg font-bold text-white" id="profileName">ชื่อ-นามสกุล</h2>
-                <p class="text-blue-400 text-xs font-mono mt-1" id="profileUid">UID: ---</p>
-              </div>
-              <button type="button" onclick="closeProfile()" class="rounded-xl bg-slate-900 p-2 text-slate-400 hover:text-white border border-slate-800 transition-colors">
+            <div class="flex items-start justify-between mb-4">
+              <!-- นำโค้ด Premium Breadcrumb มาประยุกต์ใช้ตรงนี้ -->
+              <nav aria-label="Premium Breadcrumb" class="flex items-center flex-wrap gap-2 overflow-x-auto hide-scrollbar">
+                <ol class="flex items-center w-full min-w-max space-x-2">
+                  <li>
+                    <span class="flex items-center gap-1.5 text-xs font-medium text-slate-500">
+                      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" /></svg>
+                      ภาพรวม
+                    </span>
+                  </li>
+                  <li><svg class="w-3 h-3 text-slate-600" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg></li>
+                  <li>
+                    <span class="flex items-center gap-1.5 text-xs font-medium text-slate-500">
+                      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg>
+                      ค้นหาบุคลากร
+                    </span>
+                  </li>
+                  <li><svg class="w-3 h-3 text-slate-600" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg></li>
+                  <li aria-current="page">
+                    <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold text-blue-400 bg-blue-500/10 ring-1 ring-blue-500/30">
+                      ประวัติส่วนตัว
+                    </div>
+                  </li>
+                </ol>
+              </nav>
+              <button type="button" onclick="closeProfile()" class="rounded-xl bg-slate-900 p-1.5 text-slate-400 hover:text-white border border-slate-800 transition-colors">
                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
               </button>
             </div>
+            <!-- Profile Info -->
+            <div>
+              <h2 class="text-xl font-bold text-white" id="profileName">ชื่อ-นามสกุล</h2>
+              <p class="text-blue-400 text-xs font-mono mt-1" id="profileUid">UID: ---</p>
+            </div>
           </div>
+
           <div class="border-b border-slate-800 bg-slate-950/50 flex-shrink-0 px-6">
             <nav class="-mb-px flex space-x-6" aria-label="Tabs">
               <button onclick="switchTab('general')" id="tab-btn-general" class="border-blue-500 text-blue-400 whitespace-nowrap py-3.5 border-b-2 font-bold text-xs transition-colors uppercase tracking-wider">ประวัติอบรม</button>
@@ -244,6 +256,7 @@
               <button onclick="switchTab('eval')" id="tab-btn-eval" class="border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap py-3.5 border-b-2 font-medium text-xs transition-colors uppercase tracking-wider">ประเมินผล</button>
             </nav>
           </div>
+
           <div class="relative flex-1 px-6 py-6 overflow-y-auto space-y-6 bg-slate-900">
             <div id="tab-content-general" class="block space-y-5">
               <div>
