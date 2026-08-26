@@ -11,7 +11,7 @@ let pendingImportData = [];
 let currentPreviewPage = 1;
 const previewItemsPerPage = 10;
 
-// ตัวแปรสำหรับ Matrix Report
+// ตัวแปรเก็บช่วงปีทั้งหมดที่มีในระบบสำหรับตารางไขว้
 let matrixAvailableYears = [];
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -27,6 +27,9 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('searchInput').addEventListener('input', triggerSearch);
   document.getElementById('filterCourse').addEventListener('change', () => { handleCascadingFilter('course'); triggerSearch(); });
   document.getElementById('filterYear').addEventListener('change', () => { handleCascadingFilter('year'); triggerSearch(); });
+  // เพิ่ม Event Listener สำหรับฟิลเตอร์กลุ่มบุคลากร
+  document.getElementById('filterGroup').addEventListener('change', () => { triggerSearch(); });
+  
   document.getElementById('excelUpload').addEventListener('change', handleExcelUpload);
 });
 
@@ -58,9 +61,10 @@ async function fetchData() {
   const keyword = document.getElementById('searchInput').value.trim();
   const year = document.getElementById('filterYear').value;
   const course = document.getElementById('filterCourse').value;
+  const group = document.getElementById('filterGroup').value;
 
   try {
-    const res = await fetch(`${API_URL}?action=getData&keyword=${encodeURIComponent(keyword)}&year=${year}&course=${encodeURIComponent(course)}`);
+    const res = await fetch(`${API_URL}?action=getData&keyword=${encodeURIComponent(keyword)}&year=${year}&course=${encodeURIComponent(course)}&group=${encodeURIComponent(group)}`);
     const result = await res.json();
     
     if (result.status === 'success') {
@@ -119,73 +123,53 @@ function renderDashboard(stats) {
   }).join('');
 }
 
-// 📌 ฟังก์ชันเปิดหน้า Matrix Report และกำหนดค่าเริ่มต้น
 window.openMatrixReport = function() {
   if (!globalFiltersMaster) return;
   matrixAvailableYears = [...globalFiltersMaster.years].sort((a, b) => a - b);
-  
-  if(matrixAvailableYears.length === 0) {
-    alert("ไม่พบข้อมูลปีการศึกษาในระบบ"); return;
-  }
+  if(matrixAvailableYears.length === 0) { alert("ไม่พบข้อมูลปีการศึกษาในระบบ"); return; }
 
-  // เติมตัวเลือกใส่ Dropdown
   const startSelect = document.getElementById('matrixStartYear');
   const endSelect = document.getElementById('matrixEndYear');
   startSelect.innerHTML = matrixAvailableYears.map(y => `<option value="${y}">${y}</option>`).join('');
   endSelect.innerHTML = matrixAvailableYears.map(y => `<option value="${y}">${y}</option>`).join('');
   
-  // ค่าเริ่มต้น: แสดงทั้งหมด
   document.getElementById('matrixModal').classList.remove('hidden');
   applyMatrixFilter('all');
 }
 
-// 📌 ฟังก์ชันจัดการการคลิกปุ่มตัวกรองช่วงปี
 window.applyMatrixFilter = function(type) {
   if (matrixAvailableYears.length === 0) return;
-  
   const minYear = matrixAvailableYears[0];
   const maxYear = matrixAvailableYears[matrixAvailableYears.length - 1];
   let startYear, endYear;
 
   if (type === '5') {
-    startYear = Math.max(minYear, maxYear - 4);
-    endYear = maxYear;
+    startYear = Math.max(minYear, maxYear - 4); endYear = maxYear;
   } else if (type === '10') {
-    startYear = Math.max(minYear, maxYear - 9);
-    endYear = maxYear;
+    startYear = Math.max(minYear, maxYear - 9); endYear = maxYear;
   } else if (type === 'all') {
-    startYear = minYear;
-    endYear = maxYear;
+    startYear = minYear; endYear = maxYear;
   } else if (type === 'custom') {
     startYear = parseInt(document.getElementById('matrixStartYear').value);
     endYear = parseInt(document.getElementById('matrixEndYear').value);
     if (startYear > endYear) { alert('⚠️ ปีเริ่มต้นต้องไม่มากกว่าปีสิ้นสุด'); return; }
   }
 
-  // อัปเดต Dropdown ให้ตรงกับที่เลือก
   document.getElementById('matrixStartYear').value = startYear;
   document.getElementById('matrixEndYear').value = endYear;
-
-  // วาดตารางใหม่ด้วยช่วงปีที่เลือก
   buildMatrixTable(startYear, endYear);
 }
 
-// 📌 ฟังก์ชันสร้างตารางไขว้ (Cross-tabulation) พร้อมซ่อนปีที่ไม่ต้องการและคำนวณยอดใหม่
 function buildMatrixTable(startYear, endYear) {
   const container = document.getElementById('matrixTableContainer');
   const textIndicator = document.getElementById('matrixYearRangeText');
-  
-  // อัปเดตข้อความบนหัวรายงาน
   textIndicator.textContent = `(ระหว่างปี ${startYear} - ${endYear})`;
 
-  // กรองเฉพาะปีที่อยู่ในช่วงที่เลือก
   const filteredYears = matrixAvailableYears.filter(y => y >= startYear && y <= endYear);
-  
   const courses = globalFiltersMaster.courses;
   const courseCounts = globalFiltersMaster.courseYearCounts || {};
   const catMap = globalFiltersMaster.courseCategoryMap || {};
 
-  // จัดกลุ่มตามหมวดหมู่
   let groupedCourses = {};
   courses.forEach(c => {
     let cat = catMap[c] || 'อื่นๆ';
@@ -193,7 +177,6 @@ function buildMatrixTable(startYear, endYear) {
     groupedCourses[cat].push(c);
   });
 
-  // สร้างตาราง
   let html = `
     <table class="w-full text-sm border-collapse border border-slate-800 text-slate-800 mt-4">
       <thead>
@@ -209,31 +192,24 @@ function buildMatrixTable(startYear, endYear) {
       <tbody>
   `;
 
-  let grandTotal = 0;
-  let yearTotals = {};
+  let grandTotal = 0; let yearTotals = {};
   filteredYears.forEach(y => yearTotals[y] = 0);
 
   for (const [category, courseList] of Object.entries(groupedCourses)) {
     html += `<tr><td colspan="${filteredYears.length + 2}" class="border border-slate-800 p-2 font-bold bg-slate-200/70">${category}</td></tr>`;
-    
     courseList.forEach(course => {
       let rowTotal = 0;
       let rowHtml = `<td class="border border-slate-800 p-2 font-medium">${course}</td>`;
-      
       filteredYears.forEach(year => {
         let count = (courseCounts[course] && courseCounts[course][year]) ? courseCounts[course][year] : 0;
         if (count > 0) {
-          rowTotal += count;
-          yearTotals[year] += count;
+          rowTotal += count; yearTotals[year] += count;
           rowHtml += `<td class="border border-slate-800 p-2 text-center">${count}</td>`;
         } else {
-          // ถมสีเทาสำหรับปีที่ไม่มีคนอบรม
           rowHtml += `<td class="border border-slate-800 p-2 text-center bg-gray-400"></td>`;
         }
       });
-      
-      // แสดงเฉพาะแถวที่มียอดคนเรียนในช่วงปีนี้ (ถ้าไม่มีเลยจะไม่โชว์เพื่อความสะอาดตา)
-      if (rowTotal > 0 || type === 'all') {
+      if (rowTotal > 0 || filteredYears.length === matrixAvailableYears.length) {
          grandTotal += rowTotal;
          html += `<tr>${rowHtml}<td class="border border-slate-800 p-2 text-center font-bold">${rowTotal}</td></tr>`;
       } else {
@@ -264,7 +240,6 @@ window.printMatrixReport = function() {
   document.getElementById('matrixModal').classList.remove('print-modal-active');
 }
 
-// 📌 ฟังก์ชัน Proposal Builder
 window.openProposalReport = function(courseName, totalPeople, activePeople) {
   const courseUsers = cachedPersonnelData.filter(u => u.trainings && u.trainings.some(t => t.course === courseName));
   const agencyCount = {}; courseUsers.forEach(u => { if(u.agency) agencyCount[u.agency] = (agencyCount[u.agency] || 0) + 1; });
@@ -490,6 +465,7 @@ function renderPreviewPaginationNav(totalPages) {
 
 window.changePreviewPage = function(newPage) { const totalPages = Math.ceil(pendingImportData.length / previewItemsPerPage); if (newPage >= 1 && newPage <= totalPages) { currentPreviewPage = newPage; renderPreviewTablePage(); } }
 window.cancelImport = function() { pendingImportData = []; document.getElementById('importPreviewSection').classList.add('hidden'); document.getElementById('importUploadSection').classList.remove('hidden'); };
+
 window.confirmImport = async function() {
   if (!pendingImportData || pendingImportData.length === 0) return;
   const processedRows = pendingImportData.map((row, idx) => { const targetUidInput = document.getElementById(`targetUid_${idx}`); return { ...row, targetUid: targetUidInput ? targetUidInput.value : '' }; });
@@ -506,7 +482,10 @@ window.confirmImport = async function() {
 window.viewProfile = function(uid) {
   currentActiveUid = uid; const person = cachedPersonnelData.find(p => p.uid === uid);
   if (!person) { alert("❌ ไม่พบข้อมูลบุคลากร"); return; }
-  document.getElementById('profileName').textContent = person.fullName; document.getElementById('profileUid').textContent = `รหัสอ้างอิง: ${person.uid}`; document.getElementById('profileAgency').textContent = `${person.agency} (${person.status})`;
+  document.getElementById('profileName').textContent = person.fullName; document.getElementById('profileUid').textContent = `รหัสอ้างอิง: ${person.uid}`; 
+  document.getElementById('profileAgency').textContent = `${person.agency} (${person.status})`;
+  document.getElementById('profileGroup').textContent = person.group || 'ไม่ระบุกลุ่ม'; // 📌 เพิ่มแสดงกลุ่มบุคลากร
+
   const timelineEl = document.getElementById('profileTrainings');
   if (person.trainings && person.trainings.length > 0) {
     const sortedTrainings = person.trainings.sort((a, b) => b.year - a.year);
@@ -574,11 +553,21 @@ function handleCascadingFilter(changedType) {
 
 function updateDropdownUI() {
   if (!globalFiltersMaster) return;
-  const selectedYear = document.getElementById('filterYear').value; const selectedCourse = document.getElementById('filterCourse').value; const relations = globalFiltersMaster.relations;
-  let availableYears = globalFiltersMaster.years; let availableCourses = globalFiltersMaster.courses;
+  const selectedYear = document.getElementById('filterYear').value; 
+  const selectedCourse = document.getElementById('filterCourse').value; 
+  const selectedGroup = document.getElementById('filterGroup').value;
+  const relations = globalFiltersMaster.relations;
+  let availableYears = globalFiltersMaster.years; 
+  let availableCourses = globalFiltersMaster.courses;
+  let availableGroups = globalFiltersMaster.groups;
+  
   if (selectedCourse) availableYears = Object.keys(relations.courseToYears[selectedCourse] || {}).sort((a,b) => b-a);
   if (selectedYear) availableCourses = Object.keys(relations.yearToCourses[selectedYear] || {}).sort();
-  populateDropdown('filterYear', availableYears, selectedYear, 'ทุกปีการศึกษา'); populateDropdown('filterCourse', availableCourses, selectedCourse, 'ทุกหลักสูตร');
+  
+  populateDropdown('filterYear', availableYears, selectedYear, 'ทุกปีการศึกษา'); 
+  populateDropdown('filterCourse', availableCourses, selectedCourse, 'ทุกหลักสูตร');
+  // 📌 เพิ่มการยัดข้อมูลใส่ Dropdown "กลุ่มบุคลากร"
+  populateDropdown('filterGroup', availableGroups, selectedGroup, 'ทุกกลุ่มบุคลากร');
 }
 
 function populateDropdown(elementId, items, currentValue, defaultLabel) {
@@ -588,16 +577,30 @@ function populateDropdown(elementId, items, currentValue, defaultLabel) {
 }
 
 window.exportToExcel = function() {
-  const filterYear = document.getElementById('filterYear').value; const filterCourse = document.getElementById('filterCourse').value; let exportData = [];
+  const filterYear = document.getElementById('filterYear').value; 
+  const filterCourse = document.getElementById('filterCourse').value; 
+  let exportData = [];
+  
   currentFilteredData.forEach(user => {
     let userTrainings = user.trainings || [];
     let matchedTrainings = userTrainings.filter(t => { const matchY = filterYear === '' || String(t.year) === String(filterYear); const matchC = filterCourse === '' || String(t.course) === String(filterCourse); return matchY && matchC; });
-    if (matchedTrainings.length > 0) { matchedTrainings.forEach(t => { exportData.push({ 'รหัส UID': user.uid, 'ชื่อ-นามสกุล': user.fullName, 'หน่วยงาน': user.agency, 'สถานะ': user.status, 'ชื่อหลักสูตร': t.course, 'ปีที่อบรม': parseInt(t.year) || t.year }); }); } 
-    else if (filterYear === '' && filterCourse === '') { exportData.push({ 'รหัส UID': user.uid, 'ชื่อ-นามสกุล': user.fullName, 'หน่วยงาน': user.agency, 'สถานะ': user.status, 'ชื่อหลักสูตร': '-', 'ปีที่อบรม': '-' }); }
+    if (matchedTrainings.length > 0) { 
+      matchedTrainings.forEach(t => { 
+        // 📌 เพิ่มคอลัมน์ "กลุ่มหน่วยงาน" ในไฟล์ Excel ขาออก
+        exportData.push({ 'รหัส UID': user.uid, 'ชื่อ-นามสกุล': user.fullName, 'กลุ่มหน่วยงาน': user.group || '-', 'หน่วยงาน': user.agency, 'สถานะ': user.status, 'ชื่อหลักสูตร': t.course, 'ปีที่อบรม': parseInt(t.year) || t.year }); 
+      }); 
+    } 
+    else if (filterYear === '' && filterCourse === '') { 
+      exportData.push({ 'รหัส UID': user.uid, 'ชื่อ-นามสกุล': user.fullName, 'กลุ่มหน่วยงาน': user.group || '-', 'หน่วยงาน': user.agency, 'สถานะ': user.status, 'ชื่อหลักสูตร': '-', 'ปีที่อบรม': '-' }); 
+    }
   });
+  
   exportData.sort((a, b) => { const yearA = parseInt(a['ปีที่อบรม']) || 9999; const yearB = parseInt(b['ปีที่อบรม']) || 9999; return yearA - yearB; });
   if (exportData.length === 0) { alert('⚠️ ไม่พบข้อมูลประวัติการอบรมสำหรับเงื่อนไขนี้'); return; }
-  const ws = XLSX.utils.json_to_sheet(exportData); ws['!cols'] = [{ wch: 15 }, { wch: 30 }, { wch: 40 }, { wch: 15 }, { wch: 40 }, { wch: 15 }]; const wb = XLSX.utils.book_new();
+  
+  const ws = XLSX.utils.json_to_sheet(exportData); 
+  ws['!cols'] = [{ wch: 15 }, { wch: 30 }, { wch: 25 }, { wch: 40 }, { wch: 15 }, { wch: 40 }, { wch: 15 }]; 
+  const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Personnel_Training_Log");
   let filename = "ข้อมูลบุคลากรกีฬา"; if (filterCourse) filename += "_" + filterCourse.replace(/\s+/g, ""); if (filterYear) filename += "_ปี" + filterYear; filename += ".xlsx";
   XLSX.writeFile(wb, filename);
