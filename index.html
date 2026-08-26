@@ -6,6 +6,7 @@
   <title>ระบบทะเบียนบุคลากรกีฬา | Executive Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- SheetJS Library (สำหรับระบบ นำเข้า/ส่งออก Excel) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
     body { font-family: 'Plus Jakarta Sans', sans-serif; }
@@ -19,6 +20,7 @@
 </head>
 <body class="bg-slate-50 text-slate-800 antialiased selection:bg-blue-100 selection:text-blue-900 min-h-screen flex flex-col">
 
+  <!-- 🔵 Navbar -->
   <nav class="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between h-16 items-center">
@@ -31,10 +33,15 @@
             <p class="text-xs text-slate-500">ระบบทะเบียนและประเมินบุคลากรกีฬาอัจฉริยะ</p>
           </div>
         </div>
+        <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-full">
+          <span class="relative flex h-2.5 w-2.5"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span></span>
+          <span class="text-xs font-medium text-slate-600">API Connected</span>
+        </div>
       </div>
     </div>
   </nav>
 
+  <!-- 🟢 Top Tabs Navigation -->
   <div class="bg-white border-b border-slate-200 shadow-sm sticky top-16 z-40">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <nav class="flex space-x-2 sm:space-x-8 overflow-x-auto hide-scrollbar" aria-label="Tabs">
@@ -76,25 +83,35 @@
       </div>
     </div>
 
-    <!-- PAGE 2: Search & Table (UI ฉบับสมบูรณ์) -->
+    <!-- PAGE 2: Search & Table -->
     <div id="page-search" class="page-section hidden space-y-6">
       <div class="w-full mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 font-sans overflow-hidden p-6 md:p-8">
         
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-          <div class="relative w-full md:w-80 flex-shrink-0">
+        <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 mb-6">
+          <div class="relative w-full xl:w-80 flex-shrink-0">
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <svg class="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
             </div>
             <input type="text" id="searchInput" placeholder="ค้นหาด้วยชื่อ, หน่วยงาน หรือรหัส UID..." class="w-full bg-slate-50 border border-slate-300 text-slate-800 placeholder-slate-400 text-sm rounded-lg focus:ring-2 focus:ring-blue-500 block pl-10 p-2.5 outline-none shadow-sm">
           </div>
-          <div class="flex items-center gap-3 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
-            <select id="filterYear" class="bg-slate-50 border border-slate-300 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-blue-500 p-2.5 outline-none min-w-[140px]"><option value="">ทุกปีการศึกษา</option></select>
-            <select id="filterCourse" class="bg-slate-50 border border-slate-300 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-blue-500 p-2.5 outline-none min-w-[160px]"><option value="">ทุกหลักสูตร</option></select>
-            <button type="button" onclick="switchPage('import')" class="flex-shrink-0 flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg px-4 py-2.5 transition-colors shadow-sm"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>นำเข้าข้อมูล</button>
+          <div class="flex flex-wrap items-center gap-3 w-full xl:w-auto">
+            <select id="filterYear" class="bg-slate-50 border border-slate-300 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-blue-500 p-2.5 outline-none min-w-[130px]"><option value="">ทุกปีการศึกษา</option></select>
+            <select id="filterCourse" class="bg-slate-50 border border-slate-300 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-blue-500 p-2.5 outline-none min-w-[150px] max-w-[200px]"><option value="">ทุกหลักสูตร</option></select>
+            
+            <!-- 📌 ปุ่มส่งออก Excel -->
+            <button type="button" onclick="exportToExcel()" class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg px-4 py-2.5 transition-colors shadow-sm outline-none">
+              <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+              </svg> ส่งออกข้อมูล
+            </button>
+
+            <!-- ปุ่มนำเข้า Excel -->
+            <button type="button" onclick="switchPage('import')" class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg px-4 py-2.5 transition-colors shadow-sm outline-none">
+              <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg> นำเข้าข้อมูล
+            </button>
           </div>
         </div>
 
-        <!-- 💡 Smart Insight Badge -->
         <div id="smartInsightBadge" class="hidden mb-4 px-4 py-3 bg-blue-50 border border-blue-100 rounded-xl shadow-sm text-sm text-blue-800 flex items-start sm:items-center gap-3">
           <svg class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5 sm:mt-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
           <span id="smartInsightText" class="leading-relaxed">กำลังประมวลผลข้อมูล...</span>
@@ -117,17 +134,14 @@
           </table>
         </div>
         
-        <!-- Pagination UI แบบรูปภาพ -->
         <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mt-5 px-1 border-t border-slate-100 pt-4">
           <div class="text-sm text-slate-500" id="tablePaginationInfo">กำลังประมวลผลข้อมูล...</div>
-          <nav class="flex items-center gap-2" aria-label="Pagination" id="paginationNav">
-            <!-- JavaScript จะมาวาดปุ่มตรงนี้ -->
-          </nav>
+          <nav class="flex items-center gap-2" aria-label="Pagination" id="paginationNav"></nav>
         </div>
       </div>
     </div>
 
-    <!-- PAGE 3 & 4 (ส่วนอื่นๆ คงเดิม ไม่เปลี่ยนแปลง) -->
+    <!-- PAGE 3 & 4 (ส่วนอื่นๆ คงเดิม) -->
     <div id="page-timeline" class="page-section hidden space-y-6">
       <div class="bg-white border border-slate-200 rounded-2xl p-6 flex justify-between items-center"><h2 class="text-lg font-bold text-slate-800">ไทม์ไลน์โครงการ</h2></div>
       <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-x-auto"><table class="min-w-full divide-y divide-slate-200" id="timelineTable"><thead class="bg-slate-50 text-slate-600"><tr id="timelineHeaderRow"></tr></thead><tbody id="timelineBody" class="divide-y divide-slate-200 text-sm"></tbody></table></div>
@@ -135,6 +149,7 @@
     <div id="page-import" class="page-section hidden"><div class="max-w-xl mx-auto bg-white border border-slate-200 rounded-3xl p-10 text-center space-y-6"><h2 class="text-xl font-bold text-slate-800">นำเข้าข้อมูล</h2></div></div>
   </main>
 
+  <!-- Slide-over Panel (คงเดิม) -->
   <div id="slideOver" class="fixed inset-0 z-50 hidden" aria-labelledby="slide-over-title" role="dialog" aria-modal="true">
     <div id="slideOverBackdrop" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity opacity-0" onclick="closeProfile()"></div>
     <div class="fixed inset-y-0 right-0 z-50 flex max-w-full pl-10">
