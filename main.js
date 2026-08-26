@@ -355,27 +355,51 @@ function renderTimeline(relations, years, courses) {
   }).join('');
 }
 
-// 📌 เพิ่มฟังก์ชันลอจิกใหม่: ตรวจสอบความถูกต้องของชื่อด้วยเทคนิคไร้ช่องว่าง (No-Space) และ Keyword
+// 📌 1. เพิ่มฟังก์ชันจัดระเบียบรูปแบบชื่อ-คำนำหน้าอัตโนมัติ (Auto-Format)
+function formatThaiName(rawPrefix, rawName) {
+  let prefix = String(rawPrefix || '').trim();
+  let name = String(rawName || '').trim();
+  
+  // ตัดอักขระซ่อนเร้นทิ้งทั้งหมด
+  name = name.replace(/[\u200B-\u200D\uFEFF\r\n]/g, '');
+  prefix = prefix.replace(/[\u200B-\u200D\uFEFF\r\n]/g, '');
+
+  // ลิสต์คำนำหน้าที่ต้องการให้ระบบสกัดออก (ยาวไปสั้น เพื่อให้สกัดได้แม่นยำ)
+  const prefixList = [
+    "ว่าที่ ร.ต.", "ว่าที่ร.ต.", "พล.ต.อ.", "พล.ต.ท.", "พล.ต.ต.", 
+    "พ.ต.อ.", "พ.ต.ท.", "พ.ต.ต.", "ร.ต.อ.", "ร.ต.ท.", "ร.ต.ต.",
+    "ศ.ดร.", "รศ.ดร.", "ผศ.ดร.", "ดร.", "ศ.", "รศ.", "ผศ.", 
+    "นางสาว", "น.ส.", "นาย", "นาง", "พลฯ", "จ.ส.อ.", "จ.ส.ท.", "จ.ส.ต.", "ส.อ.", "ส.ท.", "ส.ต."
+  ];
+
+  for (let p of prefixList) {
+    if (name.startsWith(p)) {
+      prefix = p; // จับแยกคำนำหน้าออกมา
+      name = name.substring(p.length).trim();
+      break;
+    }
+  }
+
+  // ปรับคำนำหน้าให้เป็นมาตรฐาน (เช่น น.ส. -> นางสาว)
+  if (prefix === "น.ส.") prefix = "นางสาว";
+
+  // บังคับระยะห่างระหว่างชื่อและนามสกุลให้เป็น 1 เคาะมาตรฐานเสมอ
+  name = name.split(/\s+/).join(' ');
+
+  return { prefix: prefix, fullName: name };
+}
+
 function isSmartMatch(importName, existingName) {
-  // ทำความสะอาดข้อความ ลบอักขระซ่อนเร้น (Zero-width space) และตัวขึ้นบรรทัดใหม่
   let cleanImp = String(importName).replace(/[\u200B-\u200D\uFEFF\r\n]/g, '').toLowerCase();
   let cleanExt = String(existingName).replace(/[\u200B-\u200D\uFEFF\r\n]/g, '').toLowerCase();
-
-  // 1. เทียบแบบไร้ช่องว่าง (แก้ปัญหาเว้นวรรคไม่เท่ากัน หรือพิมพ์ติดกันในไฟล์ Excel)
   let noSpaceImp = cleanImp.replace(/\s+/g, '');
   let noSpaceExt = cleanExt.replace(/\s+/g, '');
   if (noSpaceImp === noSpaceExt) return true;
-
-  // 2. เทียบด้วย Keyword (แก้ปัญหามีคำนำหน้าโผล่มา หรือเรียงคำสลับ)
   let impKeywords = cleanImp.split(/\s+/).filter(k => k.length > 2);
   let extKeywords = cleanExt.split(/\s+/).filter(k => k.length > 2);
-  
   if (impKeywords.length > 0 && extKeywords.length > 0) {
-    // เช็คว่าคำหลักทุกคำของไฟล์นำเข้า อยู่ในชื่อที่มีในระบบหรือไม่
     let matchAllImport = impKeywords.every(kw => noSpaceExt.includes(kw));
-    // หรือเช็คกลับกัน
     let matchAllExisting = extKeywords.every(kw => noSpaceImp.includes(kw));
-    
     if (matchAllImport || matchAllExisting) return true;
   }
   return false;
@@ -409,28 +433,39 @@ function handleExcelUpload(e) {
       if (jsonRows.length === 0) { alert("⚠️ ไม่พบข้อมูลในไฟล์ Excel"); e.target.value = ''; return; }
 
       let cleanedRows = jsonRows.map((row, index) => {
-        let fullName = String(row['ชื่อ-นามสกุล'] || '').trim();
+        let rawPrefix = row['คำนำหน้า'] || '';
+        let rawFullName = row['ชื่อ-นามสกุล'] || '';
+        
+        // 📌 2. นำชื่อที่ได้จาก Excel ไปผ่านการทำความสะอาดและจัดระยะห่างก่อนนำไปใช้งาน
+        let formatted = formatThaiName(rawPrefix, rawFullName);
+        let finalPrefix = formatted.prefix;
+        let finalFullName = formatted.fullName;
+        
         let matchedExisting = null; let matchType = 'new'; 
         
-        // 📌 เปลี่ยนมาใช้ Smart Keyword & No-Space Match แทนการใช้แค่ตัวอักษรเป๊ะๆ
-        let smartFound = cachedPersonnelData.find(p => isSmartMatch(fullName, p.fullName));
-        
+        let smartFound = cachedPersonnelData.find(p => isSmartMatch(finalFullName, p.fullName));
         if (smartFound) { 
-          matchedExisting = smartFound; 
-          matchType = 'exact'; 
+          matchedExisting = smartFound; matchType = 'exact'; 
         } 
         else {
           for (let p of cachedPersonnelData) {
-            let sim = calculateSimilarity(p.fullName, fullName);
+            let sim = calculateSimilarity(p.fullName, finalFullName);
             if (sim >= 0.75 && sim < 1.0) { matchedExisting = p; matchType = 'fuzzy'; break; }
           }
         }
         
         return {
-          originalIndex: index, 'คำนำหน้า': row['คำนำหน้า'] || '', 'ชื่อ-นามสกุล': fullName.replace(/\s+/g, ' '),
-          'กลุ่มหน่วยงาน': row['กลุ่มหน่วยงาน'] || '', 'หน่วยงาน': String(row['หน่วยงาน'] || '').replace(/\s+/g, ' ').trim(),
-          'สถานะ': row['สถานะ'] || 'ปฏิบัติงาน', 'ชื่อหลักสูตร': row['ชื่อหลักสูตร'] || '', 'ปีที่อบรม': row['ปีที่อบรม'] || '',
-          matchType: matchType, matchedUser: matchedExisting, actionType: matchType === 'exact' ? 'merge' : 'auto'
+          originalIndex: index, 
+          'คำนำหน้า': finalPrefix, 
+          'ชื่อ-นามสกุล': finalFullName,
+          'กลุ่มหน่วยงาน': row['กลุ่มหน่วยงาน'] || '', 
+          'หน่วยงาน': String(row['หน่วยงาน'] || '').replace(/\s+/g, ' ').trim(),
+          'สถานะ': row['สถานะ'] || 'ปฏิบัติงาน', 
+          'ชื่อหลักสูตร': row['ชื่อหลักสูตร'] || '', 
+          'ปีที่อบรม': row['ปีที่อบรม'] || '',
+          matchType: matchType, 
+          matchedUser: matchedExisting, 
+          actionType: matchType === 'exact' ? 'merge' : 'auto'
         };
       });
       pendingImportData = cleanedRows; showPreviewSection(cleanedRows);
@@ -471,7 +506,10 @@ function renderPreviewTablePage() {
     return `
       <tr class="hover:bg-slate-50 align-top border-b border-slate-100">
         <td class="px-4 py-3.5 border-r border-slate-100 text-center font-mono text-xs text-slate-400">${startIndex + idx + 1}</td>
-        <td class="px-4 py-3.5 border-r border-slate-100 font-medium text-slate-800">${row['ชื่อ-นามสกุล']}</td>
+        <td class="px-4 py-3.5 border-r border-slate-100 font-medium text-slate-800">
+          <!-- แสดงชื่อที่ผ่านการจัด Format แล้ว -->
+          ${row['ชื่อ-นามสกุล']} 
+        </td>
         <td class="px-4 py-3.5 border-r border-slate-100 truncate max-w-[180px]">${row['หน่วยงาน'] || '-'}</td>
         <td class="px-4 py-3.5 border-r border-slate-100 text-center"><span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-xs">${row['สถานะ']}</span></td>
         <td class="px-4 py-3.5 border-r border-slate-100">${row['ชื่อหลักสูตร'] || '-'} <span class="text-xs text-slate-400">(${row['ปีที่อบรม'] || '-'})</span></td>
