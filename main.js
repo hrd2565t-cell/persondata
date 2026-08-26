@@ -200,73 +200,53 @@ function renderDashboard(stats) {
   `).join('');
 }
 
-// 📌 ฟังก์ชันวาดแผนผังระยะเวลาโครงการแบบ Milestone Track Bar
+// 📌 ฟังก์ชันใหม่: วาดไทม์ไลน์โครงการแบบ Modern Cards สะอาดตา (เอาตารางทึบออกแล้ว)
 function renderTimeline(relations, years, courses) {
-  const container = document.getElementById('timelineMilestoneContainer');
+  const container = document.getElementById('timelineCardsContainer');
   if (!container) return;
 
-  if (!courses || courses.length === 0 || !years || years.length === 0) {
-    container.innerHTML = `<div class="text-center text-slate-500 py-12">ไม่พบข้อมูลสำหรับสร้างไทม์ไลน์โครงการ</div>`;
+  if (!courses || courses.length === 0) {
+    container.innerHTML = `<div class="bg-white border border-slate-200 rounded-2xl p-12 text-center text-slate-500">ไม่พบข้อมูลหลักสูตรสำหรับสร้างไทม์ไลน์</div>`;
     return;
   }
 
-  const sortedYears = [...years].sort((a, b) => a - b);
-
-  let html = `
-    <div class="hidden md:grid grid-cols-12 gap-4 pb-4 border-b border-slate-200 text-xs font-bold text-slate-400 uppercase tracking-wider">
-      <div class="col-span-4">ชื่อหลักสูตรการอบรม</div>
-      <div class="col-span-8 grid grid-cols-${sortedYears.length} text-center">
-        ${sortedYears.map(y => `<span>${y}</span>`).join('')}
-      </div>
-    </div>
-    <div class="space-y-6">
-  `;
-
-  courses.forEach((course, idx) => {
+  container.innerHTML = courses.map((course, idx) => {
     const activeYearsMap = relations.courseToYears[course] || {};
-    const totalTimesHeld = Object.keys(activeYearsMap).length;
+    // ดึงเฉพาะปีที่มีการจัดจริง และเรียงจากน้อยไปมาก
+    const activeYears = Object.keys(activeYearsMap).sort((a, b) => a - b);
+    const firstYear = activeYears[0] || '-';
+    const lastYear = activeYears[activeYears.length - 1] || '-';
+    const totalTimes = activeYears.length;
 
-    html += `
-      <div class="bg-slate-50/60 border border-slate-200/80 rounded-2xl p-5 hover:border-blue-300 transition-all shadow-sm">
-        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
-          <div class="md:col-span-4 flex flex-col justify-center">
-            <span class="text-xs font-mono text-blue-600 font-semibold mb-1">หลักสูตรที่ #${idx + 1}</span>
-            <h4 class="text-base font-bold text-slate-800 leading-snug">${course}</h4>
-            <div class="flex items-center gap-3 mt-2 text-xs text-slate-500">
-              <span class="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md font-semibold border border-blue-100">จัดแล้ว ${totalTimesHeld} ครั้ง</span>
-            </div>
+    return `
+      <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow space-y-4">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 border-b border-slate-100 pb-4">
+          <div>
+            <span class="text-xs font-semibold text-blue-600 uppercase tracking-wider">หลักสูตรที่ #${idx + 1}</span>
+            <h3 class="text-lg font-bold text-slate-800 mt-0.5">${course}</h3>
           </div>
-          <div class="md:col-span-8">
-            <div class="relative flex items-center justify-between px-2 py-4">
-              <div class="absolute left-4 right-4 h-1.5 bg-slate-200 rounded-full z-0"></div>
-              ${sortedYears.map(y => {
-                const isActive = activeYearsMap[y];
-                return `
-                  <div class="relative z-10 flex flex-col items-center group cursor-pointer">
-                    <span class="md:hidden text-[10px] text-slate-400 mb-1 font-bold">${y}</span>
-                    ${isActive ? `
-                      <div class="w-7 h-7 rounded-full bg-blue-600 border-4 border-white shadow-md flex items-center justify-center transform group-hover:scale-125 transition-all">
-                        <span class="w-2 h-2 bg-white rounded-full"></span>
-                      </div>
-                      <span class="absolute -bottom-6 text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 shadow-xs opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20">เปิดอบรมปี ${y}</span>
-                    ` : `
-                      <div class="w-5 h-5 rounded-full bg-slate-200 border-3 border-white shadow-xs flex items-center justify-center transform group-hover:scale-110 transition-all">
-                        <span class="w-1.5 h-1.5 bg-slate-400 rounded-full"></span>
-                      </div>
-                      <span class="absolute -bottom-6 text-[10px] text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20">เว้นช่วง (Gap)</span>
-                    `}
-                  </div>
-                `;
-              }).join('')}
-            </div>
+          <div class="flex items-center gap-2">
+            <span class="bg-slate-100 text-slate-700 text-xs font-semibold px-3 py-1.5 rounded-lg">เริ่มต้น: <span class="text-blue-600">${firstYear}</span></span>
+            <span class="bg-slate-100 text-slate-700 text-xs font-semibold px-3 py-1.5 rounded-lg">ปัจจุบัน: <span class="text-emerald-600">${lastYear}</span></span>
+            <span class="bg-blue-50 text-blue-700 text-xs font-semibold px-3 py-1.5 rounded-lg border border-blue-100">จัดทั้งหมด ${totalTimes} ครั้ง</span>
+          </div>
+        </div>
+
+        <!-- แถบปีที่จัดอบรม (Badges เรียงต่อกันสะอาดตา) -->
+        <div>
+          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2.5">ปีงบประมาณที่มีการเปิดอบรม:</p>
+          <div class="flex flex-wrap gap-2">
+            ${activeYears.map(y => `
+              <div class="flex items-center gap-1.5 bg-blue-600 text-white text-xs font-bold px-3.5 py-1.5 rounded-xl shadow-sm">
+                <svg class="w-3.5 h-3.5 text-blue-200" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                ปี ${y}
+              </div>
+            `).join('')}
           </div>
         </div>
       </div>
     `;
-  });
-
-  html += `</div>`;
-  container.innerHTML = html;
+  }).join('');
 }
 
 function handleCascadingFilter(changedType) {
