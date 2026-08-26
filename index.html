@@ -211,14 +211,24 @@
     <div id="slideOverBackdrop" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity opacity-0" onclick="closeProfile()"></div>
     <div class="fixed inset-y-0 right-0 z-50 flex max-w-full pl-10">
       <div id="slideOverPanel" class="w-screen max-w-md transform transition translate-x-full flex flex-col bg-white border-l shadow-2xl">
-        <div class="bg-slate-50 px-6 py-6 border-b"><div class="flex justify-between mb-4"><h2 id="profileName" class="text-xl font-bold">...</h2><button onclick="closeProfile()">❌</button></div></div>
-        <div class="border-b px-6 bg-white flex space-x-6">
-          <button id="tab-btn-general" onclick="switchTab('general')" class="border-b-2 py-3">ข้อมูล</button>
-          <button id="tab-btn-duty" onclick="switchTab('duty')" class="border-transparent py-3">หน้าที่</button>
-          <button id="tab-btn-eval" onclick="switchTab('eval')" class="border-transparent py-3">ประเมิน</button>
+        <div class="bg-slate-50 px-6 py-6 border-b flex items-start justify-between">
+          <div>
+            <h2 class="text-xl font-bold text-slate-900" id="profileName">ชื่อ-นามสกุล</h2>
+            <p class="text-blue-600 text-xs font-mono mt-1" id="profileUid">UID: ---</p>
+          </div>
+          <button type="button" onclick="closeProfile()" class="rounded-xl bg-white p-1.5 text-slate-400 hover:text-slate-600 border border-slate-200 transition-colors shadow-sm">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+          </button>
         </div>
-        <div class="flex-1 px-6 py-6 overflow-y-auto bg-slate-50">
-          <div id="tab-content-general" class="space-y-4">
+        <div class="border-b border-slate-200 bg-white px-6">
+          <nav class="-mb-px flex space-x-6" aria-label="Tabs">
+            <button onclick="switchTab('general')" id="tab-btn-general" class="border-blue-600 text-blue-600 whitespace-nowrap py-3.5 border-b-2 font-bold text-xs uppercase tracking-wider">ประวัติอบรม</button>
+            <button onclick="switchTab('duty')" id="tab-btn-duty" class="border-transparent text-slate-500 hover:text-slate-800 whitespace-nowrap py-3.5 border-b-2 font-medium text-xs uppercase tracking-wider">ปฏิบัติหน้าที่</button>
+            <button onclick="switchTab('eval')" id="tab-btn-eval" class="border-transparent text-slate-500 hover:text-slate-800 whitespace-nowrap py-3.5 border-b-2 font-medium text-xs uppercase tracking-wider">ประเมินผล</button>
+          </nav>
+        </div>
+        <div class="relative flex-1 px-6 py-6 overflow-y-auto space-y-6 bg-slate-50">
+          <div id="tab-content-general" class="block space-y-5">
             <div>
               <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">หน่วยงานต้นสังกัด</h3>
               <p class="text-sm font-medium text-slate-800 bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm" id="profileAgency">---</p>
@@ -228,7 +238,7 @@
               <ul class="space-y-4 relative border-l-2 border-blue-200 ml-3 pl-4" id="profileTrainings"></ul>
             </div>
           </div>
-          <div id="tab-content-duty" class="hidden space-y-4">
+          <div id="tab-content-duty" class="hidden space-y-5">
             <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
               <h3 class="text-xs font-semibold text-blue-600 uppercase tracking-wider">เพิ่มประวัติการปฏิบัติหน้าที่</h3>
               <input type="text" id="inputDutySport" placeholder="ชนิดกีฬา (เช่น ฟุตบอล)" class="w-full text-sm bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500">
@@ -237,7 +247,7 @@
             </div>
             <div class="space-y-3" id="profileDuties"></div>
           </div>
-          <div id="tab-content-eval" class="hidden space-y-4">
+          <div id="tab-content-eval" class="hidden space-y-5">
              <div class="space-y-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                 <label class="block text-xs font-semibold text-blue-600 uppercase tracking-wider">เพิ่มข้อเสนอแนะเชิงธรรมาภิบาล</label>
                 <textarea id="inputEvalFeedback" rows="4" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-sm text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500" placeholder="บันทึกข้อคิดเห็น..."></textarea>
