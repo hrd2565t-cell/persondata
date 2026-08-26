@@ -142,8 +142,12 @@ function renderTablePage() {
         <td class="px-6 py-4 whitespace-nowrap text-slate-600 truncate max-w-[250px] border-r border-slate-100">${item.agency}</td>
         <td class="px-6 py-4 whitespace-nowrap text-center border-r border-slate-100">${statusBadge}</td>
         <td class="px-6 py-4 whitespace-nowrap text-center">
-          <button onclick="viewProfile('${item.uid}')" class="text-slate-400 hover:text-blue-600 p-1.5 rounded-full hover:bg-blue-50 transition-colors outline-none flex justify-center w-full" title="ดูประวัติ">
-            <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+          <!-- 📌 แก้ไขให้ปุ่มเรียกฟังก์ชัน viewProfile('${item.uid}') ทำงานได้อย่างถูกต้อง -->
+          <button onclick="viewProfile('${item.uid}')" class="text-slate-400 hover:text-blue-600 p-2 rounded-full hover:bg-blue-50 transition-colors outline-none cursor-pointer inline-flex items-center justify-center" title="ดูประวัติและจัดการ">
+            <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
           </button>
         </td>
       </tr>
@@ -200,7 +204,6 @@ function renderDashboard(stats) {
   `).join('');
 }
 
-// 📌 ฟังก์ชันใหม่: วิเคราะห์และแสดงปีที่หายไป (Gap Analysis) ในการ์ดไทม์ไลน์
 function renderTimeline(relations, years, courses) {
   const container = document.getElementById('timelineCardsContainer');
   if (!container) return;
@@ -219,7 +222,6 @@ function renderTimeline(relations, years, courses) {
     const firstYear = activeYears[0];
     const lastYear = activeYears[activeYears.length - 1];
 
-    // คำนวณหาปีที่หายไป (Missing Years) ระหว่างปีแรกถึงปีล่าสุด
     let missingYears = [];
     for (let y = firstYear; y <= lastYear; y++) {
       if (!activeYearsMap[y]) {
@@ -240,7 +242,6 @@ function renderTimeline(relations, years, courses) {
           </div>
         </div>
 
-        <!-- โซนแสดงปีที่มีการจัดอบรม -->
         <div>
           <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2.5">✅ ปีที่มีการเปิดอบรม:</p>
           <div class="flex flex-wrap gap-2">
@@ -253,7 +254,6 @@ function renderTimeline(relations, years, courses) {
           </div>
         </div>
 
-        <!-- โซนแจ้งเตือนปีที่เว้นช่วง / หายไป (Gap Highlight) -->
         ${missingYears.length > 0 ? `
           <div class="pt-3 border-t border-slate-100">
             <p class="text-xs font-semibold text-amber-600 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
