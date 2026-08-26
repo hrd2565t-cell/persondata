@@ -46,18 +46,10 @@
   <div class="bg-white border-b border-slate-200 shadow-sm sticky top-16 z-40">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <nav class="flex space-x-2 sm:space-x-8 overflow-x-auto hide-scrollbar" aria-label="Tabs">
-        <button onclick="switchPage('dashboard')" id="nav-btn-dashboard" class="border-blue-600 text-blue-600 whitespace-nowrap py-4 px-2 border-b-2 font-bold text-sm transition-all flex items-center gap-2">
-          📊 แดชบอร์ดสรุปผล
-        </button>
-        <button onclick="switchPage('search')" id="nav-btn-search" class="border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300 whitespace-nowrap py-4 px-2 border-b-2 font-medium text-sm transition-all flex items-center gap-2">
-          🔍 ค้นหาบุคลากร
-        </button>
-        <button onclick="switchPage('timeline')" id="nav-btn-timeline" class="border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300 whitespace-nowrap py-4 px-2 border-b-2 font-medium text-sm transition-all flex items-center gap-2">
-          📅 ไทม์ไลน์โครงการ
-        </button>
-        <button onclick="switchPage('import')" id="nav-btn-import" class="border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300 whitespace-nowrap py-4 px-2 border-b-2 font-medium text-sm transition-all flex items-center gap-2">
-          📥 นำเข้าข้อมูล
-        </button>
+        <button onclick="switchPage('dashboard')" id="nav-btn-dashboard" class="border-blue-600 text-blue-600 whitespace-nowrap py-4 px-2 border-b-2 font-bold text-sm transition-all flex items-center gap-2">📊 แดชบอร์ดสรุปผล</button>
+        <button onclick="switchPage('search')" id="nav-btn-search" class="border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300 whitespace-nowrap py-4 px-2 border-b-2 font-medium text-sm transition-all flex items-center gap-2">🔍 ค้นหาบุคลากร</button>
+        <button onclick="switchPage('timeline')" id="nav-btn-timeline" class="border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300 whitespace-nowrap py-4 px-2 border-b-2 font-medium text-sm transition-all flex items-center gap-2">📅 ไทม์ไลน์โครงการ</button>
+        <button onclick="switchPage('import')" id="nav-btn-import" class="border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300 whitespace-nowrap py-4 px-2 border-b-2 font-medium text-sm transition-all flex items-center gap-2">📥 นำเข้าข้อมูล</button>
       </nav>
     </div>
   </div>
@@ -65,39 +57,28 @@
   <!-- 🟢 Main Content Area -->
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
     
-    <!-- PAGE 1: Dashboard (UI แบบ Executive Summary Table) -->
+    <!-- PAGE 1: Dashboard -->
     <div id="page-dashboard" class="page-section block space-y-6">
-      
       <div class="flex justify-between items-end mb-2">
         <div>
           <h2 class="text-xl font-bold text-slate-800">แดชบอร์ดสรุปผล (Executive Summary)</h2>
           <p class="text-sm text-slate-500 mt-1">ภาพรวมกำลังพลและผลสัมฤทธิ์การอบรมทั้งหมดในระบบ</p>
         </div>
       </div>
-      
-      <!-- Top 3 KPI Cards -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm relative overflow-hidden">
           <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-500">บุคลากรในระบบทั้งหมด</h2>
-          <div class="flex items-baseline mt-4 gap-2">
-            <p class="text-5xl font-extrabold text-blue-600 tracking-tight" id="stat-total">--</p>
-            <span class="text-sm text-slate-500 font-medium">คน</span>
-          </div>
+          <div class="flex items-baseline mt-4 gap-2"><p class="text-5xl font-extrabold text-blue-600 tracking-tight" id="stat-total">--</p><span class="text-sm text-slate-500 font-medium">คน</span></div>
         </div>
         <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm relative overflow-hidden">
           <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-500">ปีที่มีการจัดอบรมหลักสูตรเยอะที่สุด</h2>
-          <div class="flex items-baseline mt-4 gap-2">
-            <p class="text-5xl font-extrabold text-emerald-500 tracking-tight" id="stat-top-year">--</p>
-            <span class="text-sm text-slate-500 font-medium">ปีการศึกษา</span>
-          </div>
+          <div class="flex items-baseline mt-4 gap-2"><p class="text-5xl font-extrabold text-emerald-500 tracking-tight" id="stat-top-year">--</p><span class="text-sm text-slate-500 font-medium">ปีการศึกษา</span></div>
         </div>
         <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm relative overflow-hidden">
           <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-500">หลักสูตรที่มีผู้เรียนสูงสุด</h2>
           <p class="text-xl font-bold text-slate-800 mt-4 truncate" id="stat-top-course">กำลังประมวลผล...</p>
         </div>
       </div>
-
-      <!-- Executive Summary Table -->
       <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mt-8">
         <div class="px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
           <h3 class="text-base font-bold text-slate-800">ตารางสรุปผลสัมฤทธิ์แยกตามหลักสูตร</h3>
@@ -120,9 +101,11 @@
       </div>
     </div>
 
-    <!-- PAGE 2: Search & Table -->
+    <!-- PAGE 2: Search & Table (UI ตรงตามภาพที่ส่งมาเป๊ะๆ) -->
     <div id="page-search" class="page-section hidden space-y-6">
       <div class="w-full mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 font-sans overflow-hidden p-6 md:p-8">
+        
+        <!-- Header Controls -->
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
           <div class="relative w-full md:w-80 flex-shrink-0">
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -130,34 +113,47 @@
                 <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
               </svg>
             </div>
-            <input type="text" id="searchInput" placeholder="ค้นหาด้วยชื่อ, หน่วยงาน หรือรหัส UID..." class="w-full bg-slate-50 border border-slate-300 text-slate-800 placeholder-slate-400 text-sm rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block pl-10 p-2.5 transition-colors outline-none shadow-sm">
+            <input type="text" id="searchInput" placeholder="ค้นหาด้วยชื่อ, หน่วยงาน หรือรหัส UID..." class="w-full bg-white border border-slate-300 text-slate-700 placeholder-slate-400 text-sm rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block pl-10 p-2.5 transition-colors outline-none shadow-sm">
           </div>
+          
           <div class="flex items-center gap-3 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
-            <select id="filterYear" class="bg-slate-50 border border-slate-300 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-blue-500 p-2.5 outline-none cursor-pointer min-w-[140px] shadow-sm transition-colors"><option value="">ทุกปีการศึกษา</option></select>
-            <select id="filterCourse" class="bg-slate-50 border border-slate-300 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-blue-500 p-2.5 outline-none cursor-pointer min-w-[160px] shadow-sm transition-colors"><option value="">ทุกหลักสูตร</option></select>
-            <button type="button" onclick="switchPage('import')" class="flex-shrink-0 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg px-4 py-2.5 transition-colors shadow-sm focus:ring-2 focus:ring-blue-400 outline-none">
+            <select id="filterYear" class="bg-white border border-slate-300 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-blue-500 p-2.5 outline-none cursor-pointer min-w-[140px] shadow-sm transition-colors">
+              <option value="">ทุกปีการศึกษา</option>
+            </select>
+            <select id="filterCourse" class="bg-white border border-slate-300 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-blue-500 p-2.5 outline-none cursor-pointer min-w-[160px] shadow-sm transition-colors">
+              <option value="">ทุกหลักสูตร</option>
+            </select>
+            <button type="button" onclick="switchPage('import')" class="flex-shrink-0 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg px-4 py-2.5 transition-colors shadow-sm focus:ring-2 focus:ring-blue-400 outline-none">
               <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg> นำเข้าข้อมูล
             </button>
           </div>
         </div>
-        <div class="overflow-x-auto rounded-xl border border-slate-200 shadow-sm">
+
+        <!-- Table Container -->
+        <div class="overflow-x-auto rounded-xl border border-slate-200">
           <table class="w-full text-left text-sm text-slate-600">
-            <thead class="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
+            <thead class="text-xs text-slate-500 font-semibold bg-slate-50 border-b border-slate-200">
               <tr>
-                <th scope="col" class="px-6 py-4 font-semibold tracking-wider w-32 border-r border-slate-100">รหัส UID</th>
-                <th scope="col" class="px-6 py-4 font-semibold tracking-wider border-r border-slate-100">ชื่อ-นามสกุล</th>
-                <th scope="col" class="px-6 py-4 font-semibold tracking-wider border-r border-slate-100">หน่วยงาน</th>
-                <th scope="col" class="px-6 py-4 font-semibold tracking-wider text-center w-32 border-r border-slate-100">สถานะ</th>
-                <th scope="col" class="px-6 py-4 font-semibold tracking-wider text-center w-28">จัดการ</th>
+                <th scope="col" class="px-6 py-4 tracking-wider w-36 border-r border-slate-100">รหัส UID</th>
+                <th scope="col" class="px-6 py-4 tracking-wider border-r border-slate-100">ชื่อ-นามสกุล</th>
+                <th scope="col" class="px-6 py-4 tracking-wider border-r border-slate-100">หน่วยงาน</th>
+                <th scope="col" class="px-6 py-4 tracking-wider text-center w-36 border-r border-slate-100">สถานะ</th>
+                <th scope="col" class="px-6 py-4 tracking-wider text-center w-24">จัดการ</th>
               </tr>
             </thead>
+            <!-- JS จะวาดข้อมูล 10 แถวต่อหน้าที่นี่ -->
             <tbody id="tableBody" class="divide-y divide-slate-100 bg-white">
               <tr><td colspan="5" class="px-6 py-16 text-center text-blue-600 font-medium">กำลังเชื่อมต่อฐานข้อมูล...</td></tr>
             </tbody>
           </table>
         </div>
-        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
+        
+        <!-- Pagination UI -->
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mt-5 px-1">
           <div class="text-sm text-slate-500" id="tablePaginationInfo">กำลังประมวลผลข้อมูล...</div>
+          <nav class="flex items-center gap-1" aria-label="Pagination" id="paginationNav">
+            <!-- ปุ่มเปลี่ยนหน้าจะโผล่มาตรงนี้โดยอัตโนมัติ -->
+          </nav>
         </div>
       </div>
     </div>
