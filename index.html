@@ -150,7 +150,7 @@
       </div>
     </div>
 
-    <!-- PAGE 4: Import Data (อัปเดตระบบ Preview แบ่งหน้าละ 10 รายการ) -->
+    <!-- PAGE 4: Import Data -->
     <div id="page-import" class="page-section hidden">
       <div class="max-w-5xl mx-auto mt-8">
         <div id="importUploadSection" class="bg-white border border-slate-200 rounded-3xl shadow-lg p-10 text-center space-y-8">
@@ -197,7 +197,6 @@
             </table>
           </div>
 
-          <!-- Pagination สำหรับหน้า Preview -->
           <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
             <div class="text-sm text-slate-500" id="previewPaginationInfo">กำลังประมวลผล...</div>
             <nav class="flex items-center gap-2" aria-label="Preview Pagination" id="previewPaginationNav"></nav>
@@ -213,9 +212,39 @@
     <div class="fixed inset-y-0 right-0 z-50 flex max-w-full pl-10">
       <div id="slideOverPanel" class="w-screen max-w-md transform transition translate-x-full flex flex-col bg-white border-l shadow-2xl">
         <div class="bg-slate-50 px-6 py-6 border-b"><div class="flex justify-between mb-4"><h2 id="profileName" class="text-xl font-bold">...</h2><button onclick="closeProfile()">❌</button></div></div>
-        <div class="border-b px-6 bg-white flex space-x-6"><button id="tab-btn-general" onclick="switchTab('general')" class="border-b-2 py-3">ข้อมูล</button><button id="tab-btn-duty" onclick="switchTab('duty')" class="border-transparent py-3">หน้าที่</button><button id="tab-btn-eval" onclick="switchTab('eval')" class="border-transparent py-3">ประเมิน</button></div>
+        <div class="border-b px-6 bg-white flex space-x-6">
+          <button id="tab-btn-general" onclick="switchTab('general')" class="border-b-2 py-3">ข้อมูล</button>
+          <button id="tab-btn-duty" onclick="switchTab('duty')" class="border-transparent py-3">หน้าที่</button>
+          <button id="tab-btn-eval" onclick="switchTab('eval')" class="border-transparent py-3">ประเมิน</button>
+        </div>
         <div class="flex-1 px-6 py-6 overflow-y-auto bg-slate-50">
-          <div id="tab-content-general"><ul id="profileTrainings"></ul></div><div id="tab-content-duty" class="hidden"><ul id="profileDuties"></ul></div><div id="tab-content-eval" class="hidden"><div id="profileEvals"></div></div>
+          <div id="tab-content-general" class="space-y-4">
+            <div>
+              <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">หน่วยงานต้นสังกัด</h3>
+              <p class="text-sm font-medium text-slate-800 bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm" id="profileAgency">---</p>
+            </div>
+            <div>
+              <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">ไทม์ไลน์การอบรม</h3>
+              <ul class="space-y-4 relative border-l-2 border-blue-200 ml-3 pl-4" id="profileTrainings"></ul>
+            </div>
+          </div>
+          <div id="tab-content-duty" class="hidden space-y-4">
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
+              <h3 class="text-xs font-semibold text-blue-600 uppercase tracking-wider">เพิ่มประวัติการปฏิบัติหน้าที่</h3>
+              <input type="text" id="inputDutySport" placeholder="ชนิดกีฬา (เช่น ฟุตบอล)" class="w-full text-sm bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500">
+              <input type="text" id="inputDutyRole" placeholder="ประเภทบุคลากร (เช่น ผู้ตัดสิน)" class="w-full text-sm bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500">
+              <button id="btnSaveDuty" onclick="submitDuty()" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-2.5 rounded-xl shadow-md transition-colors">บันทึกข้อมูล</button>
+            </div>
+            <div class="space-y-3" id="profileDuties"></div>
+          </div>
+          <div id="tab-content-eval" class="hidden space-y-4">
+             <div class="space-y-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <label class="block text-xs font-semibold text-blue-600 uppercase tracking-wider">เพิ่มข้อเสนอแนะเชิงธรรมาภิบาล</label>
+                <textarea id="inputEvalFeedback" rows="4" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-sm text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500" placeholder="บันทึกข้อคิดเห็น..."></textarea>
+                <button id="btnSaveEval" onclick="submitEval()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-xl shadow-md transition-colors text-sm">บันทึกข้อเสนอแนะ</button>
+             </div>
+             <div class="pt-2 space-y-3" id="profileEvals"></div>
+          </div>
         </div>
       </div>
     </div>
