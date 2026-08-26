@@ -4,7 +4,6 @@ let cachedPersonnelData = [];
 let currentActiveUid = null;
 let globalFiltersMaster = null; 
 
-// 📌 ตัวแปรสำหรับระบบ Pagination
 let currentFilteredData = [];
 let currentPage = 1;
 const itemsPerPage = 10;
@@ -20,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const triggerSearch = () => {
     clearTimeout(delayTimer);
     showLoadingState();
-    delayTimer = setTimeout(fetchData, 500); // ใช้งานเป็น Filter บนข้อมูลชุดเดิม
+    delayTimer = setTimeout(fetchData, 500); 
   };
 
   searchInput.addEventListener('input', triggerSearch);
@@ -73,13 +72,13 @@ async function fetchData() {
       
       renderDashboard(result.data.stats);
       
-      // 📌 เก็บข้อมูลที่ค้นพบลงในตัวแปรสำหรับแบ่งหน้า และรีเซ็ตหน้าเป็น 1 เสมอ
       currentFilteredData = result.data.list;
       currentPage = 1;
       
-      // สั่งให้วาดตารางหน้าแรก (10 รายการ)
-      renderTablePage();
+      // 💡 อัปเดตข้อความ Smart Summary ทันทีที่โหลดข้อมูลเสร็จ
+      updateSmartSummary(course, year, currentFilteredData.length);
       
+      renderTablePage();
     } else {
       showErrorState(result.message);
     }
@@ -88,7 +87,28 @@ async function fetchData() {
   }
 }
 
-// 📌 ฟังก์ชันจัดการตาราง 10 รายการ และ Pagination
+// 📌 ฟังก์ชันจัดการ Smart Insight Badge
+function updateSmartSummary(course, year, totalCount) {
+  const badge = document.getElementById('smartInsightBadge');
+  const textEl = document.getElementById('smartInsightText');
+  
+  if (!course && !year) {
+    badge.classList.add('hidden'); // ซ่อนถ้าไม่ได้เลือกตัวกรอง
+    return;
+  }
+  
+  badge.classList.remove('hidden');
+  badge.classList.add('flex');
+  
+  if (course && year) {
+    textEl.innerHTML = `สรุปข้อมูล: หลักสูตร <span class="font-bold">${course}</span> ประจำปีการศึกษา <span class="font-bold">${year}</span> มีผู้ผ่านการอบรมและขึ้นทะเบียนในระบบทั้งสิ้น <span class="font-bold text-lg mx-1">${totalCount}</span> คน`;
+  } else if (course) {
+    textEl.innerHTML = `สรุปข้อมูล: หลักสูตร <span class="font-bold">${course}</span> (รวมทุกปีการศึกษา) มีผู้ผ่านการอบรมและขึ้นทะเบียนในระบบทั้งสิ้น <span class="font-bold text-lg mx-1">${totalCount}</span> คน`;
+  } else if (year) {
+    textEl.innerHTML = `สรุปข้อมูล: ภาพรวมปีการศึกษา <span class="font-bold">${year}</span> มีบุคลากรผ่านการอบรมรวมทุกหลักสูตรทั้งสิ้น <span class="font-bold text-lg mx-1">${totalCount}</span> คน`;
+  }
+}
+
 function renderTablePage() {
   const tbody = document.getElementById('tableBody');
   const paginationInfo = document.getElementById('tablePaginationInfo');
@@ -103,41 +123,30 @@ function renderTablePage() {
   const totalItems = currentFilteredData.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   
-  // คำนวณจุดตัดข้อมูล (Slice)
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
   const pageData = currentFilteredData.slice(startIndex, endIndex);
 
-  // วาด 10 แถวแรก ตามสไตล์ภาพ image_1f34ff.png
   tbody.innerHTML = pageData.map(item => {
     const initials = item.fullName.substring(0, 2).toUpperCase() || 'U';
-    
-    // สถานะ: ขอบเหลือง ตัวหนังสือเหลือง วงกลมเหลือง (ตามภาพอ้างอิง)
     const statusBadge = (item.status === 'ปฏิบัติงาน' || item.status === 'ยังปฏิบัติหน้าที่')
-      ? `<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border border-amber-300 text-amber-600 bg-white"><span class="w-1.5 h-1.5 rounded-full mr-2 bg-amber-500"></span>${item.status}</span>`
-      : `<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border border-slate-300 text-slate-500 bg-white"><span class="w-1.5 h-1.5 rounded-full mr-2 bg-slate-400"></span>${item.status}</span>`;
+      ? `<span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium border border-amber-300 text-amber-600 bg-white"><span class="w-1.5 h-1.5 rounded-full mr-2 bg-amber-500"></span>${item.status}</span>`
+      : `<span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium border border-slate-300 text-slate-500 bg-white"><span class="w-1.5 h-1.5 rounded-full mr-2 bg-slate-400"></span>${item.status}</span>`;
 
     return `
       <tr class="hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0">
         <td class="px-6 py-4 whitespace-nowrap text-blue-600 font-medium text-sm border-r border-slate-100">${item.uid}</td>
         <td class="px-6 py-4 whitespace-nowrap border-r border-slate-100">
           <div class="flex items-center gap-3">
-            <div class="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xs">
-              ${initials}
-            </div>
+            <div class="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xs">${initials}</div>
             <div class="text-slate-700 font-medium text-sm">${item.fullName}</div>
           </div>
         </td>
         <td class="px-6 py-4 whitespace-nowrap text-slate-600 truncate max-w-[250px] border-r border-slate-100">${item.agency}</td>
-        <td class="px-6 py-4 whitespace-nowrap text-center border-r border-slate-100">
-          ${statusBadge}
-        </td>
+        <td class="px-6 py-4 whitespace-nowrap text-center border-r border-slate-100">${statusBadge}</td>
         <td class="px-6 py-4 whitespace-nowrap text-center">
-          <button onclick="viewProfile('${item.uid}')" class="text-slate-400 hover:text-blue-600 p-1.5 rounded-full hover:bg-blue-50 transition-colors outline-none cursor-pointer flex justify-center w-full" title="ดูประวัติ">
-            <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
+          <button onclick="viewProfile('${item.uid}')" class="text-slate-400 hover:text-blue-600 p-1.5 rounded-full hover:bg-blue-50 transition-colors outline-none flex justify-center w-full" title="ดูประวัติ">
+            <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
           </button>
         </td>
       </tr>
@@ -145,33 +154,31 @@ function renderTablePage() {
   }).join('');
   
   if (paginationInfo) {
-    paginationInfo.innerHTML = `แสดงรายการที่ <span class="font-bold text-slate-800">${startIndex + 1} - ${endIndex}</span> จากทั้งหมด <span class="font-bold text-slate-800">${totalItems}</span> รายการ`;
+    paginationInfo.innerHTML = `แสดงรายการที่ <span class="font-bold text-slate-800 mx-1">${startIndex + 1} - ${endIndex}</span> จากทั้งหมด <span class="font-bold text-slate-800 mx-1">${totalItems}</span> รายการ`;
   }
 
   renderPaginationNav(totalPages);
 }
 
-// 📌 ฟังก์ชันสร้างปุ่มแบ่งหน้า (ตามภาพอ้างอิง)
+// 📌 ฟังก์ชันสร้างปุ่ม Pagination แบบสากลตามภาพอ้างอิง
 function renderPaginationNav(totalPages) {
   const nav = document.getElementById('paginationNav');
   if (!nav || totalPages === 0) {
-    if(nav) nav.innerHTML = '';
-    return;
+    if(nav) nav.innerHTML = ''; return;
   }
 
   let html = `
-    <button type="button" onclick="changePage(${currentPage - 1})" class="inline-flex items-center justify-center px-3 py-1.5 rounded-md border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium mr-1 shadow-sm" ${currentPage === 1 ? 'disabled' : ''}>
-      <svg class="w-4 h-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg> ก่อนหน้า
+    <button type="button" onclick="changePage(${currentPage - 1})" class="inline-flex items-center justify-center px-4 py-2 rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors disabled:opacity-50 disabled:bg-slate-50 disabled:cursor-not-allowed text-sm font-medium shadow-sm" ${currentPage === 1 ? 'disabled' : ''}>
+      <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg> ก่อนหน้า
     </button>
-    <span class="text-sm font-semibold text-blue-600 px-3 select-none">หน้า ${currentPage}/${totalPages}</span>
-    <button type="button" onclick="changePage(${currentPage + 1})" class="inline-flex items-center justify-center px-3 py-1.5 rounded-md border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium ml-1 shadow-sm" ${currentPage === totalPages ? 'disabled' : ''}>
-      ถัดไป <svg class="w-4 h-4 ml-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+    <span class="text-sm font-semibold text-blue-600 px-4 select-none">หน้า ${currentPage}/${totalPages}</span>
+    <button type="button" onclick="changePage(${currentPage + 1})" class="inline-flex items-center justify-center px-4 py-2 rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors disabled:opacity-50 disabled:bg-slate-50 disabled:cursor-not-allowed text-sm font-medium shadow-sm" ${currentPage === totalPages ? 'disabled' : ''}>
+      ถัดไป <svg class="w-4 h-4 ml-1.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
     </button>
   `;
   nav.innerHTML = html;
 }
 
-// 📌 ฟังก์ชันเปลี่ยนหน้าเว็บที่รวดเร็ว (Zero-Lag)
 window.changePage = function(newPage) {
   const totalPages = Math.ceil(currentFilteredData.length / itemsPerPage);
   if (newPage >= 1 && newPage <= totalPages) {
@@ -317,62 +324,36 @@ function handleExcelUpload(e) {
   reader.readAsArrayBuffer(file);
 }
 
+// 📌 Slide-Over Panel Logic (ไม่เปลี่ยนแปลง)
 window.viewProfile = function(uid) {
   currentActiveUid = uid;
   const person = cachedPersonnelData.find(p => p.uid === uid);
   if (!person) return;
-
   document.getElementById('profileName').textContent = person.fullName;
   document.getElementById('profileUid').textContent = `รหัสอ้างอิง: ${person.uid}`;
   document.getElementById('profileAgency').textContent = `${person.agency} (${person.status})`;
-
   const timelineEl = document.getElementById('profileTrainings');
   if (person.trainings && person.trainings.length > 0) {
     const sortedTrainings = person.trainings.sort((a, b) => b.year - a.year);
-    timelineEl.innerHTML = sortedTrainings.map(t => `
-      <li class="relative pl-6 pb-4 border-l-2 border-slate-200 last:border-0 last:pb-0">
-        <div class="absolute w-3 h-3 bg-blue-500 rounded-full -left-[7px] top-1.5 ring-4 ring-white shadow-sm"></div>
-        <p class="text-sm font-bold text-slate-800">${t.course}</p>
-        <p class="text-xs text-slate-500 mt-0.5">ปีการศึกษา: ${t.year}</p>
-      </li>
-    `).join('');
+    timelineEl.innerHTML = sortedTrainings.map(t => `<li class="relative pl-6 pb-4 border-l-2 border-slate-200 last:border-0 last:pb-0"><div class="absolute w-3 h-3 bg-blue-500 rounded-full -left-[7px] top-1.5 ring-4 ring-white shadow-sm"></div><p class="text-sm font-bold text-slate-800">${t.course}</p><p class="text-xs text-slate-500 mt-0.5">ปีการศึกษา: ${t.year}</p></li>`).join('');
   } else { timelineEl.innerHTML = `<li class="text-sm text-slate-500 pl-4">ยังไม่มีประวัติการอบรม</li>`; }
-
   const dutyEl = document.getElementById('profileDuties');
   if (person.duties && person.duties.length > 0) {
-    dutyEl.innerHTML = person.duties.map(d => `
-      <li class="bg-white p-3.5 rounded-xl border border-slate-200 flex flex-col gap-1 shadow-sm">
-        <span class="text-sm font-bold text-slate-800">${d.sport}</span>
-        <span class="text-xs text-slate-500">สถานะ: ${d.role}</span>
-      </li>
-    `).join('');
+    dutyEl.innerHTML = person.duties.map(d => `<li class="bg-white p-3.5 rounded-xl border border-slate-200 flex flex-col gap-1 shadow-sm"><span class="text-sm font-bold text-slate-800">${d.sport}</span><span class="text-xs text-slate-500">สถานะ: ${d.role}</span></li>`).join('');
   } else { dutyEl.innerHTML = `<li class="text-sm text-slate-500">ยังไม่มีประวัติลงพื้นที่</li>`; }
-
   const evalEl = document.getElementById('profileEvals');
   if (person.evals && person.evals.length > 0) {
-    evalEl.innerHTML = person.evals.map(e => `
-      <div class="bg-white p-3.5 rounded-xl border border-slate-200 text-sm text-slate-700 italic shadow-sm">"${e.feedback}"</div>
-    `).join('');
+    evalEl.innerHTML = person.evals.map(e => `<div class="bg-white p-3.5 rounded-xl border border-slate-200 text-sm text-slate-700 italic shadow-sm">"${e.feedback}"</div>`).join('');
   } else { evalEl.innerHTML = `<div class="text-sm text-slate-500">ยังไม่มีข้อเสนอแนะ</div>`; }
-
-  const slideOver = document.getElementById('slideOver');
-  const backdrop = document.getElementById('slideOverBackdrop');
-  const panel = document.getElementById('slideOverPanel');
-
-  slideOver.classList.remove('hidden');
-  setTimeout(() => {
-    backdrop.classList.remove('opacity-0'); backdrop.classList.add('opacity-100');
-    panel.classList.remove('translate-x-full'); panel.classList.add('translate-x-0');
-  }, 10);
+  document.getElementById('slideOver').classList.remove('hidden');
+  setTimeout(() => { document.getElementById('slideOverBackdrop').classList.remove('opacity-0'); document.getElementById('slideOverBackdrop').classList.add('opacity-100'); document.getElementById('slideOverPanel').classList.remove('translate-x-full'); document.getElementById('slideOverPanel').classList.add('translate-x-0'); }, 10);
   switchTab('general');
 }
 
 window.closeProfile = function() {
   currentActiveUid = null;
-  const backdrop = document.getElementById('slideOverBackdrop');
-  const panel = document.getElementById('slideOverPanel');
-  backdrop.classList.remove('opacity-100'); backdrop.classList.add('opacity-0');
-  panel.classList.remove('translate-x-0'); panel.classList.add('translate-x-full');
+  document.getElementById('slideOverBackdrop').classList.remove('opacity-100'); document.getElementById('slideOverBackdrop').classList.add('opacity-0');
+  document.getElementById('slideOverPanel').classList.remove('translate-x-0'); document.getElementById('slideOverPanel').classList.add('translate-x-full');
   setTimeout(() => { document.getElementById('slideOver').classList.add('hidden'); }, 300);
 }
 
@@ -381,12 +362,10 @@ window.switchTab = function(tabName) {
     const btn = document.getElementById(`tab-btn-${t}`);
     const content = document.getElementById(`tab-content-${t}`);
     if (t === tabName) {
-      btn.classList.add('border-blue-600', 'text-blue-600', 'font-bold');
-      btn.classList.remove('border-transparent', 'text-slate-500', 'font-medium');
+      btn.classList.add('border-blue-600', 'text-blue-600', 'font-bold'); btn.classList.remove('border-transparent', 'text-slate-500', 'font-medium');
       content.classList.remove('hidden'); content.classList.add('block');
     } else {
-      btn.classList.add('border-transparent', 'text-slate-500', 'font-medium');
-      btn.classList.remove('border-blue-600', 'text-blue-600', 'font-bold');
+      btn.classList.add('border-transparent', 'text-slate-500', 'font-medium'); btn.classList.remove('border-blue-600', 'text-blue-600', 'font-bold');
       content.classList.remove('block'); content.classList.add('hidden');
     }
   });
@@ -394,26 +373,13 @@ window.switchTab = function(tabName) {
 
 window.submitDuty = async function() {
   if (!currentActiveUid) return;
-  const sport = document.getElementById('inputDutySport').value.trim();
-  const role = document.getElementById('inputDutyRole').value.trim();
+  const sport = document.getElementById('inputDutySport').value.trim(); const role = document.getElementById('inputDutyRole').value.trim();
   if (!sport || !role) return alert('⚠️ กรุณากรอก ชนิดกีฬา และ ประเภทบุคลากร ให้ครบถ้วน');
-  
-  const btn = document.getElementById('btnSaveDuty');
-  btn.textContent = 'กำลังบันทึก...'; btn.disabled = true;
-
+  const btn = document.getElementById('btnSaveDuty'); btn.textContent = 'กำลังบันทึก...'; btn.disabled = true;
   try {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action: 'saveDuty', uid: currentActiveUid, sport: sport, role: role }),
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-    });
+    const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveDuty', uid: currentActiveUid, sport: sport, role: role }), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
     const result = await response.json();
-    if(result.status === 'success') {
-      alert('✅ บันทึกประวัติสำเร็จ');
-      document.getElementById('inputDutySport').value = '';
-      document.getElementById('inputDutyRole').value = '';
-      fetchData(); 
-    } else { alert(`❌ ข้อผิดพลาด: ${result.message}`); }
+    if(result.status === 'success') { alert('✅ บันทึกประวัติสำเร็จ'); document.getElementById('inputDutySport').value = ''; document.getElementById('inputDutyRole').value = ''; fetchData(); } else { alert(`❌ ข้อผิดพลาด: ${result.message}`); }
   } catch(e) { alert('❌ การเชื่อมต่อล้มเหลว'); }
   btn.textContent = 'บันทึกข้อมูล'; btn.disabled = false;
 }
@@ -422,38 +388,20 @@ window.submitEval = async function() {
   if (!currentActiveUid) return;
   const feedback = document.getElementById('inputEvalFeedback').value.trim();
   if (!feedback) return alert('⚠️ กรุณากรอกข้อเสนอแนะก่อนบันทึก');
-  
-  const btn = document.getElementById('btnSaveEval');
-  btn.textContent = 'กำลังบันทึก...'; btn.disabled = true;
-
+  const btn = document.getElementById('btnSaveEval'); btn.textContent = 'กำลังบันทึก...'; btn.disabled = true;
   try {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action: 'saveEval', uid: currentActiveUid, feedback: feedback }),
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-    });
+    const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveEval', uid: currentActiveUid, feedback: feedback }), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
     const result = await response.json();
-    if(result.status === 'success') {
-      alert('✅ บันทึกข้อเสนอแนะสำเร็จ');
-      document.getElementById('inputEvalFeedback').value = '';
-      fetchData(); 
-    } else { alert(`❌ ข้อผิดพลาด: ${result.message}`); }
+    if(result.status === 'success') { alert('✅ บันทึกข้อเสนอแนะสำเร็จ'); document.getElementById('inputEvalFeedback').value = ''; fetchData(); } else { alert(`❌ ข้อผิดพลาด: ${result.message}`); }
   } catch(e) { alert('❌ การเชื่อมต่อล้มเหลว'); }
   btn.textContent = 'บันทึกข้อเสนอแนะ'; btn.disabled = false;
 }
 
-function showLoadingState(message = "กำลังประมวลผลข้อมูล...") {
+function showLoadingState() {
   const tbody = document.getElementById('tableBody');
-  if (tbody) {
-    tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-16 text-center text-blue-500 font-medium">
-      <svg class="animate-spin -ml-1 mr-3 h-6 w-6 text-blue-500 inline mb-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-      ${message}</td></tr>`;
-  }
+  if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-16 text-center text-blue-500 font-medium">กำลังโหลดข้อมูล...</td></tr>`;
 }
-
 function showErrorState(message) {
   const tbody = document.getElementById('tableBody');
-  if (tbody) {
-    tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-16 text-center text-red-400 font-medium">❌ ${message}</td></tr>`;
-  }
+  if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-16 text-center text-red-400 font-medium">❌ ${message}</td></tr>`;
 }
