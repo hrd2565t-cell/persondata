@@ -1,1682 +1,278 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบติดตามการทำงานโครงการพัฒนาบุคลากรโดย กกท.</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Chart.js Plugin -->
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
-    <!-- SheetJS -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    
-    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Prompt', sans-serif; background-color: #f3f4f6; }
-        @media print {
-            body { background-color: white; color: black; }
-            nav, button, .no-print { display: none !important; }
-            .shadow-sm, .shadow-md, .rounded-xl { box-shadow: none !important; border: none !important; }
-            main { padding: 0 !important; max-width: 100% !important; }
-            table { font-size: 11px; width: 100%; border-collapse: collapse; }
-            th, td { border: 1px solid #ddd; padding: 5px; }
-            #timeline-section { display: none; }
-        }
-        .gantt-cell { min-width: 30px; position: relative; }
-        .gantt-bar { position: absolute; top: 20%; bottom: 20%; left: 0; right: 0; background-color: #3b82f6; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
-        .gantt-bar.start { border-top-left-radius: 99px; border-bottom-left-radius: 99px; }
-        .gantt-bar.end { border-top-right-radius: 99px; border-bottom-right-radius: 99px; }
-        .gantt-bar.cancel { background-color: #ef4444; }
-        .gantt-bar.done { background-color: #10b981; }
-        .drag-area { border: 2px dashed #93c5fd; background-color: #eff6ff; transition: all 0.3s; }
-        .drag-area.active { border-color: #2563eb; background-color: #dbeafe; }
-        .input-error { border-color: #ef4444 !important; background-color: #fef2f2 !important; transition: all 0.3s ease; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ระบบทะเบียนบุคลากรกีฬา | Executive Dashboard</title>
+  
+  <!-- Tailwind CSS & Google Fonts (Plus Jakarta Sans / Inter) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    /* Custom Scrollbar for Sleek Look */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body class="bg-slate-900 text-slate-800 antialiased selection:bg-blue-500 selection:text-white min-h-screen flex flex-col">
 
-    <nav class="bg-blue-900 text-white shadow-md no-print border-b-4 border-yellow-500">
-        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center">
-            <h1 class="text-xl font-bold mb-2 md:mb-0 tracking-wide">ระบบติดตามโครงการพัฒนาบุคลากรโดย กกท.</h1>
-            <div class="flex items-center space-x-2">
-                <div class="flex space-x-2 bg-blue-800 p-1 rounded-lg border border-blue-700">
-                    <button onclick="switchTab('dashboard')" id="btn-dashboard" class="px-4 py-2 rounded-md font-bold text-sm bg-yellow-500 text-blue-900 shadow transition">Dashboard ภาพรวม</button>
-                    <button onclick="switchTab('analytics')" id="btn-analytics" class="px-4 py-2 rounded-md font-medium text-sm text-white hover:text-yellow-400 transition">วิเคราะห์โครงการ</button>
-                    <button onclick="switchTab('form')" id="btn-form" class="px-4 py-2 rounded-md font-medium text-sm text-white hover:text-yellow-400 transition">+ บันทึกข้อมูล</button>
-                </div>
-                <button onclick="window.print()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-1 shadow">
-                    🖨️ พิมพ์รายงาน
-                </button>
-            </div>
+  <!-- 🔵 Modern Navbar with Glass Effect -->
+  <nav class="bg-slate-950/80 backdrop-blur-md border-b border-slate-800 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16 items-center">
+        <div class="flex items-center gap-3">
+          <div class="bg-gradient-to-tr from-blue-600 to-indigo-600 text-white p-2 rounded-xl shadow-lg shadow-blue-500/20">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+          </div>
+          <div>
+            <h1 class="text-white text-base font-bold tracking-wide">Sports HR & Training System</h1>
+            <p class="text-xs text-slate-400">ระบบทะเบียนและประเมินบุคลากรกีฬาอัจฉริยะ</p>
+          </div>
         </div>
-    </nav>
+        <div class="flex items-center gap-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-full">
+          <span class="relative flex h-2.5 w-2.5">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+          </span>
+          <span class="text-xs font-medium text-slate-300">API Connected</span>
+        </div>
+      </div>
+    </div>
+  </nav>
 
-    <main class="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
+  <!-- 🟢 Modern Top Tabs Navigation -->
+  <div class="bg-slate-900 border-b border-slate-800 shadow-sm sticky top-16 z-40 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <nav class="flex space-x-1 sm:space-x-6 overflow-x-auto" aria-label="Tabs">
+        <button onclick="switchPage('dashboard')" id="nav-btn-dashboard" class="border-blue-500 text-blue-400 whitespace-nowrap py-4 px-3 border-b-2 font-bold text-sm transition-all flex items-center gap-2">
+          📊 แดชบอร์ดสรุปผล
+        </button>
+        <button onclick="switchPage('search')" id="nav-btn-search" class="border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700 whitespace-nowrap py-4 px-3 border-b-2 font-medium text-sm transition-all flex items-center gap-2">
+          🔍 ค้นหาบุคลากร
+        </button>
+        <button onclick="switchPage('timeline')" id="nav-btn-timeline" class="border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700 whitespace-nowrap py-4 px-3 border-b-2 font-medium text-sm transition-all flex items-center gap-2">
+          📅 ไทม์ไลน์โครงการ
+        </button>
+        <button onclick="switchPage('import')" id="nav-btn-import" class="border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700 whitespace-nowrap py-4 px-3 border-b-2 font-medium text-sm transition-all flex items-center gap-2">
+          📥 นำเข้าข้อมูล
+        </button>
+      </nav>
+    </div>
+  </div>
 
-        <!-- TAB 1: DASHBOARD -->
-        <section id="tab-dashboard" class="space-y-6">
-            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-4 no-print">
-                <h2 id="dashboard-title" class="text-lg font-bold text-blue-900 flex items-center gap-2">
-                    📊 สรุปภาพรวมโครงการพัฒนาบุคลากรกีฬา ประจำปีงบประมาณ พ.ศ. 2569
-                </h2>
-                <div class="flex items-center gap-3 w-full sm:w-auto">
-                    <label class="text-sm font-medium text-gray-600 hidden sm:block">ดูข้อมูลเฉพาะ:</label>
-                    <select id="globalFilterCategory" onchange="applyGlobalFilter()" class="w-full sm:w-auto border-2 border-blue-200 rounded-lg px-4 py-2 text-sm focus:ring-yellow-500 focus:border-yellow-500 bg-blue-50 font-bold text-blue-900 shadow-sm transition hover:bg-blue-100 cursor-pointer">
-                        <option value="">🌍 ภาพรวม (กกท. และ สมาคมกีฬาฯ)</option>
-                        <option value="กกท.">🏢 โดย การกีฬาแห่งประเทศไทย</option>
-                        <option value="สมาคมกีฬา">🏅 โดย สมาคมกีฬาแห่งประเทศไทย</option>
-                    </select>
-                </div>
-            </div>
+  <!-- 🟢 Main Content Area -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
+    
+    <!-- ================= PAGE 1: Dashboard ================= -->
+    <div id="page-dashboard" class="page-section block space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Card 1 -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden group hover:border-blue-500/50 transition-all">
+          <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-blue-500/10 rounded-full blur-xl group-hover:bg-blue-500/20 transition-all"></div>
+          <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400">บุคลากรในระบบทั้งหมด</h2>
+          <div class="flex items-baseline mt-4 gap-2">
+            <p class="text-5xl font-extrabold text-white tracking-tight" id="stat-total">--</p>
+            <span class="text-sm text-slate-400 font-medium">คน</span>
+          </div>
+        </div>
+        <!-- Card 2 -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden group hover:border-emerald-500/50 transition-all">
+          <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-emerald-500/10 rounded-full blur-xl group-hover:bg-emerald-500/20 transition-all"></div>
+          <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400">ผ่านการอบรมปีล่าสุด</h2>
+          <div class="flex items-baseline mt-4 gap-2">
+            <p class="text-5xl font-extrabold text-emerald-400 tracking-tight" id="stat-recent">--</p>
+            <span class="text-sm text-slate-400 font-medium">รายการ</span>
+          </div>
+        </div>
+        <!-- Card 3 -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden group hover:border-amber-500/50 transition-all">
+          <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-amber-500/10 rounded-full blur-xl group-hover:bg-amber-500/20 transition-all"></div>
+          <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400">หลักสูตรที่มีผู้เรียนสูงสุด</h2>
+          <p class="text-xl font-bold text-amber-300 mt-4 truncate" id="stat-top-course">กำลังประมวลผล...</p>
+        </div>
+      </div>
+      
+      <!-- Analytics Placeholder -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-xl flex flex-col items-center justify-center h-72 text-center">
+         <div class="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 mb-3">
+           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+         </div>
+         <h3 class="text-white font-semibold text-base">ระบบวิเคราะห์เชิงลึก (Analytics & Insights)</h3>
+         <p class="text-slate-400 text-sm mt-1">เตรียมพบกับกราฟสรุปสถิติกองทุนและการปฏิบัติหน้าที่ในอัปเดตถัดไป</p>
+      </div>
+    </div>
 
-            <div id="dashboard-cards-container" class="space-y-6">
-                <!-- ชุดที่ 1: กกท. -->
-                <div id="cards-sat-section" class="space-y-3">
-                    <h3 class="font-bold text-blue-800 flex items-center gap-2">🏢 การกีฬาแห่งประเทศไทย (กกท.)</h3>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
-                            <p class="text-sm text-gray-500 font-medium">งบประมาณอนุมัติรวม</p>
-                            <h3 id="card-sat-approved" class="text-2xl font-bold text-gray-800 mt-1">0 บาท</h3>
-                        </div>
-                        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
-                            <p class="text-sm text-gray-500 font-medium">งบประมาณที่ใช้ไป</p>
-                            <h3 id="card-sat-used" class="text-2xl font-bold text-orange-500 mt-1">0 บาท</h3>
-                        </div>
-                        <div class="bg-white p-5 rounded-xl shadow-sm border-b-4 border-yellow-500 relative overflow-hidden">
-                            <p class="text-sm text-gray-500 font-medium">งบประมาณคงเหลือ</p>
-                            <h3 id="card-sat-remaining" class="text-2xl font-bold text-blue-600 mt-1">0 บาท</h3>
-                        </div>
-                        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
-                            <p class="text-sm text-gray-500 font-medium">ผู้ผ่านการอบรม / เป้าหมาย</p>
-                            <h3 id="card-sat-participants" class="text-2xl font-bold text-green-600 mt-1">0 <span class="text-lg text-gray-400 font-medium">/ 0 คน</span></h3>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ชุดที่ 2: สมาคมกีฬาฯ -->
-                <div id="cards-assoc-section" class="space-y-3">
-                    <h3 class="font-bold text-blue-800 flex items-center gap-2">🏅 สมาคมกีฬาแห่งประเทศไทย</h3>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
-                            <p class="text-sm text-gray-500 font-medium">งบประมาณอนุมัติรวม</p>
-                            <h3 id="card-assoc-approved" class="text-2xl font-bold text-gray-800 mt-1">0 บาท</h3>
-                        </div>
-                        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
-                            <p class="text-sm text-gray-500 font-medium">งบประมาณที่ใช้ไป</p>
-                            <h3 id="card-assoc-used" class="text-2xl font-bold text-orange-500 mt-1">0 บาท</h3>
-                        </div>
-                        <div class="bg-white p-5 rounded-xl shadow-sm border-b-4 border-yellow-500 relative overflow-hidden">
-                            <p class="text-sm text-gray-500 font-medium">งบประมาณคงเหลือ</p>
-                            <h3 id="card-assoc-remaining" class="text-2xl font-bold text-blue-600 mt-1">0 บาท</h3>
-                        </div>
-                        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
-                            <p class="text-sm text-gray-500 font-medium">ผู้ผ่านการอบรม / เป้าหมาย</p>
-                            <h3 id="card-assoc-participants" class="text-2xl font-bold text-green-600 mt-1">0 <span class="text-lg text-gray-400 font-medium">/ 0 คน</span></h3>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- แผนผังระยะเวลา (Timeline) -->
-            <div id="timeline-section" class="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col no-print">
-                <div class="p-4 border-b border-gray-100 flex justify-between items-center">
-                    <h3 class="font-bold text-blue-900 flex items-center gap-2">🗓️ แผนผังระยะเวลาดำเนินโครงการ (Timeline)</h3>
-                    <div class="flex gap-4 text-xs text-gray-500">
-                        <div class="flex items-center gap-1"><div class="w-3 h-3 bg-blue-500 rounded-sm"></div> อยู่ระหว่างดำเนินการ</div>
-                        <div class="flex items-center gap-1"><div class="w-3 h-3 bg-green-500 rounded-sm"></div> เสร็จสิ้น</div>
-                        <div class="flex items-center gap-1"><div class="w-3 h-3 bg-red-500 rounded-sm"></div> ยกเลิก</div>
-                    </div>
-                </div>
-                <div class="overflow-x-auto p-4">
-                    <table class="w-full text-left text-xs border-collapse">
-                        <thead>
-                            <tr class="bg-gray-50 text-gray-600 border-b">
-                                <th class="p-2 border-r min-w-[200px] max-w-[250px]">ชื่อโครงการ / รหัส</th>
-                                <th class="p-2 border-r text-center w-[6%]">ม.ค.</th>
-                                <th class="p-2 border-r text-center w-[6%]">ก.พ.</th>
-                                <th class="p-2 border-r text-center w-[6%]">มี.ค.</th>
-                                <th class="p-2 border-r text-center w-[6%]">เม.ย.</th>
-                                <th class="p-2 border-r text-center w-[6%]">พ.ค.</th>
-                                <th class="p-2 border-r text-center w-[6%]">มิ.ย.</th>
-                                <th class="p-2 border-r text-center w-[6%]">ก.ค.</th>
-                                <th class="p-2 border-r text-center w-[6%]">ส.ค.</th>
-                                <th class="p-2 border-r text-center w-[6%]">ก.ย.</th>
-                                <th class="p-2 border-r text-center w-[6%]">ต.ค.</th>
-                                <th class="p-2 border-r text-center w-[6%]">พ.ย.</th>
-                                <th class="p-2 border-r text-center w-[6%]">ธ.ค.</th>
-                            </tr>
-                        </thead>
-                        <tbody id="timelineBody" class="divide-y divide-gray-100">
-                            <tr><td colspan="13" class="p-4 text-center text-gray-400">กำลังโหลดแผนผังเวลา...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div class="p-3 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center bg-gray-50 text-xs text-gray-500 rounded-b-xl">
-                    <div id="timeline-pagination-info">กำลังคำนวณข้อมูล...</div>
-                    <div class="flex space-x-2 mt-2 sm:mt-0">
-                        <button onclick="changePage(-1)" id="btn-prev-timeline" class="px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">◀ ก่อนหน้า</button>
-                        <span id="timeline-page-num" class="px-2 py-1 font-bold text-blue-800">หน้า 1/1</span>
-                        <button onclick="changePage(1)" id="btn-next-timeline" class="px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">ถัดไป ▶</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- กราฟสถานะ -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 no-print">
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                    <h3 class="font-bold text-blue-900 mb-4">สัดส่วนสถานะการดำเนินงาน</h3>
-                    <div class="relative h-64 flex justify-center"><canvas id="opStatusChart"></canvas></div>
-                </div>
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                    <h3 class="font-bold text-blue-900 mb-4">สัดส่วนสถานะการเบิกจ่าย</h3>
-                    <div class="relative h-64 flex justify-center"><canvas id="payStatusChart"></canvas></div>
-                </div>
-            </div>
-
-            <!-- ตารางรายการโครงการ -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
-                <div class="p-4 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4">
-                    <h3 class="font-bold text-blue-900">รายการโครงการ</h3>
-                    <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                        <input type="text" id="searchInput" oninput="applyTableSearch()" placeholder="🔍 ค้นหา ID, หลักสูตร, สถานที่..." class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-yellow-500 focus:border-yellow-500 w-full sm:w-64">
-                        <button onclick="loadData()" class="no-print text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg text-gray-600 transition">รีเฟรชตาราง</button>
-                    </div>
-                </div>
-
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="bg-gray-50 text-gray-600 text-xs uppercase tracking-wider">
-                                <th class="p-3 border-b">รหัส ID</th>
-                                <th class="p-3 border-b">หลักสูตร / สมาคม</th>
-                                <th id="th-activity" class="p-3 border-b">กิจกรรม / ชื่อรายการ</th>
-                                <th class="p-3 border-b">สถานที่</th>
-                                <th class="p-3 border-b text-center">ระยะเวลา</th>
-                                <th class="p-3 border-b text-center">เป้าหมาย(คน)</th>
-                                <th class="p-3 border-b text-right">งบประมาณ</th>
-                                <th class="p-3 border-b text-center">สถานะงาน</th>
-                                <th class="p-3 border-b text-center">สถานะเบิกจ่าย</th>
-                            </tr>
-                        </thead>
-                        <tbody id="dataTableBody" class="divide-y divide-gray-100 text-sm text-gray-700">
-                            <tr><td colspan="9" class="p-4 text-center text-gray-400">กำลังโหลดข้อมูล...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div class="p-4 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center bg-gray-50 text-sm no-print">
-                    <div id="table-pagination-info" class="text-gray-600">กำลังคำนวณข้อมูล...</div>
-                    <div class="flex space-x-2 mt-3 sm:mt-0">
-                        <button onclick="changePage(-1)" id="btn-prev-table" class="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">◀ ก่อนหน้า</button>
-                        <span id="table-page-num" class="px-3 py-1 font-bold text-blue-800">หน้า 1/1</span>
-                        <button onclick="changePage(1)" id="btn-next-table" class="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">ถัดไป ▶</button>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- TAB 2: ANALYTICS -->
-        <section id="tab-analytics" class="hidden space-y-6">
-            
-            <div class="bg-gradient-to-r from-blue-50 to-white border-l-4 border-yellow-500 p-6 rounded-xl shadow-sm">
-                <h3 class="text-xl font-bold text-blue-900 mb-4 flex items-center gap-2">💡 สรุปวิเคราะห์การบริหารงบประมาณ</h3>
-                <div id="smart-insights-text" class="space-y-6">
-                    <p class="text-gray-500">กำลังประมวลผลข้อมูล...</p>
-                </div>
-            </div>
-
-            <div id="interactive-summary-box" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden w-full hidden">
-                <!-- 🌟 เพิ่ม Layout ปุ่ม Export คู่กับ Dropdown ให้สวยงาม -->
-                <div class="p-4 border-b border-gray-100 bg-gray-50 flex flex-col sm:flex-row justify-between items-center gap-3">
-                    <h3 class="font-bold text-blue-900 flex items-center gap-2">📊 รายงานตารางเจาะลึกข้อมูลสมาคมกีฬา</h3>
-                    <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                        <select id="interactiveTableFilter" class="border-2 border-blue-200 rounded-lg px-3 py-1.5 text-sm focus:ring-blue-500 focus:border-blue-500 font-medium text-gray-700 shadow-sm cursor-pointer hover:bg-blue-50 transition w-full sm:w-auto">
-                            <option value="cancel">🛑 สรุปรายงานการยกเลิกและการส่งคืนเงิน</option>
-                            <option value="done">✅ รายการที่ดำเนินการเรียบร้อย</option>
-                            <option value="op_progress">⏳ รายการที่อยู่ระหว่างการดำเนินงาน</option>
-                            <option value="pay_progress">💸 รายการที่อยู่ระหว่างการเบิกจ่าย</option>
-                        </select>
-                        <button onclick="exportInteractiveTable()" class="bg-emerald-50 hover:bg-emerald-100 border border-emerald-500 text-emerald-700 px-4 py-1.5 rounded-lg text-sm font-bold shadow-sm transition whitespace-nowrap flex items-center justify-center gap-1 w-full sm:w-auto">
-                            📥 Export Excel
-                        </button>
-                    </div>
-                </div>
-                <div id="interactive-table-content" class="p-0">
-                    <!-- ตารางจะถูกเรนเดอร์ผ่าน JS -->
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center">
-                    <div>
-                        <p class="text-sm text-gray-500 font-medium">อัตราการเบิกจ่ายงบประมาณรวมทั้งระบบ</p>
-                        <h3 id="analytics-budget-percent" class="text-3xl font-bold text-blue-600 mt-1">0%</h3>
-                    </div>
-                    <div class="text-4xl opacity-80">💰</div>
-                </div>
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center">
-                    <div>
-                        <p class="text-sm text-gray-500 font-medium">อัตราความสำเร็จผู้ผ่านการอบรมรวมทั้งระบบ</p>
-                        <h3 id="analytics-people-percent" class="text-3xl font-bold text-green-600 mt-1">0%</h3>
-                    </div>
-                    <div class="text-4xl opacity-80">👥</div>
-                </div>
-            </div>
-
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 w-full">
-                <h3 class="font-bold text-blue-900 mb-4 flex items-center gap-2">📈 ความหนาแน่นของการจัดโครงการรายเดือน (Peak Season)</h3>
-                <div class="relative h-64 flex justify-center"><canvas id="monthlyDensityChart"></canvas></div>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                    <h3 class="font-bold text-blue-900 mb-4">เปรียบเทียบการใช้งบประมาณ (กกท. vs สมาคมกีฬาฯ)</h3>
-                    <div class="relative h-64 flex justify-center"><canvas id="agencyCompareChart"></canvas></div>
-                </div>
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                    <h3 class="font-bold text-blue-900 mb-4">วิเคราะห์งบประมาณจำแนกตามหลักสูตร/สมาคม</h3>
-                    <div class="relative h-64 flex justify-center"><canvas id="budgetCompareChart"></canvas></div>
-                </div>
-            </div>
-        </section>
-
-        <!-- TAB 3: FORM ENTRY -->
-        <section id="tab-form" class="hidden">
-            <div class="max-w-3xl mx-auto bg-white p-8 rounded-xl shadow-sm border border-gray-100 relative">
-                <div class="flex space-x-4 mb-6 border-b border-gray-200">
-                    <button id="btn-mode-single" class="pb-2 border-b-2 border-blue-600 font-bold text-blue-900" onclick="switchFormMode('single')">📝 บันทึกทีละรายการ</button>
-                    <button id="btn-mode-batch" class="pb-2 border-b-2 border-transparent text-gray-500 hover:text-blue-600" onclick="switchFormMode('batch')">📁 นำเข้าข้อมูล (Excel)</button>
-                </div>
-                
-                <div id="section-single">
-                    <span id="formStatusBadge" class="absolute top-8 right-8 bg-blue-100 text-blue-700 text-xs font-bold px-3 py-1 rounded-full hidden">ข้อมูลใหม่</span>
-                    <form id="projectForm" class="space-y-6">
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">รหัส ID โครงการ <span class="text-red-500">*</span> <span class="text-xs text-gray-500 font-normal">(กรอกตัวเลข 5 หลักหลังเครื่องหมาย /)</span></label>
-                            <div class="flex shadow-sm rounded-lg">
-                                <span class="inline-flex items-center px-3 sm:px-4 rounded-l-lg border border-r-0 border-gray-300 bg-gray-100 text-gray-600 font-mono text-sm sm:text-base font-bold">
-                                    NSDF-69-01/
-                                </span>
-                                <input type="text" id="projectIdInput" maxlength="5" minlength="5" pattern="\d{5}" inputmode="numeric" required placeholder="02142" class="flex-1 border border-gray-300 rounded-none rounded-r-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 font-mono text-lg tracking-widest transition-all">
-                            </div>
-                            <p id="idSearchHint" class="text-xs text-emerald-600 mt-1 hidden">✓ พบข้อมูลโครงการเดิมในระบบ (ดึงข้อมูลให้แล้ว)</p>
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">1. หน่วยงานที่ดำเนินการ (หมวดหมู่หลัก) <span class="text-red-500">*</span></label>
-                            <select id="mainCategory" required class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 transition-all">
-                                <option value="">-- กรุณาเลือก --</option>
-                                <option value="การพัฒนาบุคลากรโดยการกีฬาแห่งประเทศไทย">การพัฒนาบุคลากรโดยการกีฬาแห่งประเทศไทย (งบกองทุนฯ)</option>
-                                <option value="การพัฒนาบุคลากรโดยสมาคมกีฬาแห่งประเทศไทย">การพัฒนาบุคลากรโดยสมาคมกีฬาแห่งประเทศไทย (งบกองทุนฯ)</option>
-                            </select>
-                        </div>
-                        <div id="subCategoryDiv" class="hidden">
-                            <label id="subCategoryLabel" class="block text-sm font-medium text-gray-700 mb-1">2. หลักสูตร / สมาคม (หมวดหมู่ย่อย) <span class="text-red-500">*</span></label>
-                            <div class="relative">
-                                <input type="text" id="subCategory" list="subCategoryOptions" required autocomplete="off" class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 transition-all" placeholder="คลิกเพื่อเลือก หรือพิมพ์ค้นหารายชื่อ...">
-                                <datalist id="subCategoryOptions"></datalist>
-                            </div>
-                        </div>
-                        <div id="projectActivityDiv" class="hidden">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">3. กิจกรรม</label>
-                            <select id="projectActivity" class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500">
-                                <option value="">-- กรุณาเลือกกิจกรรม --</option>
-                                <option value="อบรมผู้ฝึกสอน">อบรมผู้ฝึกสอน</option>
-                                <option value="อบรมผู้ตัดสิน">อบรมผู้ตัดสิน</option>
-                                <option value="ส่งไปต่างประเทศ">ส่งไปต่างประเทศ</option>
-                            </select>
-                        </div>
-                        <div id="projectNameDiv" class="hidden">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อรายการโครงการย่อย</label>
-                            <input type="text" id="projectName" placeholder="เช่น อบรมผู้ฝึกสอน..." class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">สถานที่จัดอบรม</label>
-                            <input type="text" id="location" placeholder="เช่น โรงแรม... หรือ จังหวัด..." class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500">
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-blue-50 p-4 rounded-lg border border-blue-100">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">วันที่เริ่มต้น <span class="text-red-500">*</span></label>
-                                <input type="date" id="startDate" required class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 transition-all">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">วันที่สิ้นสุด <span class="text-red-500">*</span></label>
-                                <input type="date" id="endDate" required class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 transition-all">
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">ค่าเป้าหมาย (จำนวนคน) <span class="text-red-500">*</span></label>
-                                <input type="text" inputmode="numeric" id="targetPeople" value="0" required class="w-full border border-gray-300 rounded-lg p-2.5 transition-all comma-input">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">จำนวนคนผ่านการอบรม <span class="text-red-500">*</span></label>
-                                <input type="text" inputmode="numeric" id="passedPeople" value="0" required class="w-full border border-gray-300 rounded-lg p-2.5 transition-all comma-input">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">งบประมาณที่อนุมัติ (บาท) <span class="text-red-500">*</span></label>
-                                <input type="text" inputmode="numeric" id="approvedBudget" value="0" required class="w-full border border-gray-300 rounded-lg p-2.5 transition-all comma-input text-blue-700 font-bold bg-blue-50">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">งบประมาณที่ใช้จริง (บาท) <span class="text-red-500">*</span></label>
-                                <input type="text" inputmode="numeric" id="usedBudget" value="0" required class="w-full border border-gray-300 rounded-lg p-2.5 transition-all comma-input text-orange-600 font-bold bg-orange-50">
-                            </div>
-                        </div>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50 p-4 rounded-lg border border-gray-100">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">สถานะการดำเนินงาน</label>
-                                <select id="operationStatus" class="w-full border border-gray-300 rounded-lg p-2.5 text-gray-800 font-medium focus:ring-blue-500 focus:border-blue-500"></select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">สถานะการเบิกจ่าย</label>
-                                <select id="paymentStatus" class="w-full border border-gray-300 rounded-lg p-2.5 text-gray-800 font-medium focus:ring-blue-500 focus:border-blue-500"></select>
-                            </div>
-                        </div>
-                        <button type="submit" id="submitBtn" class="w-full bg-blue-900 hover:bg-yellow-500 hover:text-blue-900 text-white font-bold py-3 px-4 rounded-lg transition duration-300 shadow-md">
-                            บันทึกโครงการใหม่
-                        </button>
-                    </form>
-                </div>
-
-                <div id="section-batch" class="hidden space-y-6">
-                    <div class="bg-blue-50 p-4 rounded-lg border border-blue-100 flex flex-col md:flex-row justify-between items-center gap-3">
-                        <div class="text-sm text-blue-800">
-                            <p class="font-bold">คำแนะนำก่อนนำเข้าข้อมูล:</p>
-                            <p>กรุณาดาวน์โหลดไฟล์ Template ต้นแบบ เพื่อนำไปกรอกข้อมูลให้ครบถ้วนก่อนทำการอัปโหลดเข้าระบบ</p>
-                        </div>
-                        <button type="button" onclick="downloadTemplate()" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg shadow whitespace-nowrap">
-                            📥 โหลดไฟล์ Template
-                        </button>
-                    </div>
-                    <div id="drop-area" class="drag-area p-8 rounded-xl flex flex-col items-center justify-center text-center cursor-pointer">
-                        <div class="text-4xl mb-3 opacity-60">📊</div>
-                        <h3 class="font-bold text-gray-700 mb-1">คลิกที่นี่เพื่อเลือกไฟล์ Excel หรือลากไฟล์มาวาง</h3>
-                        <p class="text-xs text-gray-500 mb-4">รองรับเฉพาะไฟล์นามสกุล .xlsx เท่านั้น</p>
-                        <input type="file" id="excelFileInput" accept=".xlsx" class="hidden">
-                        <button type="button" onclick="document.getElementById('excelFileInput').click()" class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 shadow-sm">
-                            เลือกไฟล์
-                        </button>
-                    </div>
-                    <div id="preview-area" class="hidden space-y-4">
-                        <div class="flex justify-between items-center border-b pb-2">
-                            <h3 class="font-bold text-gray-800">ตัวอย่างข้อมูลที่จะนำเข้า (<span id="preview-count" class="text-blue-600">0</span> รายการ)</h3>
-                            <button type="button" onclick="resetBatchUpload()" class="text-sm text-red-500 hover:underline">ยกเลิกไฟล์นี้</button>
-                        </div>
-                        <div class="overflow-x-auto max-h-64 border rounded-lg">
-                            <table class="w-full text-left text-xs whitespace-nowrap">
-                                <thead class="bg-gray-50 text-gray-600 sticky top-0 shadow-sm">
-                                    <tr>
-                                        <th class="p-2 border-b">รหัส ID</th>
-                                        <th class="p-2 border-b">หมวดหมู่หลัก</th>
-                                        <th class="p-2 border-b">หลักสูตร/สมาคม</th>
-                                        <th class="p-2 border-b">งบอนุมัติ</th>
-                                        <th class="p-2 border-b">สถานะงาน</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="preview-tbody" class="divide-y divide-gray-100"></tbody>
-                            </table>
-                        </div>
-                        <button type="button" id="submitBatchBtn" onclick="submitBatchData()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300 shadow-md">
-                            ยืนยันนำเข้าข้อมูลทั้งหมด
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-    </main>
-
-    <script>
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwSRqOD8z-ulipSSZUJb6DDl01W8lduHA0ugvhr3yiE8_lVQEFylIzaR8uHl6r7-VkzUA/exec';
-
-        let globalData = [];         
-        let currentFilteredData = []; 
-        let finalDataForTable = []; 
-        let parsedBatchPayloads = []; 
+    <!-- ================= PAGE 2: Search & Table ================= -->
+    <div id="page-search" class="page-section hidden space-y-6">
+      
+      <!-- Smart Search Filters -->
+      <section class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col md:flex-row justify-between items-center gap-4">
+        <div class="w-full md:w-1/2 relative group">
+          <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+            <svg class="h-5 w-5 text-slate-500 group-focus-within:text-blue-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+          </div>
+          <input type="text" id="searchInput" placeholder="ค้นหาด้วยชื่อ, หน่วยงาน หรือรหัส UID..." class="w-full pl-11 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm transition-all shadow-inner">
+        </div>
         
-        let currentPage = 1;
-        const itemsPerPage = 10; 
+        <div class="w-full md:w-auto flex gap-3">
+          <select id="filterYear" class="bg-slate-950 border border-slate-800 text-slate-300 text-sm rounded-xl focus:ring-2 focus:ring-blue-500 p-3 outline-none cursor-pointer min-w-[150px] shadow-inner">
+            <option value="">ทุกปีการศึกษา</option>
+          </select>
+          <select id="filterCourse" class="bg-slate-950 border border-slate-800 text-slate-300 text-sm rounded-xl focus:ring-2 focus:ring-blue-500 p-3 outline-none cursor-pointer min-w-[180px] shadow-inner">
+            <option value="">ทุกหลักสูตร</option>
+          </select>
+        </div>
+      </section>
 
-        let opChartInstance = null;
-        let payChartInstance = null;
-        let budgetChartInstance = null;
-        let agencyChartInstance = null;
-        let monthlyDensityChartInstance = null;
+      <!-- Data Table -->
+      <section class="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-slate-800">
+            <thead class="bg-slate-950/80 text-slate-400 text-xs font-semibold uppercase tracking-wider">
+              <tr>
+                <th scope="col" class="px-6 py-4 text-left w-36">รหัส UID</th>
+                <th scope="col" class="px-6 py-4 text-left">ชื่อ-นามสกุล</th>
+                <th scope="col" class="px-6 py-4 text-left">หน่วยงาน</th>
+                <th scope="col" class="px-6 py-4 text-center w-32">สถานะ</th>
+                <th scope="col" class="px-6 py-4 text-right w-28">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody" class="divide-y divide-slate-800/60 text-slate-300 text-sm">
+              <tr><td colspan="5" class="px-6 py-16 text-center text-blue-400 font-medium">กำลังเชื่อมต่อฐานข้อมูล...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
 
-        Chart.register(ChartDataLabels);
+    <!-- ================= PAGE 3: Timeline ================= -->
+    <div id="page-timeline" class="page-section hidden space-y-6">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col md:flex-row justify-between items-center gap-4">
+        <div>
+          <h2 class="text-lg font-bold text-white">แผนผังระยะเวลาดำเนินการหลักสูตร (Timeline)</h2>
+          <p class="text-xs text-slate-400 mt-1">แสดงความต่อเนื่องของการเปิดอบรมในแต่ละปีงบประมาณ</p>
+        </div>
+        <div class="flex items-center gap-3 text-xs font-medium text-slate-300 bg-slate-950 px-4 py-2 rounded-xl border border-slate-800">
+          <span class="flex items-center gap-1.5"><span class="w-3 h-3 bg-blue-600 rounded-sm inline-block shadow-sm shadow-blue-500/50"></span> มีการจัดอบรม</span>
+          <span class="flex items-center gap-1.5 ml-2"><span class="w-3 h-3 bg-slate-800 rounded-sm inline-block"></span> ไม่มีประวัติการจัด</span>
+        </div>
+      </div>
 
-        const centerTextPlugin = {
-            id: 'centerText',
-            beforeDraw(chart) {
-                if (chart.config.type !== 'doughnut') return;
-                const { ctx, chartArea: { top, bottom, left, right, width, height } } = chart;
-                ctx.save();
-                const data = chart.data.datasets[0].data;
-                const total = data.reduce((a, b) => a + b, 0);
-                if (total > 0) {
-                    ctx.font = 'bold 2rem Prompt';
-                    ctx.fillStyle = '#1e3a8a'; 
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    const centerX = left + width / 2;
-                    const centerY = top + height / 2;
-                    ctx.fillText(total, centerX, centerY - 10);
-                    ctx.font = '0.875rem Prompt';
-                    ctx.fillStyle = '#6b7280'; 
-                    ctx.fillText('โครงการ', centerX, centerY + 15);
-                }
-                ctx.restore();
-            }
-        };
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-slate-800" id="timelineTable">
+            <thead class="bg-slate-950/80 text-slate-400">
+              <tr id="timelineHeaderRow"></tr>
+            </thead>
+            <tbody id="timelineBody" class="divide-y divide-slate-800/60 text-slate-300 text-sm"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
 
-        function switchTab(tabName) {
-            ['dashboard', 'analytics', 'form'].forEach(t => {
-                document.getElementById(`tab-${t}`).classList.add('hidden');
-                document.getElementById(`btn-${t}`).className = "px-4 py-2 rounded-md font-medium text-sm text-white hover:text-yellow-400 transition";
-            });
-            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
-            document.getElementById(`btn-${tabName}`).className = "px-4 py-2 rounded-md font-bold text-sm bg-yellow-500 text-blue-900 shadow transition";
+    <!-- ================= PAGE 4: Import Data ================= -->
+    <div id="page-import" class="page-section hidden">
+      <div class="max-w-xl mx-auto bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl p-10 text-center space-y-6">
+        
+        <div class="w-20 h-20 mx-auto bg-blue-500/10 border border-blue-500/20 rounded-2xl flex items-center justify-center text-blue-400 shadow-inner">
+           <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+        </div>
+        
+        <div>
+          <h2 class="text-xl font-bold text-white">นำเข้าข้อมูลบุคลากรแบบกลุ่ม</h2>
+          <p class="text-sm text-slate-400 mt-2">อัปโหลดไฟล์ Excel (.xlsx) ตามโครงสร้างเทมเพลตมาตรฐานของระบบ</p>
+        </div>
+
+        <div class="pt-4 border-t border-slate-800">
+           <label class="cursor-pointer bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold py-3.5 px-8 rounded-xl shadow-lg shadow-blue-600/30 transition-all inline-flex items-center gap-2 text-sm">
+             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+             เลือกไฟล์ Excel เพื่ออัปโหลด
+             <input type="file" id="excelUpload" accept=".xlsx, .xls" class="hidden" />
+           </label>
+           <p class="text-xs text-slate-500 mt-3">ระบบจะตรวจสอบความถูกต้องของโครงสร้างไฟล์ (Zero-Error Check) อัตโนมัติ</p>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- 🟢 Modern Slide-over Panel with Glass Backdrop -->
+  <div id="slideOver" class="fixed inset-0 z-50 hidden" aria-labelledby="slide-over-title" role="dialog" aria-modal="true">
+    <div id="slideOverBackdrop" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity opacity-0" onclick="closeProfile()"></div>
+    <div class="fixed inset-y-0 right-0 z-50 flex max-w-full pl-10">
+      <div id="slideOverPanel" class="w-screen max-w-md transform transition ease-in-out duration-300 translate-x-full">
+        <div class="flex h-full flex-col bg-slate-900 border-l border-slate-800 shadow-2xl">
+          
+          <!-- Header -->
+          <div class="bg-slate-950 px-6 py-6 border-b border-slate-800 flex-shrink-0">
+            <div class="flex items-start justify-between">
+              <div>
+                <h2 class="text-lg font-bold text-white" id="profileName">ชื่อ-นามสกุล</h2>
+                <p class="text-blue-400 text-xs font-mono mt-1" id="profileUid">UID: ---</p>
+              </div>
+              <button type="button" onclick="closeProfile()" class="rounded-xl bg-slate-900 p-2 text-slate-400 hover:text-white border border-slate-800 transition-colors">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Tabs -->
+          <div class="border-b border-slate-800 bg-slate-950/50 flex-shrink-0 px-6">
+            <nav class="-mb-px flex space-x-6" aria-label="Tabs">
+              <button onclick="switchTab('general')" id="tab-btn-general" class="border-blue-500 text-blue-400 whitespace-nowrap py-3.5 border-b-2 font-bold text-xs transition-colors uppercase tracking-wider">ประวัติอบรม</button>
+              <button onclick="switchTab('duty')" id="tab-btn-duty" class="border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap py-3.5 border-b-2 font-medium text-xs transition-colors uppercase tracking-wider">ปฏิบัติหน้าที่</button>
+              <button onclick="switchTab('eval')" id="tab-btn-eval" class="border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap py-3.5 border-b-2 font-medium text-xs transition-colors uppercase tracking-wider">ประเมินผล</button>
+            </nav>
+          </div>
+
+          <!-- Content -->
+          <div class="relative flex-1 px-6 py-6 overflow-y-auto space-y-6 bg-slate-900">
             
-            if(tabName === 'dashboard' || tabName === 'analytics') {
-                loadData();
-            }
-        }
-
-        function switchFormMode(mode) {
-            const btnSingle = document.getElementById('btn-mode-single');
-            const btnBatch = document.getElementById('btn-mode-batch');
-            const secSingle = document.getElementById('section-single');
-            const secBatch = document.getElementById('section-batch');
-
-            if (mode === 'single') {
-                btnSingle.className = "pb-2 border-b-2 border-blue-600 font-bold text-blue-900";
-                btnBatch.className = "pb-2 border-b-2 border-transparent text-gray-500 hover:text-blue-600";
-                secSingle.classList.remove('hidden');
-                secBatch.classList.add('hidden');
-            } else {
-                btnBatch.className = "pb-2 border-b-2 border-blue-600 font-bold text-blue-900";
-                btnSingle.className = "pb-2 border-b-2 border-transparent text-gray-500 hover:text-blue-600";
-                secBatch.classList.remove('hidden');
-                secSingle.classList.add('hidden');
-            }
-        }
-
-        const satCourses = [
-            "การเพิ่มศักยภาพในการบริหารจัดการกีฬาไปสู่ความเป็นเลิศฯ (ธรรมาภิบาล)",
-            "การจัดการกีฬาขั้นสูงตามแนวทาง International Olympic Academy",
-            "การพัฒนานักจัดระดับความพิการ (National Classifier)",
-            "การพัฒนาบุคลากรกีฬาสู่นักบริหารจัดการองค์กรกีฬาเพื่อความยั่งยืน",
-            "การสร้างมาตรฐานบุคลากรกีฬาสู่ผู้นำกีฬา"
-        ];
-
-        const associations = [
-            "ราชยานยนต์สมาคมแห่งประเทศไทย ในพระบรมราชูปถัมภ์ สมาคมกีฬา", "สมาคมกีฬากระดานโต้คลื่นแห่งประเทศไทย", "สมาคมกีฬากรีฑาแห่งประเทศไทย ในพระบรมราชูปถัมภ์", "สมาคมกีฬากอล์ฟแห่งประเทศไทย ในพระบรมราชูปถัมภ์", "สมาคมกีฬากาบัดดี้แห่งประเทศไทย", "สมาคมกีฬากีฬาไทยแห่งประเทศไทย ในพระบรมราชูปถัมภ์", "สมาคมกีฬาขี่ม้าแห่งประเทศไทย", "สมาคมกีฬาคนพิการทางสมองแห่งประเทศไทย", "สมาคมกีฬาคนพิการแห่งประเทศไทย ในพระบรมราชูปถัมภ์", "สมาคมกีฬาคนหูหนวกแห่งประเทศไทย", "สมาคมกีฬาคริกเก็ตแห่งประเทศไทย", "สมาคมกีฬาคอร์ฟบอลแห่งประเทศไทย", "สมาคมกีฬาคาราเต้แห่งประเทศไทย", "สมาคมกีฬาคิกบ็อกซิ่งแห่งประเทศไทย", "สมาคมกีฬาคูราชแห่งประเทศไทย", "สมาคมกีฬางัดข้อแห่งประเทศไทย", "สมาคมกีฬาจักรยานแห่งประเทศไทย ในพระบรมราชูปถัมภ์", "สมาคมกีฬาจานร่อนแห่งประเทศไทย", "สมาคมกีฬาชักกะเย่อแห่งประเทศไทย", "สมาคมกีฬาซอฟท์บอลแห่งประเทศไทย", "สมาคมกีฬาซอฟท์เทนนิสแห่งประเทศไทย", "สมาคมกีฬาซูโม่แห่งประเทศไทย", "สมาคมกีฬาดำน้ำแห่งประเทศไทย", "สมาคมกีฬาตะกร้อแห่งประเทศไทย", "สมาคมกีฬาทางน้ำแห่งประเทศไทย", "สมาคมกีฬาทางอากาศและการบินแห่งประเทศไทย ในพระบรมราชูปถัมภ์", "สมาคมกีฬาบริดจ์แห่งประเทศไทย", "สมาคมกีฬาบาสเกตบอลแห่งประเทศไทย", "สมาคมกีฬาบิลเลียดแห่งประเทศไทย", "สมาคมกีฬาปัญจกีฬาแห่งประเทศไทย", "สมาคมกีฬาปันจักสีลัตแห่งประเทศไทย", "สมาคมกีฬาปีนหน้าผาแห่งประเทศไทย", "สมาคมกีฬาผู้เปลี่ยนอวัยวะแห่งประเทศไทย", "สมาคมกีฬาพาวเวอร์ลิฟติ้งแห่งประเทศไทย", "สมาคมกีฬาฟันดาบแห่งประเทศไทย ในพระราชูปถัมภ์ ของสมเด็จพระบรมโอรสาธิราชฯ สยามมกุฏราชกุมาร", "สมาคมกีฬาฟิกเกอร์และสปีดสเก็ตติ้งแห่งประเทศไทย", "สมาคมกีฬาฟุตวอลเลย์แห่งประเทศไทย", "สมาคมกีฬามวยปล้ำแห่งประเทศไทย", "สมาคมกีฬามวยสากลแห่งประเทศไทย", "สมาคมกีฬามวยไทยสมัครเล่นแห่งประเทศไทย ในพระราชูปถัมภ์ สมเด็จพระบรมโอรสาธิราชฯ สยามมกุฎราชกุมาร", "สมาคมกีฬามิกซ์มาเชียลอาร์ตแห่งประเทศไทย", "สมาคมกีฬายกน้ำหนักสมัครเล่นแห่งประเทศไทย", "สมาคมกีฬายิงธนูแห่งประเทศไทย", "สมาคมกีฬายิงปืนรณยุทธแห่งประเทศไทย", "สมาคมกีฬายิงปืนแห่งประเทศไทย ในพระบรมราชูปถัมภ์", "สมาคมกีฬายิงเป้าบินแห่งประเทศไทย", "สมาคมกีฬายิมนาสติกแห่งประเทศไทย", "สมาคมกีฬายูยิตสูแห่งประเทศไทย", "สมาคมกีฬายูโดแห่งประเทศไทย ในพระบรมราชูปถัมภ์", "สมาคมกีฬารักบี้ฟุตบอลแห่งประเทศไทย ในพระบรมราชูปถัมภ์", "สมาคมกีฬาลอนเทนนิสแห่งประเทศไทย ในพระบรมราชูปถัมภ์", "สมาคมกีฬาลอนโบวล์สแห่งประเทศไทย", "สมาคมกีฬาลีลาศแห่งประเทศไทย", "สมาคมกีฬาวินด์เซิร์ฟแห่งประเทศไทย", "สมาคมกีฬาวูซูแห่งประเทศไทย", "สมาคมกีฬาวู้ดบอลแห่งประเทศไทย", "สมาคมกีฬาสกีและสโนว์บอร์ดแห่งประเทศไทย", "สมาคมกีฬาสควอชแห่งประเทศไทย ในพระบรมราชุปถัมภ์", "สมาคมกีฬาสเปเชียลโอลิมปิคไทยแห่งประเทศไทย", "สมาคมกีฬาหมากรุกสากลแห่งประเทศไทย", "สมาคมกีฬาหมากรุกเซี่ยงฉีแห่งประเทศไทย", "สมาคมกีฬาหมากล้อมแห่งประเทศไทย", "สมาคมกีฬาอีสปอร์ตแห่งประเทศไทย", "สมาคมกีฬาฮอกกี้น้ำแข็งแห่งประเทศไทย", "สมาคมกีฬาฮอกกี้แห่งประเทศไทย", "สมาคมกีฬาเจ็ตสกีแห่งประเทศไทย ในพระอุปถัมภ์ของทูลกระหม่อมหญิงอุบลรัตนราชกัญญาสิริวัฒนาพรรณวดี", "สมาคมกีฬาเชียร์แห่งประเทศไทย", "สมาคมกีฬาเทคบอลแห่งประเทศไทย", "สมาคมกีฬาเทควันโดแห่งประเทศไทย", "สมาคมกีฬาเทเบิลเทนนิสแห่งประเทศไทย", "สมาคมกีฬาเนตบอลแห่งประเทศไทย", "สมาคมกีฬาเบสบอลแห่งประเทศไทย", "สมาคมกีฬาเปตองแห่งประเทศไทย ในพระราชูปถัมภ์สมเด็จพระศรีนครินทราบรมราชชนนี", "สมาคมกีฬาเพาะกายและฟิตเนสแห่งประเทศไทย", "สมาคมกีฬาเรือพายแห่งประเทศไทย", "สมาคมกีฬาเรือเร็วแห่งประเทศไทย", "สมาคมกีฬาเอ็กซ์ตรีมแห่งประเทศไทย", "สมาคมกีฬาแข่งรถจักรยานยนต์แห่งประเทศไทย", "สมาคมกีฬาแข่งเรือใบแห่งประเทศไทย ในพระบรมราชูปถัมภ์", "สมาคมกีฬาแบดมินตันแห่งประเทศไทย ในพระบรมราชูปถัมภ์", "สมาคมกีฬาแฮนด์บอลแห่งประเทศไทย", "สมาคมกีฬาโบว์ลิ่งแห่งประเทศไทย", "สมาคมกีฬาโววีนัมแห่งประเทศไทย", "สมาคมคนพิการทางปัญญาแห่งประเทศไทย"
-        ];
-
-        const opStatusSelect = document.getElementById('operationStatus');
-        const payStatusSelect = document.getElementById('paymentStatus');
-        const defaultOpOptions = `
-            <option value="อยู่ระหว่างการดำเนินงาน" selected class="text-orange-600">อยู่ระหว่างการดำเนินงาน</option>
-            <option value="ดำเนินการเสร็จสิ้นแล้ว" class="text-green-600">ดำเนินการเสร็จสิ้นแล้ว</option>
-        `;
-        const assocOpOptions = defaultOpOptions + `<option value="ยกเลิกรายการ" class="text-red-600 font-bold">ยกเลิกรายการ</option>`;
-        const defaultPayOptions = `
-            <option value="อยู่ระหว่างการเบิกจ่าย" selected class="text-orange-600">อยู่ระหว่างการเบิกจ่าย</option>
-            <option value="เบิกจ่ายเรียบร้อย" class="text-green-600">เบิกจ่ายเรียบร้อย</option>
-        `;
-        const assocPayOptions = defaultPayOptions + `<option value="ส่งเงินคืนกองทุนฯ" class="text-purple-600 font-bold">ส่งเงินคืนกองทุนฯ</option>`;
-
-        opStatusSelect.innerHTML = defaultOpOptions;
-        payStatusSelect.innerHTML = defaultPayOptions;
-
-        const mainCategory = document.getElementById('mainCategory');
-        const subCategoryDiv = document.getElementById('subCategoryDiv');
-        const subCategoryInput = document.getElementById('subCategory');
-        const subCategoryOptions = document.getElementById('subCategoryOptions');
-        const subCategoryLabel = document.getElementById('subCategoryLabel');
-        const projectActivityDiv = document.getElementById('projectActivityDiv');
-        const projectNameDiv = document.getElementById('projectNameDiv');
-
-        mainCategory.addEventListener('change', function() {
-            const val = this.value;
-            subCategoryInput.value = ''; 
-            subCategoryOptions.innerHTML = '';
-            
-            let currentOp = opStatusSelect.value;
-            let currentPay = payStatusSelect.value;
-
-            if (val === 'การพัฒนาบุคลากรโดยการกีฬาแห่งประเทศไทย') {
-                subCategoryDiv.classList.remove('hidden');
-                projectActivityDiv.classList.add('hidden');
-                projectNameDiv.classList.add('hidden');
-                subCategoryLabel.innerHTML = '2. หลักสูตร <span class="text-red-500">*</span>';
-                satCourses.forEach(c => subCategoryOptions.innerHTML += `<option value="${c}">`);
-
-                opStatusSelect.innerHTML = defaultOpOptions;
-                payStatusSelect.innerHTML = defaultPayOptions;
-                if(currentOp === 'ยกเลิกรายการ') opStatusSelect.value = 'อยู่ระหว่างการดำเนินงาน';
-                else if(currentOp) opStatusSelect.value = currentOp;
-                if(currentPay === 'ส่งเงินคืนกองทุนฯ') payStatusSelect.value = 'อยู่ระหว่างการเบิกจ่าย';
-                else if(currentPay) payStatusSelect.value = currentPay;
-
-            } else if (val === 'การพัฒนาบุคลากรโดยสมาคมกีฬาแห่งประเทศไทย') {
-                subCategoryDiv.classList.remove('hidden');
-                projectActivityDiv.classList.remove('hidden');
-                projectNameDiv.classList.remove('hidden');
-                subCategoryLabel.innerHTML = '2. สมาคมกีฬา <span class="text-red-500">*</span>';
-                associations.forEach(a => subCategoryOptions.innerHTML += `<option value="${a}">`);
-                subCategoryOptions.innerHTML += `<option value="อื่นๆ (โปรดพิมพ์ระบุเอง)">`;
-
-                opStatusSelect.innerHTML = assocOpOptions;
-                payStatusSelect.innerHTML = assocPayOptions;
-                if(currentOp) opStatusSelect.value = currentOp;
-                if(currentPay) payStatusSelect.value = currentPay;
-
-            } else {
-                subCategoryDiv.classList.add('hidden');
-                projectActivityDiv.classList.add('hidden');
-                projectNameDiv.classList.add('hidden');
-                opStatusSelect.innerHTML = defaultOpOptions;
-                payStatusSelect.innerHTML = defaultPayOptions;
-            }
-        });
-
-        opStatusSelect.addEventListener('change', function() {
-            if (this.value === 'ยกเลิกรายการ') {
-                payStatusSelect.value = 'ส่งเงินคืนกองทุนฯ';
-                document.getElementById('passedPeople').value = '0';
-                document.getElementById('usedBudget').value = '0';
-                payStatusSelect.classList.add('bg-purple-50', 'border-purple-300');
-                setTimeout(() => payStatusSelect.classList.remove('bg-purple-50', 'border-purple-300'), 1500);
-            } else {
-                if (payStatusSelect.value === 'ส่งเงินคืนกองทุนฯ') {
-                    payStatusSelect.value = 'อยู่ระหว่างการเบิกจ่าย';
-                }
-            }
-        });
-
-        function formatNumberInput(value) {
-            let pureNumber = String(value).replace(/\D/g, '');
-            if (!pureNumber) return '';
-            return parseInt(pureNumber, 10).toLocaleString('en-US');
-        }
-
-        document.querySelectorAll('.comma-input').forEach(input => {
-            input.addEventListener('input', function(e) {
-                let cursorPosition = this.selectionStart;
-                let oldLength = this.value.length;
-                
-                this.value = formatNumberInput(this.value);
-                
-                let newLength = this.value.length;
-                this.setSelectionRange(cursorPosition + (newLength - oldLength), cursorPosition + (newLength - oldLength));
-            });
-
-            input.addEventListener('blur', function() {
-                if(this.value === '') this.value = '0';
-            });
-            
-            input.addEventListener('focus', function() {
-                if(this.value === '0') this.value = '';
-            });
-        });
-
-        const idPrefix = "NSDF-69-01/";
-        const idInputEl = document.getElementById('projectIdInput');
-
-        function resetFormToNewMode() {
-            const submitBtn = document.getElementById('submitBtn');
-            const hint = document.getElementById('idSearchHint');
-            const badge = document.getElementById('formStatusBadge');
-
-            hint.classList.add('hidden');
-            badge.classList.remove('hidden', 'bg-emerald-100', 'text-emerald-700');
-            badge.classList.add('bg-blue-100', 'text-blue-700');
-            badge.innerText = 'โครงการใหม่';
-
-            submitBtn.innerText = 'บันทึกโครงการใหม่';
-            submitBtn.className = "w-full bg-blue-900 hover:bg-yellow-500 hover:text-blue-900 text-white font-bold py-3 px-4 rounded-lg transition duration-300 shadow-md";
-        }
-
-        idInputEl.addEventListener('input', function() {
-            this.value = this.value.replace(/\D/g, '');
-            
-            if (this.value.length === 5) {
-                const fullIdToSearch = idPrefix + this.value;
-                const existingData = globalData.find(item => item.ID === fullIdToSearch);
-
-                const submitBtn = document.getElementById('submitBtn');
-                const hint = document.getElementById('idSearchHint');
-                const badge = document.getElementById('formStatusBadge');
-
-                if(existingData) {
-                    document.getElementById('mainCategory').value = existingData.Main_Category || '';
-                    document.getElementById('mainCategory').dispatchEvent(new Event('change'));
-
-                    setTimeout(() => {
-                        document.getElementById('subCategory').value = existingData.Sub_Category || '';
-                        if((existingData.Main_Category || '').includes('สมาคมกีฬา')) {
-                            document.getElementById('projectActivity').value = existingData.Project_Activity || '';
-                            document.getElementById('projectName').value = existingData.Project_Name || '';
-                        }
-                        document.getElementById('location').value = existingData.Location || '';
-                        document.getElementById('startDate').value = existingData.Start_Date || '';
-                        document.getElementById('endDate').value = existingData.End_Date || '';
-                        
-                        document.getElementById('targetPeople').value = formatNumberInput(String(existingData.Target_People || 0));
-                        document.getElementById('passedPeople').value = formatNumberInput(String(existingData.Passed_People || 0));
-                        document.getElementById('approvedBudget').value = formatNumberInput(String(existingData.Approved_Budget || 0));
-                        document.getElementById('usedBudget').value = formatNumberInput(String(existingData.Used_Budget || 0));
-                        
-                        document.getElementById('operationStatus').value = existingData.Operation_Status || 'อยู่ระหว่างการดำเนินงาน';
-                        document.getElementById('paymentStatus').value = existingData.Payment_Status || 'อยู่ระหว่างการเบิกจ่าย';
-
-                        hint.classList.remove('hidden');
-                        badge.classList.remove('hidden', 'bg-blue-100', 'text-blue-700');
-                        badge.classList.add('bg-emerald-100', 'text-emerald-700');
-                        badge.innerText = 'โหมดแก้ไขข้อมูล';
-                        
-                        submitBtn.innerText = 'อัปเดตข้อมูลทับของเดิม';
-                        submitBtn.className = "w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300 shadow-md";
-                    }, 100);
-                } else {
-                    resetFormToNewMode();
-                }
-            } else {
-                resetFormToNewMode();
-            }
-        });
-
-        async function loadData() {
-            try {
-                const response = await fetch(SCRIPT_URL);
-                const result = await response.json();
-                if(result.status === 'success') {
-                    globalData = result.data;
-                    applyGlobalFilter(); 
-                    renderAnalytics(globalData); 
-                }
-            } catch (error) {
-                console.error('Error loading data:', error);
-            }
-        }
-
-        function applyGlobalFilter() {
-            const categoryFilter = document.getElementById('globalFilterCategory').value;
-            const dashboardTitle = document.getElementById('dashboard-title');
-            
-            if (categoryFilter === '') {
-                currentFilteredData = [...globalData]; 
-                dashboardTitle.innerHTML = '📊 สรุปภาพรวมโครงการพัฒนาบุคลากรกีฬา ประจำปีงบประมาณ พ.ศ. 2569';
-            } else if (categoryFilter === 'กกท.') {
-                currentFilteredData = globalData.filter(item => (item.Main_Category || '').includes('การกีฬาแห่งประเทศไทย'));
-                dashboardTitle.innerHTML = '📊 สรุปภาพรวมโครงการพัฒนาบุคลากรโดยการกีฬาแห่งประเทศไทย ประจำปีงบประมาณ พ.ศ. 2569';
-            } else if (categoryFilter === 'สมาคมกีฬา') {
-                currentFilteredData = globalData.filter(item => (item.Main_Category || '').includes('สมาคมกีฬาแห่งประเทศไทย'));
-                dashboardTitle.innerHTML = '📊 สรุปภาพรวมโครงการพัฒนาบุคลากรโดยสมาคมกีฬาแห่งประเทศไทย ประจำปีงบประมาณ พ.ศ. 2569';
-            }
-
-            updateDashboardCardsAndCharts(currentFilteredData);
-            applyTableSearch(); 
-        }
-
-        function updateDashboardCardsAndCharts(data) {
-            const categoryFilter = document.getElementById('globalFilterCategory').value;
-            const satSection = document.getElementById('cards-sat-section');
-            const assocSection = document.getElementById('cards-assoc-section');
-
-            let satData = [];
-            let assocData = [];
-
-            if (categoryFilter === '') {
-                satData = data.filter(i => (i.Main_Category || '').includes('การกีฬาแห่งประเทศไทย'));
-                assocData = data.filter(i => (i.Main_Category || '').includes('สมาคมกีฬา'));
-                satSection.classList.remove('hidden');
-                assocSection.classList.remove('hidden');
-            } else if (categoryFilter === 'กกท.') {
-                satData = data;
-                assocData = [];
-                satSection.classList.remove('hidden');
-                assocSection.classList.add('hidden');
-            } else if (categoryFilter === 'สมาคมกีฬา') {
-                satData = [];
-                assocData = data;
-                satSection.classList.add('hidden');
-                assocSection.classList.remove('hidden');
-            }
-
-            function updateCardSet(prefix, dataset) {
-                let totalAppBudget = dataset.reduce((sum, item) => sum + Number(item.Approved_Budget || 0), 0);
-                let totalUsedBudget = dataset.reduce((sum, item) => sum + Number(item.Used_Budget || 0), 0);
-                let totalRemainingBudget = totalAppBudget - totalUsedBudget; 
-                let totalTarget = dataset.reduce((sum, item) => sum + Number(item.Target_People || 0), 0);
-                let totalPassed = dataset.reduce((sum, item) => sum + Number(item.Passed_People || 0), 0);
-
-                document.getElementById(`card-${prefix}-approved`).innerText = totalAppBudget.toLocaleString() + ' บาท';
-                document.getElementById(`card-${prefix}-used`).innerText = totalUsedBudget.toLocaleString() + ' บาท';
-                
-                let remainingEl = document.getElementById(`card-${prefix}-remaining`);
-                remainingEl.innerText = totalRemainingBudget.toLocaleString() + ' บาท';
-                if (totalRemainingBudget < 0) {
-                    remainingEl.className = "text-2xl font-bold text-red-600 mt-1"; 
-                } else {
-                    remainingEl.className = "text-2xl font-bold text-blue-600 mt-1";
-                }
-
-                document.getElementById(`card-${prefix}-participants`).innerHTML = `${totalPassed.toLocaleString()} <span class="text-lg text-gray-400 font-medium">/ ${totalTarget.toLocaleString()} คน</span>`;
-            }
-
-            updateCardSet('sat', satData);
-            updateCardSet('assoc', assocData);
-
-            renderCharts(data);
-        }
-
-        function applyTableSearch() {
-            const keyword = document.getElementById('searchInput').value.toLowerCase();
-            
-            finalDataForTable = currentFilteredData.filter(item => {
-                const id = String(item.ID || '').toLowerCase();
-                const mainCat = String(item.Main_Category || '').toLowerCase();
-                const subCat = String(item.Sub_Category || '').toLowerCase();
-                const activity = String(item.Project_Activity || '').toLowerCase();
-                const projName = String(item.Project_Name || '').toLowerCase();
-                const location = String(item.Location || '').toLowerCase();
-                
-                return id.includes(keyword) || subCat.includes(keyword) || activity.includes(keyword) || projName.includes(keyword) || mainCat.includes(keyword) || location.includes(keyword);
-            });
-
-            currentPage = 1;
-            renderPaginatedView();
-        }
-
-        function renderPaginatedView() {
-            const totalItems = finalDataForTable.length;
-            const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
-            
-            if (currentPage > totalPages) currentPage = totalPages;
-            if (currentPage < 1) currentPage = 1;
-
-            const startIndex = (currentPage - 1) * itemsPerPage;
-            const endIndex = startIndex + itemsPerPage;
-            const pagedData = finalDataForTable.slice(startIndex, endIndex);
-
-            renderTimeline(pagedData);
-            renderTable(pagedData);
-
-            renderPaginationControls(totalItems, totalPages, startIndex, pagedData.length);
-        }
-
-        function changePage(direction) {
-            currentPage += direction;
-            renderPaginatedView();
-        }
-
-        function renderPaginationControls(total, totalPages, startIndex, pageItemCount) {
-            const textInfo = total === 0 
-                ? `แสดงรายการที่ 0 - 0 จากทั้งหมด 0 โครงการ` 
-                : `แสดงรายการที่ ${startIndex + 1} - ${startIndex + pageItemCount} จากทั้งหมด ${total} โครงการ`;
-            const textPage = `หน้า ${currentPage}/${totalPages}`;
-            
-            const isPrevDisabled = currentPage === 1;
-            const isNextDisabled = currentPage === totalPages || total === 0;
-
-            document.getElementById('timeline-pagination-info').innerText = textInfo;
-            document.getElementById('timeline-page-num').innerText = textPage;
-            document.getElementById('btn-prev-timeline').disabled = isPrevDisabled;
-            document.getElementById('btn-next-timeline').disabled = isNextDisabled;
-
-            document.getElementById('table-pagination-info').innerText = textInfo;
-            document.getElementById('table-page-num').innerText = textPage;
-            document.getElementById('btn-prev-table').disabled = isPrevDisabled;
-            document.getElementById('btn-next-table').disabled = isNextDisabled;
-        }
-
-        function renderTimeline(data) {
-            const tbody = document.getElementById('timelineBody');
-            let html = '';
-
-            const validData = data.filter(item => item.Start_Date && item.End_Date && item.Start_Date !== '-' && item.End_Date !== '-');
-
-            if(data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="13" class="p-4 text-center text-gray-400">ไม่พบข้อมูลที่ตรงกับเงื่อนไข</td></tr>`;
-                return;
-            } else if (validData.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="13" class="p-4 text-center text-gray-400">โครงการในหน้านี้ยังไม่มีการระบุวันที่ดำเนินงาน</td></tr>`;
-                return;
-            }
-
-            validData.forEach(item => {
-                let start = new Date(item.Start_Date);
-                let end = new Date(item.End_Date);
-                let startMonth = start.getMonth(); 
-                let endMonth = end.getMonth();
-
-                let name = item.Project_Activity && item.Project_Activity !== '-' ? item.Project_Activity : item.Sub_Category;
-                if(item.Project_Name && item.Project_Name !== '-') name += ` (${item.Project_Name})`;
-
-                let barClass = 'gantt-bar';
-                if(item.Operation_Status === 'ดำเนินการเสร็จสิ้นแล้ว') barClass += ' done';
-                else if(item.Operation_Status === 'ยกเลิกรายการ') barClass += ' cancel';
-
-                html += `<tr><td class="p-2 border-r border-b text-gray-700 truncate max-w-[250px]" title="${name}">
-                            <div class="font-medium">${name}</div>
-                            <div class="text-[10px] text-gray-400 font-mono">${item.ID || ''}</div>
-                         </td>`;
-                
-                for(let i=0; i<12; i++) {
-                    html += `<td class="border-r border-b gantt-cell p-0 h-10 border-gray-100">`;
-                    if(i >= startMonth && i <= endMonth) {
-                        let classExt = '';
-                        if(i === startMonth) classExt += ' start';
-                        if(i === endMonth) classExt += ' end';
-                        html += `<div class="${barClass} ${classExt}"></div>`;
-                    }
-                    html += `</td>`;
-                }
-                html += `</tr>`;
-            });
-
-            tbody.innerHTML = html;
-        }
-
-        function renderTable(data) {
-            const categoryFilter = document.getElementById('globalFilterCategory').value;
-            const showActivityCol = categoryFilter !== 'กกท.'; 
-
-            const thActivity = document.getElementById('th-activity');
-            if(thActivity) {
-                if(showActivityCol) thActivity.classList.remove('hidden');
-                else thActivity.classList.add('hidden');
-            }
-
-            const tbody = document.getElementById('dataTableBody');
-            if(data.length === 0) {
-                const colSpan = showActivityCol ? 9 : 8;
-                tbody.innerHTML = `<tr><td colspan="${colSpan}" class="p-4 text-center text-gray-400">ไม่พบข้อมูลที่ตรงกับเงื่อนไข</td></tr>`;
-                return;
-            }
-            tbody.innerHTML = data.map(item => {
-                let approved = Number(item.Approved_Budget || 0);
-                let used = Number(item.Used_Budget || 0);
-                let remaining = approved - used;
-                let remainingColor = remaining < 0 ? 'text-red-600' : 'text-blue-600';
-
-                let opStatusClass = '';
-                if (item.Operation_Status === 'ดำเนินการเสร็จสิ้นแล้ว') opStatusClass = 'bg-green-100 text-green-700';
-                else if (item.Operation_Status === 'ยกเลิกรายการ') opStatusClass = 'bg-red-100 text-red-700 font-bold';
-                else opStatusClass = 'bg-yellow-100 text-yellow-700';
-
-                let payStatusClass = '';
-                if (item.Payment_Status === 'เบิกจ่ายเรียบร้อย') payStatusClass = 'bg-green-100 text-green-700';
-                else if (item.Payment_Status === 'ส่งเงินคืนกองทุนฯ') payStatusClass = 'bg-purple-100 text-purple-700 font-bold';
-                else payStatusClass = 'bg-yellow-100 text-yellow-700';
-
-                let activityCellHTML = '';
-                if(showActivityCol) {
-                    activityCellHTML = `
-                    <td class="p-3 border-b">
-                        <div class="text-gray-700">${item.Project_Activity || '-'}</div>
-                        <div class="text-xs text-blue-600 font-medium">${item.Project_Name && item.Project_Name !== '-' ? '(' + item.Project_Name + ')' : ''}</div>
-                    </td>`;
-                }
-
-                return `
-                <tr class="hover:bg-gray-50 border-gray-100">
-                    <td class="p-3 border-b font-mono text-xs font-semibold text-blue-700">${item.ID || ''}</td>
-                    <td class="p-3 border-b">
-                        <div class="font-medium text-gray-800">${item.Sub_Category || ''}</div>
-                        <div class="text-xs text-gray-400">${item.Main_Category || ''}</div>
-                    </td>
-                    ${activityCellHTML}
-                    <td class="p-3 border-b text-gray-600">${item.Location || '-'}</td>
-                    <td class="p-3 border-b text-gray-600 text-xs text-center">
-                        <div>${item.Start_Date || '-'}</div>
-                        <div class="text-gray-400">ถึง</div>
-                        <div>${item.End_Date || '-'}</div>
-                    </td>
-                    <td class="p-3 border-b text-center">
-                        <div class="text-gray-500 text-xs">เป้าหมาย: ${item.Target_People || 0}</div>
-                        <div class="text-green-600 font-bold text-sm mt-0.5">ผ่าน: ${item.Passed_People || 0}</div>
-                    </td>
-                    <td class="p-3 border-b text-right">
-                        <div class="text-green-600 font-bold text-sm mb-1">อนุมัติ: ${approved.toLocaleString()}</div>
-                        <div class="text-orange-500 font-semibold text-sm border-t border-gray-200 pt-1">ใช้ไป: ${used.toLocaleString()}</div>
-                        <div class="${remainingColor} font-bold text-sm border-t border-gray-200 pt-1 mt-1">คงเหลือ: ${remaining.toLocaleString()}</div>
-                    </td>
-                    <td class="p-3 border-b text-center"><span class="px-2 py-1 text-xs rounded-full ${opStatusClass}">${item.Operation_Status}</span></td>
-                    <td class="p-3 border-b text-center"><span class="px-2 py-1 text-xs rounded-full ${payStatusClass}">${item.Payment_Status}</span></td>
-                </tr>
-                `;
-            }).join('');
-        }
-
-        function renderCharts(data) {
-            let opDone = data.filter(i => i.Operation_Status === 'ดำเนินการเสร็จสิ้นแล้ว').length;
-            let opCancel = data.filter(i => i.Operation_Status === 'ยกเลิกรายการ').length;
-            let opProg = data.length - opDone - opCancel; 
-
-            let payDone = data.filter(i => i.Payment_Status === 'เบิกจ่ายเรียบร้อย').length;
-            let payReturn = data.filter(i => i.Payment_Status === 'ส่งเงินคืนกองทุนฯ').length;
-            let payProg = data.length - payDone - payReturn;
-
-            const doughnutOptions = {
-                responsive: true,
-                maintainAspectRatio: false,
-                cutout: '65%', 
-                plugins: {
-                    legend: { position: 'top' },
-                    datalabels: {
-                        color: '#ffffff',
-                        font: { weight: 'bold', family: 'Prompt', size: 14 },
-                        formatter: (value, context) => {
-                            if (value === 0) return null; 
-                            let total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
-                            let percentage = Math.round((value / total) * 100) + '%';
-                            return percentage;
-                        }
-                    }
-                }
-            };
-
-            if(opChartInstance) opChartInstance.destroy();
-            const ctx1 = document.getElementById('opStatusChart').getContext('2d');
-            opChartInstance = new Chart(ctx1, {
-                type: 'doughnut',
-                data: {
-                    labels: ['อยู่ระหว่างดำเนินการ', 'เสร็จสิ้นแล้ว', 'ยกเลิกรายการ'],
-                    datasets: [{ data: [opProg, opDone, opCancel], backgroundColor: ['#f59e0b', '#10b981', '#ef4444'], borderWidth: 2 }]
-                },
-                options: doughnutOptions,
-                plugins: [centerTextPlugin] 
-            });
-
-            if(payChartInstance) payChartInstance.destroy();
-            const ctx2 = document.getElementById('payStatusChart').getContext('2d');
-            payChartInstance = new Chart(ctx2, {
-                type: 'doughnut',
-                data: {
-                    labels: ['อยู่ระหว่างเบิกจ่าย', 'เบิกจ่ายเรียบร้อย', 'ส่งเงินคืนกองทุนฯ'],
-                    datasets: [{ data: [payProg, payDone, payReturn], backgroundColor: ['#f59e0b', '#10b981', '#8b5cf6'], borderWidth: 2 }]
-                },
-                options: doughnutOptions,
-                plugins: [centerTextPlugin] 
-            });
-        }
-
-        function renderInteractiveTable(assocData, filterType) {
-            const container = document.getElementById('interactive-table-content');
-            if (!assocData || assocData.length === 0) {
-                 container.innerHTML = `<div class="p-6 bg-gray-50 text-gray-500 text-center">ไม่มีข้อมูลสมาคมกีฬาในระบบขณะนี้</div>`;
-                 return;
-            }
-
-            let filteredList = [];
-            let valueLabel = "งบประมาณอนุมัติ (บาท)";
-            let amountColor = "text-blue-600";
-            
-            if (filterType === 'cancel') {
-                filteredList = assocData.filter(i => i.Operation_Status === 'ยกเลิกรายการ');
-                valueLabel = "ยอดเงินต้องส่งคืน (บาท)";
-                amountColor = "text-purple-600";
-            } else if (filterType === 'done') {
-                filteredList = assocData.filter(i => i.Operation_Status === 'ดำเนินการเสร็จสิ้นแล้ว');
-                amountColor = "text-green-600";
-            } else if (filterType === 'op_progress') {
-                filteredList = assocData.filter(i => i.Operation_Status === 'อยู่ระหว่างการดำเนินงาน');
-                amountColor = "text-orange-600";
-            } else if (filterType === 'pay_progress') {
-                filteredList = assocData.filter(i => i.Payment_Status === 'อยู่ระหว่างการเบิกจ่าย');
-                amountColor = "text-orange-600";
-            }
-
-            if (filteredList.length === 0) {
-                 container.innerHTML = `<div class="p-6 bg-blue-50 text-blue-700 text-center flex items-center justify-center gap-2"><span class="text-xl">✨</span> <span class="font-medium">ไม่พบข้อมูลโครงการในสถานะนี้</span></div>`;
-                 return;
-            }
-
-            let uniqueAssoc = new Set();
-            let totalBudget = 0;
-
-            let listHtml = `
-            <div class="overflow-x-auto max-h-[400px]">
-                <table class="w-full text-left text-sm border-collapse relative">
-                    <thead class="bg-gray-100 text-gray-700 border-b border-gray-200 sticky top-0 shadow-sm">
-                        <tr>
-                            <th class="p-3">รหัส ID</th>
-                            <th class="p-3">สมาคมกีฬา</th>
-                            <th class="p-3">กิจกรรม / หลักสูตร</th>
-                            <th class="p-3 text-right">${valueLabel}</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100">`;
-            
-            filteredList.forEach(item => {
-                let amt = Number(item.Approved_Budget || 0);
-                totalBudget += amt;
-                let assocName = item.Sub_Category || '-';
-                uniqueAssoc.add(assocName);
-                
-                let activityName = item.Project_Activity && item.Project_Activity !== '-' ? item.Project_Activity : (item.Project_Name || '-');
-                listHtml += `
-                    <tr class="hover:bg-blue-50/50">
-                        <td class="p-3 font-mono text-xs text-gray-600">${item.ID}</td>
-                        <td class="p-3 font-medium">${assocName}</td>
-                        <td class="p-3 text-gray-600">${activityName}</td>
-                        <td class="p-3 text-right font-bold ${amountColor}">${amt.toLocaleString()}</td>
-                    </tr>`;
-            });
-            
-            listHtml += `
-                    </tbody>
-                    <tfoot class="bg-gray-50 border-t-2 border-gray-200 sticky bottom-0">
-                        <tr>
-                            <td colspan="3" class="p-4 text-right font-medium text-gray-700">
-                                สรุป: <span class="font-bold text-blue-700">${uniqueAssoc.size}</span> สมาคม | <span class="font-bold text-blue-700">${filteredList.length}</span> โครงการ | ยอดเงินรวม:
-                            </td>
-                            <td class="p-4 text-right font-bold ${amountColor} text-lg">${totalBudget.toLocaleString()} บาท</td>
-                        </tr>
-                    </tfoot>
-                </table>
-            </div>`;
-            container.innerHTML = listHtml;
-        }
-
-        window.currentAssocDataForTable = [];
-        document.getElementById('interactiveTableFilter').addEventListener('change', function() {
-            renderInteractiveTable(window.currentAssocDataForTable, this.value);
-        });
-
-        // 🌟 ฟังก์ชันใหม่: Export Interactive Table เป็น Excel
-        function exportInteractiveTable() {
-            const filterElement = document.getElementById('interactiveTableFilter');
-            const filterType = filterElement.value;
-            const filterText = filterElement.options[filterElement.selectedIndex].text.replace(/[\uD83C-\uDBFF\uDC00-\uDFFF]+/g, '').trim(); // ลบ Emoji ออกจากชื่อไฟล์
-            
-            const assocData = window.currentAssocDataForTable;
-            if (!assocData || assocData.length === 0) {
-                alert("ไม่มีข้อมูลให้ Export");
-                return;
-            }
-
-            let filteredList = [];
-            let valueLabel = "งบประมาณอนุมัติ (บาท)";
-            
-            if (filterType === 'cancel') {
-                filteredList = assocData.filter(i => i.Operation_Status === 'ยกเลิกรายการ');
-                valueLabel = "ยอดเงินต้องส่งคืน (บาท)";
-            } else if (filterType === 'done') {
-                filteredList = assocData.filter(i => i.Operation_Status === 'ดำเนินการเสร็จสิ้นแล้ว');
-            } else if (filterType === 'op_progress') {
-                filteredList = assocData.filter(i => i.Operation_Status === 'อยู่ระหว่างการดำเนินงาน');
-            } else if (filterType === 'pay_progress') {
-                filteredList = assocData.filter(i => i.Payment_Status === 'อยู่ระหว่างการเบิกจ่าย');
-            }
-
-            if (filteredList.length === 0) {
-                alert("หมวดหมู่นี้ไม่มีข้อมูลให้ Export");
-                return;
-            }
-
-            // เตรียมโครงสร้างข้อมูลสำหรับ SheetJS (แปลงเป็นตัวเลขดิบๆ ให้บวกเลขใน Excel ได้)
-            const headers = ["รหัส ID", "สมาคมกีฬา", "กิจกรรม / หลักสูตร", valueLabel];
-            let exportData = [headers];
-            
-            let uniqueAssoc = new Set();
-            let totalBudget = 0;
-
-            filteredList.forEach(item => {
-                let amt = Number(item.Approved_Budget || 0);
-                totalBudget += amt;
-                uniqueAssoc.add(item.Sub_Category || '-');
-                
-                let activityName = item.Project_Activity && item.Project_Activity !== '-' ? item.Project_Activity : (item.Project_Name || '-');
-                exportData.push([
-                    item.ID || '-', 
-                    item.Sub_Category || '-', 
-                    activityName, 
-                    amt // ส่งเป็นตัวเลข ไม่ใช่ String ที่มีลูกน้ำ
-                ]);
-            });
-
-            // เพิ่มแถบสรุปที่บรรทัดสุดท้าย
-            exportData.push([]); // บรรทัดว่างกั้น
-            exportData.push(["สรุป", `รวม ${uniqueAssoc.size} สมาคม`, `รวม ${filteredList.length} โครงการ`, totalBudget]);
-
-            // สร้าง Excel File และสั่งดาวน์โหลด
-            const wb = XLSX.utils.book_new();
-            const ws = XLSX.utils.aoa_to_sheet(exportData);
-            
-            // ปรับความกว้างคอลัมน์อัตโนมัติ
-            ws['!cols'] = [{wch: 20}, {wch: 40}, {wch: 30}, {wch: 25}];
-            
-            XLSX.utils.book_append_sheet(wb, ws, "รายงานเจาะลึกสมาคม");
-            XLSX.writeFile(wb, `${filterText}.xlsx`);
-        }
-
-        function renderAnalytics(data) {
-            if (!data || data.length === 0) return;
-
-            let totalAppBudget = data.reduce((sum, item) => sum + Number(item.Approved_Budget || 0), 0);
-            let totalUsedBudget = data.reduce((sum, item) => sum + Number(item.Used_Budget || 0), 0);
-            let totalTarget = data.reduce((sum, item) => sum + Number(item.Target_People || 0), 0);
-            let totalPassed = data.reduce((sum, item) => sum + Number(item.Passed_People || 0), 0);
-
-            let budgetPercent = totalAppBudget > 0 ? ((totalUsedBudget / totalAppBudget) * 100).toFixed(2) : 0;
-            let passPercent = totalTarget > 0 ? ((totalPassed / totalTarget) * 100).toFixed(2) : 0;
-
-            document.getElementById('analytics-budget-percent').innerText = budgetPercent + '%';
-            document.getElementById('analytics-people-percent').innerText = passPercent + '%';
-
-            let satData = data.filter(i => (i.Main_Category || '').includes('การกีฬาแห่งประเทศไทย'));
-            let assocData = data.filter(i => (i.Main_Category || '').includes('สมาคมกีฬา'));
-
-            window.currentAssocDataForTable = assocData;
-            const interactiveBox = document.getElementById('interactive-summary-box');
-            if(assocData.length > 0) {
-                interactiveBox.classList.remove('hidden');
-                renderInteractiveTable(assocData, document.getElementById('interactiveTableFilter').value);
-            } else {
-                interactiveBox.classList.add('hidden');
-            }
-
-            function generateInsightBlock(title, dataset, isAssoc) {
-                if (!dataset || dataset.length === 0) {
-                    return `<div class="mb-4"><h4 class="font-bold text-blue-900 text-lg border-b-2 border-gray-200 pb-2 mb-3">${title}</h4><p class="text-gray-500">ยังไม่มีข้อมูลโครงการ</p></div>`;
-                }
-
-                let appBudget = dataset.reduce((sum, item) => sum + Number(item.Approved_Budget || 0), 0);
-                let useBudget = dataset.reduce((sum, item) => sum + Number(item.Used_Budget || 0), 0);
-                let targPeople = dataset.reduce((sum, item) => sum + Number(item.Target_People || 0), 0);
-                let passPeople = dataset.reduce((sum, item) => sum + Number(item.Passed_People || 0), 0);
-
-                let bgPercent = appBudget > 0 ? ((useBudget / appBudget) * 100).toFixed(2) : 0;
-                let ppPercent = targPeople > 0 ? ((passPeople / targPeople) * 100).toFixed(2) : 0;
-
-                let completedCount = dataset.filter(i => i.Operation_Status === 'ดำเนินการเสร็จสิ้นแล้ว').length;
-                let cancelledCount = dataset.filter(i => i.Operation_Status === 'ยกเลิกรายการ').length;
-                let inProgressCount = dataset.length - completedCount - cancelledCount;
-
-                let payReturnCount = dataset.filter(i => i.Payment_Status === 'ส่งเงินคืนกองทุนฯ').length;
-                let payDoneCount = dataset.filter(i => i.Payment_Status === 'เบิกจ่ายเรียบร้อย').length;
-                let payProgressCount = dataset.length - payDoneCount - payReturnCount;
-
-                let overB = [];
-                let highB = [];
-                let lowB = [];
-                let surpTotal = 0;
-                let retTotal = 0;
-
-                dataset.forEach(item => {
-                    let approved = Number(item.Approved_Budget || 0);
-                    let used = Number(item.Used_Budget || 0);
-                    let remaining = approved - used;
-                    let percentUsed = approved > 0 ? (used / approved) * 100 : 0;
-                    let status = item.Operation_Status;
-                    let idName = `<b>${item.ID}</b>`;
-
-                    if (status === 'ยกเลิกรายการ') {
-                        retTotal += approved;
-                    } else {
-                        if (used > approved) {
-                            overB.push(`${idName} (เกินไป ${Math.abs(remaining).toLocaleString()} บาท)`);
-                        }
-                        else if (percentUsed >= 90 && status === 'อยู่ระหว่างการดำเนินงาน') {
-                            highB.push(`${idName} (ใช้ไป ${percentUsed.toFixed(1)}%)`);
-                        }
-                        else if (percentUsed > 0 && percentUsed < 30 && status === 'อยู่ระหว่างการดำเนินงาน') {
-                            lowB.push(idName);
-                        }
-                        if (status === 'ดำเนินการเสร็จสิ้นแล้ว' && remaining > 0) {
-                            surpTotal += remaining;
-                        }
-                    }
-                });
-
-                let html = `<div>`;
-                html += `<h4 class="font-bold text-blue-900 text-lg border-b-2 border-yellow-400 pb-2 mb-3">${title}</h4>`;
-                
-                let projectText = `มีทั้งหมด <b>${dataset.length} โครงการ</b><br>`;
-                
-                projectText += `<div class="flex flex-col gap-2 mt-2 mb-3">`;
-                
-                projectText += `<span class="text-xs sm:text-sm text-gray-700 bg-gray-100 px-3 py-1.5 rounded-md inline-block border border-gray-200">`;
-                projectText += `<b>📊 สถานะงาน:</b> ⏳ กำลังดำเนินงาน: <b>${inProgressCount}</b> | ✅ เสร็จสิ้น: <b>${completedCount}</b>`;
-                if (isAssoc) projectText += ` | ❌ ยกเลิก: <b>${cancelledCount}</b>`;
-                projectText += `</span>`;
-                
-                projectText += `<span class="text-xs sm:text-sm text-gray-700 bg-blue-50 px-3 py-1.5 rounded-md inline-block border border-blue-100">`;
-                projectText += `<b>💸 สถานะเงิน:</b> ⏳ กำลังเบิกจ่าย: <b>${payProgressCount}</b> | ✅ เบิกเรียบร้อย: <b>${payDoneCount}</b>`;
-                if (isAssoc) projectText += ` | 🔙 ส่งคืนเงิน: <b>${payReturnCount}</b>`;
-                projectText += `</span>`;
-
-                projectText += `</div>`;
-
-                html += `<p class="text-gray-700 mb-3">${projectText}<br>มีการเบิกจ่ายงบประมาณไปแล้ว <b>${bgPercent}%</b> และมีผู้ผ่านการอบรมคิดเป็น <b>${ppPercent}%</b> ของเป้าหมาย</p>`;
-                
-                if (isAssoc) {
-                    let interCount = 0, nationalCount = 0, noneCount = 0;
-                    let interBudget = 0, nationalBudget = 0, noneBudget = 0;
-
-                    dataset.forEach(item => {
-                        let nameToCheck = String(item.Project_Name || '') + " " + String(item.Project_Activity || '');
-                        let approved = Number(item.Approved_Budget || 0);
-
-                        if (nameToCheck.includes('นานาชาติ')) {
-                            interCount++;
-                            interBudget += approved;
-                        } else if (nameToCheck.includes('ระดับชาติ')) {
-                            nationalCount++;
-                            nationalBudget += approved;
-                        } else {
-                            noneCount++;
-                            noneBudget += approved;
-                        }
-                    });
-
-                    html += `<div class="bg-indigo-50 p-4 rounded-lg border border-indigo-100 mb-4 text-sm text-gray-800">`;
-                    html += `<div class="font-bold text-indigo-900 mb-2">🎯 สัดส่วนโครงการจำแนกตามระดับ (วิเคราะห์จากชื่อรายการ)</div>`;
-                    html += `<div class="grid grid-cols-1 sm:grid-cols-3 gap-3">`;
-                    html += `<div class="bg-white p-3 rounded-md shadow-sm border-l-4 border-blue-500">
-                                <div class="text-lg">🌍 ระดับนานาชาติ</div>
-                                <div class="font-bold text-xl text-blue-700">${interCount} <span class="text-sm font-normal text-gray-500">รายการ</span></div>
-                                <div class="text-xs text-gray-500 mt-1">งบอนุมัติรวม: ${interBudget.toLocaleString()} บาท</div>
-                             </div>`;
-                    html += `<div class="bg-white p-3 rounded-md shadow-sm border-l-4 border-red-500">
-                                <div class="text-lg">🇹🇭 ระดับชาติ</div>
-                                <div class="font-bold text-xl text-red-700">${nationalCount} <span class="text-sm font-normal text-gray-500">รายการ</span></div>
-                                <div class="text-xs text-gray-500 mt-1">งบอนุมัติรวม: ${nationalBudget.toLocaleString()} บาท</div>
-                             </div>`;
-                    html += `<div class="bg-white p-3 rounded-md shadow-sm border-l-4 border-gray-400">
-                                <div class="text-lg">📌 ไม่ระบุ</div>
-                                <div class="font-bold text-xl text-gray-700">${noneCount} <span class="text-sm font-normal text-gray-500">รายการ</span></div>
-                                <div class="text-xs text-gray-500 mt-1">งบอนุมัติรวม: ${noneBudget.toLocaleString()} บาท</div>
-                             </div>`;
-                    html += `</div></div>`;
-                }
-
-                html += `<ul class="space-y-2 text-sm text-gray-700 bg-white p-4 rounded-lg border border-blue-50 shadow-sm">`;
-                let hasAdvice = false;
-
-                if (overB.length > 0) {
-                    html += `<li class="flex items-start gap-2"><span class="text-red-500">🚨</span> <span><b>พบการใช้งบเกิน:</b> ${overB.join(', ')} แนะนำให้ตรวจสอบสาเหตุด่วน</span></li>`;
-                    hasAdvice = true;
-                }
-                if (highB.length > 0) {
-                    html += `<li class="flex items-start gap-2"><span class="text-orange-500">⚠️</span> <span><b>เฝ้าระวังงบใกล้หมด (ใช้ไป >90%):</b> ${highB.join(', ')} ควบคุมค่าใช้จ่ายส่วนที่เหลืออย่างรัดกุม</span></li>`;
-                    hasAdvice = true;
-                }
-                if (lowB.length > 0) {
-                    html += `<li class="flex items-start gap-2"><span class="text-yellow-500">⏱️</span> <span><b>การเบิกจ่ายล่าช้า (ใช้ไป <30%):</b> ${lowB.join(', ')} ติดตามเร่งรัดการดำเนินงานให้เป็นตามแผน</span></li>`;
-                    hasAdvice = true;
-                }
-                if (surpTotal > 0) {
-                    html += `<li class="flex items-start gap-2"><span class="text-green-600">💸</span> <span><b>งบเหลือจ่ายส่งคืน (โครงการเสร็จแล้ว):</b> <b>${surpTotal.toLocaleString()} บาท</b> รวบรวมเอกสารส่งคืนเงินกองทุนฯ</span></li>`;
-                    hasAdvice = true;
-                }
-                if (!hasAdvice) {
-                    html += `<li class="text-green-600 flex items-start gap-2"><span>✨</span> <span>ภาพรวมการบริหารงบประมาณอยู่ในเกณฑ์ปกติ เป็นไปตามแผน</span></li>`;
-                }
-
-                html += `</ul></div>`;
-                return html;
-            }
-
-            let finalInsightsHTML = generateInsightBlock('🏢 การกีฬาแห่งประเทศไทย (กกท.)', satData, false);
-            finalInsightsHTML += generateInsightBlock('🏅 สมาคมกีฬาแห่งประเทศไทย', assocData, true);
-
-            document.getElementById('smart-insights-text').innerHTML = finalInsightsHTML;
-
-            let monthlyCounts = Array(12).fill(0);
-            data.forEach(item => {
-                if(item.Operation_Status !== 'ยกเลิกรายการ' && item.Start_Date && item.Start_Date !== '-') {
-                    let sMonth = new Date(item.Start_Date).getMonth();
-                    if(sMonth >= 0 && sMonth <= 11) monthlyCounts[sMonth]++;
-                }
-            });
-
-            const barOptions = {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { datalabels: { display: false } } 
-            };
-
-            if(monthlyDensityChartInstance) monthlyDensityChartInstance.destroy();
-            const ctxDensity = document.getElementById('monthlyDensityChart').getContext('2d');
-            monthlyDensityChartInstance = new Chart(ctxDensity, {
-                type: 'bar',
-                data: {
-                    labels: ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'],
-                    datasets: [{ 
-                        label: 'จำนวนโครงการเริ่มต้นในเดือน', 
-                        data: monthlyCounts, 
-                        backgroundColor: '#eab308',
-                        borderRadius: 4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        datalabels: {
-                            display: true,
-                            color: '#1e3a8a',
-                            font: { weight: 'bold' },
-                            anchor: 'end',
-                            align: 'top',
-                            formatter: (val) => val > 0 ? val : ''
-                        }
-                    },
-                    scales: {
-                        y: { beginAtZero: true, ticks: { stepSize: 1 } }
-                    }
-                }
-            });
-
-            let satAppTotal = satData.reduce((sum, item) => sum + Number(item.Approved_Budget || 0), 0);
-            let satUsedTotal = satData.reduce((sum, item) => sum + Number(item.Used_Budget || 0), 0);
-            let assocAppTotal = assocData.reduce((sum, item) => sum + Number(item.Approved_Budget || 0), 0);
-            let assocUsedTotal = assocData.reduce((sum, item) => sum + Number(item.Used_Budget || 0), 0);
-
-            if(window.agencyChartInstance) window.agencyChartInstance.destroy();
-            const ctxAgency = document.getElementById('agencyCompareChart').getContext('2d');
-            window.agencyChartInstance = new Chart(ctxAgency, {
-                type: 'bar',
-                data: {
-                    labels: ['การกีฬาแห่งประเทศไทย (กกท.)', 'สมาคมกีฬาแห่งประเทศไทย'],
-                    datasets: [
-                        { label: 'งบอนุมัติ', data: [satAppTotal, assocAppTotal], backgroundColor: '#3b82f6', borderRadius: 4 },
-                        { label: 'งบใช้จริง', data: [satUsedTotal, assocUsedTotal], backgroundColor: '#10b981', borderRadius: 4 }
-                    ]
-                },
-                options: barOptions
-            });
-
-            let aggregatedBudget = {};
-            data.forEach(item => {
-                let name = item.Sub_Category || 'ไม่ระบุ';
-                if(!aggregatedBudget[name]) {
-                    aggregatedBudget[name] = { app: 0, used: 0 };
-                }
-                aggregatedBudget[name].app += Number(item.Approved_Budget || 0);
-                aggregatedBudget[name].used += Number(item.Used_Budget || 0);
-            });
-
-            let sortedBudgets = Object.keys(aggregatedBudget).map(key => ({
-                name: String(key).length > 20 ? String(key).substring(0, 20) + '...' : String(key),
-                app: aggregatedBudget[key].app,
-                used: aggregatedBudget[key].used
-            })).sort((a, b) => b.app - a.app).slice(0, 15);
-
-            if(budgetChartInstance) budgetChartInstance.destroy();
-            const ctxBudget = document.getElementById('budgetCompareChart').getContext('2d');
-            budgetChartInstance = new Chart(ctxBudget, {
-                type: 'bar',
-                data: {
-                    labels: sortedBudgets.map(i => i.name),
-                    datasets: [
-                        { label: 'งบอนุมัติ', data: sortedBudgets.map(i => i.app), backgroundColor: '#60a5fa', borderRadius: 4 },
-                        { label: 'งบใช้จริง', data: sortedBudgets.map(i => i.used), backgroundColor: '#34d399', borderRadius: 4 }
-                    ]
-                },
-                options: barOptions
-            });
-        }
-
-        document.getElementById('submitBtn').addEventListener('click', function(e) {
-            const form = document.getElementById('projectForm');
-            const requiredFields = form.querySelectorAll('[required]');
-            
-            requiredFields.forEach(field => {
-                if (field.closest('.hidden')) return;
-                if (!field.value) {
-                    field.classList.remove('border-gray-300');
-                    field.classList.add('input-error');
-                    
-                    setTimeout(() => {
-                        field.classList.remove('input-error');
-                        field.classList.add('border-gray-300');
-                    }, 3000);
-                }
-            });
-        });
-
-        async function fetchWithRetry(url, options, maxRetries = 3, retryDelay = 2000, btnElement) {
-            for (let i = 0; i < maxRetries; i++) {
-                try {
-                    const response = await fetch(url, options);
-                    const result = await response.json();
-                    
-                    if (result.status === 'locked') {
-                        if (i < maxRetries - 1) {
-                            btnElement.innerText = `กำลังจัดคิวบันทึกข้อมูล (รอ ${i + 1}/${maxRetries})...`;
-                            await new Promise(res => setTimeout(res, retryDelay));
-                            continue; 
-                        } else {
-                            return { status: 'error', message: 'ขณะนี้มีผู้ใช้งานบันทึกข้อมูลพร้อมกันจำนวนมาก โปรดลองกดบันทึกใหม่อีกครั้ง' };
-                        }
-                    }
-                    return result; 
-                } catch (error) {
-                    if (i < maxRetries - 1) {
-                        btnElement.innerText = `กำลังลองเชื่อมต่อใหม่ (${i + 1}/${maxRetries})...`;
-                        await new Promise(res => setTimeout(res, retryDelay));
-                    } else {
-                        throw error;
-                    }
-                }
-            }
-        }
-
-        document.getElementById('projectForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const btn = document.getElementById('submitBtn');
-            const originalText = btn.innerText;
-            btn.innerText = 'กำลังส่งข้อมูล...';
-            btn.disabled = true;
-
-            const isAssociation = document.getElementById('mainCategory').value.includes('สมาคมกีฬา');
-
-            const rawTargetPeople = document.getElementById('targetPeople').value.replace(/,/g, '');
-            const rawPassedPeople = document.getElementById('passedPeople').value.replace(/,/g, '');
-            const rawApprovedBudget = document.getElementById('approvedBudget').value.replace(/,/g, '');
-            const rawUsedBudget = document.getElementById('usedBudget').value.replace(/,/g, '');
-
-            const finalProjectId = idPrefix + document.getElementById('projectIdInput').value;
-
-            const payload = {
-                projectId: finalProjectId,
-                mainCategory: document.getElementById('mainCategory').value,
-                subCategory: document.getElementById('subCategory').value, 
-                projectActivity: isAssociation ? document.getElementById('projectActivity').value : "-",
-                projectName: isAssociation ? (document.getElementById('projectName').value || "-") : "-",
-                location: document.getElementById('location').value || "-",
-                startDate: document.getElementById('startDate').value,
-                endDate: document.getElementById('endDate').value,
-                targetPeople: Number(rawTargetPeople) || 0,
-                passedPeople: Number(rawPassedPeople) || 0,
-                approvedBudget: Number(rawApprovedBudget) || 0,
-                usedBudget: Number(rawUsedBudget) || 0,
-                operationStatus: document.getElementById('operationStatus').value,
-                paymentStatus: document.getElementById('paymentStatus').value
-            };
-
-            try {
-                const result = await fetchWithRetry(SCRIPT_URL, {
-                    method: 'POST',
-                    body: JSON.stringify(payload),
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-                }, 3, 2000, btn);
-
-                if (result.status === 'success') {
-                    alert(result.message);
-                    document.getElementById('projectForm').reset();
-                    
-                    resetFormToNewMode();
-                    document.getElementById('subCategoryDiv').classList.add('hidden');
-                    document.getElementById('projectActivityDiv').classList.add('hidden');
-                    document.getElementById('projectNameDiv').classList.add('hidden');
-
-                    switchTab('dashboard');
-                } else {
-                    alert('เกิดข้อผิดพลาด: ' + result.message);
-                    btn.innerText = originalText;
-                }
-            } catch (error) {
-                alert('ส่งข้อมูลไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่');
-                btn.innerText = originalText;
-            } finally {
-                btn.disabled = false;
-            }
-        });
-
-        function downloadTemplate() {
-            const headers = [
-                "รหัส ID โครงการ", "หมวดหมู่หลัก", "หลักสูตร/สมาคม", "กิจกรรม", "ชื่อรายการย่อย", 
-                "สถานที่", "วันที่เริ่มต้น (YYYY-MM-DD)", "วันที่สิ้นสุด (YYYY-MM-DD)", 
-                "เป้าหมาย(คน)", "ผ่านการอบรม(คน)", "งบอนุมัติ(บาท)", "งบใช้จริง(บาท)", 
-                "สถานะการดำเนินงาน", "สถานะการเบิกจ่าย"
-            ];
-            
-            const exampleData = [
-                "NSDF-EX-001", "การพัฒนาบุคลากรโดยสมาคมกีฬาแห่งประเทศไทย", "สมาคมกีฬาเทควันโดแห่งประเทศไทย", "อบรมผู้ฝึกสอน", "อบรมโค้ชระดับ 1",
-                "กรุงเทพมหานคร", "2026-05-01", "2026-05-05", 
-                50, 45, 150000, 145000, 
-                "ดำเนินการเสร็จสิ้นแล้ว", "เบิกจ่ายเรียบร้อย"
-            ];
-
-            const wb = XLSX.utils.book_new();
-            const ws = XLSX.utils.aoa_to_sheet([headers, exampleData]);
-            ws['!cols'] = headers.map(h => ({wch: Math.max(h.length, 15)}));
-            
-            XLSX.utils.book_append_sheet(wb, ws, "Template");
-            XLSX.writeFile(wb, "Template_บันทึกข้อมูลโครงการ.xlsx");
-        }
-
-        const dropArea = document.getElementById('drop-area');
-        const fileInput = document.getElementById('excelFileInput');
-
-        dropArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropArea.classList.add('active');
-        });
-        dropArea.addEventListener('dragleave', () => dropArea.classList.remove('active'));
-        dropArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropArea.classList.remove('active');
-            if (e.dataTransfer.files.length) {
-                fileInput.files = e.dataTransfer.files;
-                processExcelFile(fileInput.files[0]);
-            }
-        });
-        fileInput.addEventListener('change', function() {
-            if (this.files.length) processExcelFile(this.files[0]);
-        });
-
-        function processExcelFile(file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, {type: 'array', cellDates: true});
-                const firstSheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[firstSheetName];
-                
-                const jsonData = XLSX.utils.sheet_to_json(worksheet, {raw: false, dateNF: 'yyyy-mm-dd'});
-                
-                if(jsonData.length === 0) {
-                    alert("ไม่พบข้อมูลในไฟล์ Excel");
-                    return;
-                }
-
-                parsedBatchPayloads = jsonData.map(row => {
-                    let rawTarget = String(row["เป้าหมาย(คน)"] || "0").replace(/,/g, '');
-                    let rawPassed = String(row["ผ่านการอบรม(คน)"] || "0").replace(/,/g, '');
-                    let rawAppBudget = String(row["งบอนุมัติ(บาท)"] || "0").replace(/,/g, '');
-                    let rawUsedBudget = String(row["งบใช้จริง(บาท)"] || "0").replace(/,/g, '');
-
-                    return {
-                        projectId: row["รหัส ID โครงการ"],
-                        mainCategory: row["หมวดหมู่หลัก"],
-                        subCategory: row["หลักสูตร/สมาคม"],
-                        projectActivity: row["กิจกรรม"] || "-",
-                        projectName: row["ชื่อรายการย่อย"] || "-",
-                        location: row["สถานที่"] || "-",
-                        startDate: row["วันที่เริ่มต้น (YYYY-MM-DD)"] || "-",
-                        endDate: row["วันที่สิ้นสุด (YYYY-MM-DD)"] || "-",
-                        targetPeople: Number(rawTarget) || 0,
-                        passedPeople: Number(rawPassed) || 0,
-                        approvedBudget: Number(rawAppBudget) || 0,
-                        usedBudget: Number(rawUsedBudget) || 0,
-                        operationStatus: row["สถานะการดำเนินงาน"] || "อยู่ระหว่างการดำเนินงาน",
-                        paymentStatus: row["สถานะการเบิกจ่าย"] || "อยู่ระหว่างการเบิกจ่าย"
-                    };
-                }).filter(item => item.projectId);
-
-                if (parsedBatchPayloads.length === 0) {
-                    alert("รูปแบบไฟล์ไม่ถูกต้อง หรือไม่พบข้อมูลในคอลัมน์ 'รหัส ID โครงการ'");
-                    return;
-                }
-
-                document.getElementById('drop-area').classList.add('hidden');
-                document.getElementById('preview-area').classList.remove('hidden');
-                document.getElementById('preview-count').innerText = parsedBatchPayloads.length;
-
-                const tbody = document.getElementById('preview-tbody');
-                tbody.innerHTML = parsedBatchPayloads.map(item => `
-                    <tr>
-                        <td class="p-2 border-b font-mono text-blue-700">${item.projectId}</td>
-                        <td class="p-2 border-b truncate max-w-[150px]" title="${item.mainCategory}">${item.mainCategory}</td>
-                        <td class="p-2 border-b truncate max-w-[150px]">${item.subCategory}</td>
-                        <td class="p-2 border-b text-green-600">${item.approvedBudget.toLocaleString()}</td>
-                        <td class="p-2 border-b text-orange-600">${item.operationStatus}</td>
-                    </tr>
-                `).join('');
-            };
-            reader.readAsArrayBuffer(file);
-        }
-
-        function resetBatchUpload() {
-            fileInput.value = "";
-            parsedBatchPayloads = [];
-            document.getElementById('drop-area').classList.remove('hidden');
-            document.getElementById('preview-area').classList.add('hidden');
-        }
-
-        async function submitBatchData() {
-            const btn = document.getElementById('submitBatchBtn');
-            btn.innerText = 'กำลังเตรียมข้อมูล...';
-            btn.disabled = true;
-
-            try {
-                const result = await fetchWithRetry(SCRIPT_URL, {
-                    method: 'POST',
-                    body: JSON.stringify(parsedBatchPayloads),
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-                }, 3, 3000, btn);
-
-                if (result.status === 'success') {
-                    alert(result.message);
-                    resetBatchUpload();
-                    switchTab('dashboard');
-                } else {
-                    alert('เกิดข้อผิดพลาด: ' + result.message);
-                    btn.innerText = 'ยืนยันนำเข้าข้อมูลทั้งหมด';
-                }
-            } catch (error) {
-                alert('ส่งข้อมูลไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่');
-                btn.innerText = 'ยืนยันนำเข้าข้อมูลทั้งหมด';
-            } finally {
-                btn.disabled = false;
-            }
-        }
-
-        loadData();
-    </script>
+            <!-- Tab 1 -->
+            <div id="tab-content-general" class="block space-y-5">
+              <div>
+                <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">หน่วยงานต้นสังกัด</h3>
+                <p class="text-sm font-medium text-slate-200 bg-slate-950 p-3.5 rounded-xl border border-slate-800" id="profileAgency">---</p>
+              </div>
+              <div>
+                <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">ไทม์ไลน์การอบรม</h3>
+                <ul class="space-y-4 relative border-l-2 border-blue-500/30 ml-3 pl-4" id="profileTrainings"></ul>
+              </div>
+            </div>
+
+            <!-- Tab 2 -->
+            <div id="tab-content-duty" class="hidden space-y-5">
+              <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
+                <h3 class="text-xs font-semibold text-blue-400 uppercase tracking-wider">เพิ่มประวัติการปฏิบัติหน้าที่</h3>
+                <input type="text" id="inputDutySport" placeholder="ชนิดกีฬา (เช่น ฟุตบอล, กรีฑา)" class="w-full text-sm bg-slate-900 border border-slate-800 rounded-xl p-3 text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" id="inputDutyRole" placeholder="ประเภทบุคลากร (เช่น ผู้ตัดสิน)" class="w-full text-sm bg-slate-900 border border-slate-800 rounded-xl p-3 text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-blue-500">
+                <button id="btnSaveDuty" onclick="submitDuty()" class="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold py-2.5 rounded-xl shadow-md transition-colors">บันทึกข้อมูล</button>
+              </div>
+              <div class="space-y-3" id="profileDuties"></div>
+            </div>
+
+            <!-- Tab 3 -->
+            <div id="tab-content-eval" class="hidden space-y-5">
+               <div class="space-y-3">
+                  <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider">เพิ่มข้อเสนอแนะเชิงธรรมาภิบาล</label>
+                  <textarea id="inputEvalFeedback" rows="4" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3.5 text-sm text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-blue-500" placeholder="บันทึกข้อคิดเห็นและข้อเสนอแนะ..."></textarea>
+                  <button id="btnSaveEval" onclick="submitEval()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 rounded-xl shadow-md transition-colors text-sm">บันทึกข้อเสนอแนะ</button>
+               </div>
+               <div class="pt-4 border-t border-slate-800 space-y-3" id="profileEvals"></div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script src="./main.js"></script>
 </body>
 </html>
