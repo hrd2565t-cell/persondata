@@ -4,6 +4,11 @@ let cachedPersonnelData = [];
 let currentActiveUid = null;
 let globalFiltersMaster = null; 
 
+// 📌 ตัวแปรสำหรับระบบ Pagination
+let currentFilteredData = [];
+let currentPage = 1;
+const itemsPerPage = 10;
+
 document.addEventListener('DOMContentLoaded', () => {
   fetchData();
   
@@ -15,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const triggerSearch = () => {
     clearTimeout(delayTimer);
     showLoadingState();
-    delayTimer = setTimeout(fetchData, 500);
+    delayTimer = setTimeout(fetchData, 500); // ใช้งานเป็น Filter บนข้อมูลชุดเดิม
   };
 
   searchInput.addEventListener('input', triggerSearch);
@@ -66,58 +71,14 @@ async function fetchData() {
         updateDropdownUI(); 
       }
       
-      // 📌 นำข้อมูลที่คำนวณจากหลังบ้านมาแสดงใน Dashboard
       renderDashboard(result.data.stats);
       
-      const tbody = document.getElementById('tableBody');
-      const paginationInfo = document.getElementById('tablePaginationInfo');
+      // 📌 เก็บข้อมูลที่ค้นพบลงในตัวแปรสำหรับแบ่งหน้า และรีเซ็ตหน้าเป็น 1 เสมอ
+      currentFilteredData = result.data.list;
+      currentPage = 1;
       
-      if (result.data.list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-16 text-center text-slate-500 font-medium">ไม่พบข้อมูลที่ตรงกับเงื่อนไขการค้นหา</td></tr>`;
-        if (paginationInfo) paginationInfo.innerHTML = `ไม่พบข้อมูลที่ค้นหา`;
-        return;
-      }
-      
-      tbody.innerHTML = result.data.list.map(item => {
-        const initials = item.fullName.substring(0, 2).toUpperCase() || 'U';
-        const statusClass = item.status === 'ปฏิบัติงาน' 
-          ? 'bg-emerald-50 text-emerald-600 border-emerald-200' 
-          : 'bg-amber-50 text-amber-600 border-amber-200';
-        const dotClass = item.status === 'ปฏิบัติงาน' ? 'bg-emerald-500' : 'bg-amber-500';
-
-        return `
-          <tr class="hover:bg-slate-50 transition-colors group border-b border-slate-100 last:border-0">
-            <td class="px-6 py-4 whitespace-nowrap text-blue-600 font-mono text-xs border-r border-slate-100">${item.uid}</td>
-            <td class="px-6 py-4 whitespace-nowrap border-r border-slate-100">
-              <div class="flex items-center gap-3">
-                <div class="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xs shadow-sm border border-blue-200">
-                  ${initials}
-                </div>
-                <div>
-                  <div class="text-slate-800 font-medium text-sm group-hover:text-blue-600 transition-colors">${item.fullName}</div>
-                </div>
-              </div>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-slate-600 truncate max-w-[200px] border-r border-slate-100">${item.agency}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-center border-r border-slate-100">
-              <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${statusClass}">
-                <span class="w-1.5 h-1.5 rounded-full mr-1.5 ${dotClass}"></span>
-                ${item.status}
-              </span>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-center">
-              <button onclick="viewProfile('${item.uid}')" class="text-slate-400 hover:text-blue-600 hover:bg-blue-50 p-1.5 rounded-lg transition-colors outline-none cursor-pointer" title="ดูประวัติและปฏิบัติหน้าที่">
-                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-              </button>
-            </td>
-          </tr>
-        `;
-      }).join('');
-      
-      if (paginationInfo) {
-        const count = result.data.list.length;
-        paginationInfo.innerHTML = `แสดงผลจากข้อมูลที่ค้นพบจำนวน <span class="font-bold text-slate-800">${count}</span> รายการ`;
-      }
+      // สั่งให้วาดตารางหน้าแรก (10 รายการ)
+      renderTablePage();
       
     } else {
       showErrorState(result.message);
@@ -127,7 +88,98 @@ async function fetchData() {
   }
 }
 
-// 📌 ฟังก์ชันวาด Executive Summary Table หน้า Dashboard
+// 📌 ฟังก์ชันจัดการตาราง 10 รายการ และ Pagination
+function renderTablePage() {
+  const tbody = document.getElementById('tableBody');
+  const paginationInfo = document.getElementById('tablePaginationInfo');
+  
+  if (currentFilteredData.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-16 text-center text-slate-500 font-medium">ไม่พบข้อมูลที่ค้นหา</td></tr>`;
+    if (paginationInfo) paginationInfo.innerHTML = `ไม่มีรายการแสดงผล`;
+    renderPaginationNav(0);
+    return;
+  }
+
+  const totalItems = currentFilteredData.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  
+  // คำนวณจุดตัดข้อมูล (Slice)
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+  const pageData = currentFilteredData.slice(startIndex, endIndex);
+
+  // วาด 10 แถวแรก ตามสไตล์ภาพ image_1f34ff.png
+  tbody.innerHTML = pageData.map(item => {
+    const initials = item.fullName.substring(0, 2).toUpperCase() || 'U';
+    
+    // สถานะ: ขอบเหลือง ตัวหนังสือเหลือง วงกลมเหลือง (ตามภาพอ้างอิง)
+    const statusBadge = (item.status === 'ปฏิบัติงาน' || item.status === 'ยังปฏิบัติหน้าที่')
+      ? `<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border border-amber-300 text-amber-600 bg-white"><span class="w-1.5 h-1.5 rounded-full mr-2 bg-amber-500"></span>${item.status}</span>`
+      : `<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border border-slate-300 text-slate-500 bg-white"><span class="w-1.5 h-1.5 rounded-full mr-2 bg-slate-400"></span>${item.status}</span>`;
+
+    return `
+      <tr class="hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0">
+        <td class="px-6 py-4 whitespace-nowrap text-blue-600 font-medium text-sm border-r border-slate-100">${item.uid}</td>
+        <td class="px-6 py-4 whitespace-nowrap border-r border-slate-100">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xs">
+              ${initials}
+            </div>
+            <div class="text-slate-700 font-medium text-sm">${item.fullName}</div>
+          </div>
+        </td>
+        <td class="px-6 py-4 whitespace-nowrap text-slate-600 truncate max-w-[250px] border-r border-slate-100">${item.agency}</td>
+        <td class="px-6 py-4 whitespace-nowrap text-center border-r border-slate-100">
+          ${statusBadge}
+        </td>
+        <td class="px-6 py-4 whitespace-nowrap text-center">
+          <button onclick="viewProfile('${item.uid}')" class="text-slate-400 hover:text-blue-600 p-1.5 rounded-full hover:bg-blue-50 transition-colors outline-none cursor-pointer flex justify-center w-full" title="ดูประวัติ">
+            <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+  
+  if (paginationInfo) {
+    paginationInfo.innerHTML = `แสดงรายการที่ <span class="font-bold text-slate-800">${startIndex + 1} - ${endIndex}</span> จากทั้งหมด <span class="font-bold text-slate-800">${totalItems}</span> รายการ`;
+  }
+
+  renderPaginationNav(totalPages);
+}
+
+// 📌 ฟังก์ชันสร้างปุ่มแบ่งหน้า (ตามภาพอ้างอิง)
+function renderPaginationNav(totalPages) {
+  const nav = document.getElementById('paginationNav');
+  if (!nav || totalPages === 0) {
+    if(nav) nav.innerHTML = '';
+    return;
+  }
+
+  let html = `
+    <button type="button" onclick="changePage(${currentPage - 1})" class="inline-flex items-center justify-center px-3 py-1.5 rounded-md border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium mr-1 shadow-sm" ${currentPage === 1 ? 'disabled' : ''}>
+      <svg class="w-4 h-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg> ก่อนหน้า
+    </button>
+    <span class="text-sm font-semibold text-blue-600 px-3 select-none">หน้า ${currentPage}/${totalPages}</span>
+    <button type="button" onclick="changePage(${currentPage + 1})" class="inline-flex items-center justify-center px-3 py-1.5 rounded-md border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium ml-1 shadow-sm" ${currentPage === totalPages ? 'disabled' : ''}>
+      ถัดไป <svg class="w-4 h-4 ml-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+    </button>
+  `;
+  nav.innerHTML = html;
+}
+
+// 📌 ฟังก์ชันเปลี่ยนหน้าเว็บที่รวดเร็ว (Zero-Lag)
+window.changePage = function(newPage) {
+  const totalPages = Math.ceil(currentFilteredData.length / itemsPerPage);
+  if (newPage >= 1 && newPage <= totalPages) {
+    currentPage = newPage;
+    renderTablePage();
+  }
+}
+
 function renderDashboard(stats) {
   document.getElementById('stat-total').textContent = stats.totalPersonnel;
   document.getElementById('stat-top-year').textContent = stats.topYear;
@@ -141,21 +193,12 @@ function renderDashboard(stats) {
     return;
   }
 
-  // วาดตารางคลีนๆ ตามหลัก Executive UI
   tbody.innerHTML = stats.courseSummary.map((item, index) => `
     <tr class="hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0">
       <td class="px-6 py-4 text-center text-slate-400 font-mono text-xs border-r border-slate-100">${index + 1}</td>
       <td class="px-6 py-4 font-semibold text-slate-700 border-r border-slate-100">${item.courseName}</td>
-      <td class="px-6 py-4 text-center border-r border-slate-100">
-        <span class="inline-flex items-center justify-center bg-slate-100 text-slate-600 font-semibold px-2.5 py-1 rounded-lg min-w-[3rem]">
-          ${item.yearsHeld}
-        </span>
-      </td>
-      <td class="px-6 py-4 text-center">
-        <span class="inline-flex items-center justify-center bg-blue-50 text-blue-600 font-semibold px-2.5 py-1 rounded-lg min-w-[3rem]">
-          ${item.totalPeople}
-        </span>
-      </td>
+      <td class="px-6 py-4 text-center border-r border-slate-100"><span class="inline-flex items-center justify-center bg-slate-100 text-slate-600 font-semibold px-2.5 py-1 rounded-lg min-w-[3rem]">${item.yearsHeld}</span></td>
+      <td class="px-6 py-4 text-center"><span class="inline-flex items-center justify-center bg-blue-50 text-blue-600 font-semibold px-2.5 py-1 rounded-lg min-w-[3rem]">${item.totalPeople}</span></td>
     </tr>
   `).join('');
 }
@@ -180,10 +223,7 @@ function renderTimeline(relations, years, courses) {
           const isActive = activeYears[y];
           return `
             <td class="px-2 py-4 text-center border-r border-slate-100">
-              ${isActive ? 
-                `<span class="inline-block w-full py-1.5 bg-blue-600 text-white text-xs font-semibold rounded shadow-sm">จัดอบรม</span>` : 
-                `<span class="inline-block w-full py-1.5 bg-slate-100 text-slate-400 text-xs rounded">-</span>`
-              }
+              ${isActive ? `<span class="inline-block w-full py-1.5 bg-blue-600 text-white text-xs font-semibold rounded shadow-sm">จัดอบรม</span>` : `<span class="inline-block w-full py-1.5 bg-slate-100 text-slate-400 text-xs rounded">-</span>`}
             </td>
           `;
         }).join('')}
