@@ -7,10 +7,12 @@ let currentFilteredData = [];
 let currentPage = 1;
 const itemsPerPage = 10;
 
-// Preview Data
 let pendingImportData = [];
 let currentPreviewPage = 1;
 const previewItemsPerPage = 10;
+
+// ตัวแปรสำหรับ Matrix Report
+let matrixAvailableYears = [];
 
 document.addEventListener('DOMContentLoaded', () => {
   fetchData();
@@ -117,17 +119,73 @@ function renderDashboard(stats) {
   }).join('');
 }
 
-// 📌 ฟังก์ชันสำหรับสร้าง Matrix Report (ตารางไขว้)
+// 📌 ฟังก์ชันเปิดหน้า Matrix Report และกำหนดค่าเริ่มต้น
 window.openMatrixReport = function() {
   if (!globalFiltersMaster) return;
+  matrixAvailableYears = [...globalFiltersMaster.years].sort((a, b) => a - b);
   
+  if(matrixAvailableYears.length === 0) {
+    alert("ไม่พบข้อมูลปีการศึกษาในระบบ"); return;
+  }
+
+  // เติมตัวเลือกใส่ Dropdown
+  const startSelect = document.getElementById('matrixStartYear');
+  const endSelect = document.getElementById('matrixEndYear');
+  startSelect.innerHTML = matrixAvailableYears.map(y => `<option value="${y}">${y}</option>`).join('');
+  endSelect.innerHTML = matrixAvailableYears.map(y => `<option value="${y}">${y}</option>`).join('');
+  
+  // ค่าเริ่มต้น: แสดงทั้งหมด
+  document.getElementById('matrixModal').classList.remove('hidden');
+  applyMatrixFilter('all');
+}
+
+// 📌 ฟังก์ชันจัดการการคลิกปุ่มตัวกรองช่วงปี
+window.applyMatrixFilter = function(type) {
+  if (matrixAvailableYears.length === 0) return;
+  
+  const minYear = matrixAvailableYears[0];
+  const maxYear = matrixAvailableYears[matrixAvailableYears.length - 1];
+  let startYear, endYear;
+
+  if (type === '5') {
+    startYear = Math.max(minYear, maxYear - 4);
+    endYear = maxYear;
+  } else if (type === '10') {
+    startYear = Math.max(minYear, maxYear - 9);
+    endYear = maxYear;
+  } else if (type === 'all') {
+    startYear = minYear;
+    endYear = maxYear;
+  } else if (type === 'custom') {
+    startYear = parseInt(document.getElementById('matrixStartYear').value);
+    endYear = parseInt(document.getElementById('matrixEndYear').value);
+    if (startYear > endYear) { alert('⚠️ ปีเริ่มต้นต้องไม่มากกว่าปีสิ้นสุด'); return; }
+  }
+
+  // อัปเดต Dropdown ให้ตรงกับที่เลือก
+  document.getElementById('matrixStartYear').value = startYear;
+  document.getElementById('matrixEndYear').value = endYear;
+
+  // วาดตารางใหม่ด้วยช่วงปีที่เลือก
+  buildMatrixTable(startYear, endYear);
+}
+
+// 📌 ฟังก์ชันสร้างตารางไขว้ (Cross-tabulation) พร้อมซ่อนปีที่ไม่ต้องการและคำนวณยอดใหม่
+function buildMatrixTable(startYear, endYear) {
   const container = document.getElementById('matrixTableContainer');
-  const years = [...globalFiltersMaster.years].sort((a, b) => a - b);
+  const textIndicator = document.getElementById('matrixYearRangeText');
+  
+  // อัปเดตข้อความบนหัวรายงาน
+  textIndicator.textContent = `(ระหว่างปี ${startYear} - ${endYear})`;
+
+  // กรองเฉพาะปีที่อยู่ในช่วงที่เลือก
+  const filteredYears = matrixAvailableYears.filter(y => y >= startYear && y <= endYear);
+  
   const courses = globalFiltersMaster.courses;
   const courseCounts = globalFiltersMaster.courseYearCounts || {};
   const catMap = globalFiltersMaster.courseCategoryMap || {};
 
-  // จัดกลุ่มหลักสูตรตามหมวดหมู่
+  // จัดกลุ่มตามหมวดหมู่
   let groupedCourses = {};
   courses.forEach(c => {
     let cat = catMap[c] || 'อื่นๆ';
@@ -135,17 +193,17 @@ window.openMatrixReport = function() {
     groupedCourses[cat].push(c);
   });
 
-  // สร้างตาราง HTML (ดีไซน์ทางการสำหรับ Print)
+  // สร้างตาราง
   let html = `
     <table class="w-full text-sm border-collapse border border-slate-800 text-slate-800 mt-4">
       <thead>
         <tr>
           <th rowspan="2" class="border border-slate-800 p-3 bg-slate-100 w-1/4">หลักสูตร</th>
-          <th colspan="${years.length}" class="border border-slate-800 p-2 bg-slate-100 text-center">ปีที่อบรม (จำนวนบุคลากรกีฬา)</th>
+          <th colspan="${filteredYears.length}" class="border border-slate-800 p-2 bg-slate-100 text-center">ปีที่อบรม (จำนวนบุคลากรกีฬา)</th>
           <th rowspan="2" class="border border-slate-800 p-3 bg-slate-100 text-center w-20">รวม</th>
         </tr>
         <tr>
-          ${years.map(y => `<th class="border border-slate-800 p-2 text-center bg-slate-50 font-bold">${y}</th>`).join('')}
+          ${filteredYears.map(y => `<th class="border border-slate-800 p-2 text-center bg-slate-50 font-bold">${y}</th>`).join('')}
         </tr>
       </thead>
       <tbody>
@@ -153,48 +211,50 @@ window.openMatrixReport = function() {
 
   let grandTotal = 0;
   let yearTotals = {};
-  years.forEach(y => yearTotals[y] = 0);
+  filteredYears.forEach(y => yearTotals[y] = 0);
 
-  // วนลูปวาดแถวแต่ละหมวดหมู่และหลักสูตร
   for (const [category, courseList] of Object.entries(groupedCourses)) {
-    html += `<tr><td colspan="${years.length + 2}" class="border border-slate-800 p-2 font-bold bg-slate-50">${category}</td></tr>`;
+    html += `<tr><td colspan="${filteredYears.length + 2}" class="border border-slate-800 p-2 font-bold bg-slate-200/70">${category}</td></tr>`;
     
     courseList.forEach(course => {
       let rowTotal = 0;
-      html += `<tr><td class="border border-slate-800 p-2 font-medium">${course}</td>`;
+      let rowHtml = `<td class="border border-slate-800 p-2 font-medium">${course}</td>`;
       
-      years.forEach(year => {
+      filteredYears.forEach(year => {
         let count = (courseCounts[course] && courseCounts[course][year]) ? courseCounts[course][year] : 0;
         if (count > 0) {
           rowTotal += count;
           yearTotals[year] += count;
-          html += `<td class="border border-slate-800 p-2 text-center">${count}</td>`;
+          rowHtml += `<td class="border border-slate-800 p-2 text-center">${count}</td>`;
         } else {
-          // ช่องว่างถมสีเทาตามภาพ
-          html += `<td class="border border-slate-800 p-2 text-center bg-gray-400"></td>`;
+          // ถมสีเทาสำหรับปีที่ไม่มีคนอบรม
+          rowHtml += `<td class="border border-slate-800 p-2 text-center bg-gray-400"></td>`;
         }
       });
       
-      grandTotal += rowTotal;
-      html += `<td class="border border-slate-800 p-2 text-center font-bold">${rowTotal}</td></tr>`;
+      // แสดงเฉพาะแถวที่มียอดคนเรียนในช่วงปีนี้ (ถ้าไม่มีเลยจะไม่โชว์เพื่อความสะอาดตา)
+      if (rowTotal > 0 || type === 'all') {
+         grandTotal += rowTotal;
+         html += `<tr>${rowHtml}<td class="border border-slate-800 p-2 text-center font-bold">${rowTotal}</td></tr>`;
+      } else {
+         html += `<tr>${rowHtml}<td class="border border-slate-800 p-2 text-center font-bold text-slate-400">0</td></tr>`;
+      }
     });
   }
 
-  // แถวสรุปรวมทั้งหมด
   html += `
       </tbody>
       <tfoot>
         <tr class="bg-slate-100">
-          <td class="border border-slate-800 p-3 text-right font-bold">รวม</td>
-          ${years.map(y => `<td class="border border-slate-800 p-2 text-center font-bold">${yearTotals[y] || 0}</td>`).join('')}
-          <td class="border border-slate-800 p-3 text-center font-bold text-lg">${grandTotal}</td>
+          <td class="border border-slate-800 p-3 text-right font-bold">รวมทั้งสิ้น</td>
+          ${filteredYears.map(y => `<td class="border border-slate-800 p-2 text-center font-bold text-blue-700">${yearTotals[y] || 0}</td>`).join('')}
+          <td class="border border-slate-800 p-3 text-center font-extrabold text-lg text-blue-700">${grandTotal}</td>
         </tr>
       </tfoot>
     </table>
   `;
 
   container.innerHTML = html;
-  document.getElementById('matrixModal').classList.remove('hidden');
 }
 
 window.closeMatrixReport = function() { document.getElementById('matrixModal').classList.add('hidden'); }
@@ -204,6 +264,7 @@ window.printMatrixReport = function() {
   document.getElementById('matrixModal').classList.remove('print-modal-active');
 }
 
+// 📌 ฟังก์ชัน Proposal Builder
 window.openProposalReport = function(courseName, totalPeople, activePeople) {
   const courseUsers = cachedPersonnelData.filter(u => u.trainings && u.trainings.some(t => t.course === courseName));
   const agencyCount = {}; courseUsers.forEach(u => { if(u.agency) agencyCount[u.agency] = (agencyCount[u.agency] || 0) + 1; });
@@ -540,6 +601,12 @@ window.exportToExcel = function() {
   XLSX.utils.book_append_sheet(wb, ws, "Personnel_Training_Log");
   let filename = "ข้อมูลบุคลากรกีฬา"; if (filterCourse) filename += "_" + filterCourse.replace(/\s+/g, ""); if (filterYear) filename += "_ปี" + filterYear; filename += ".xlsx";
   XLSX.writeFile(wb, filename);
+};
+
+window.downloadTemplate = function() {
+  const templateData = [ ["คำนำหน้า", "ชื่อ-นามสกุล", "กลุ่มหน่วยงาน", "หน่วยงาน", "สถานะ", "ชื่อหลักสูตร", "ปีที่อบรม"], ["นาย", "ทดสอบ ตัวอย่างการกรอก", "สมาคมกีฬา", "สมาคมกีฬาแห่งจังหวัดกรุงเทพมหานคร", "ปฏิบัติงาน", "TSLP", "2569"] ];
+  const ws = XLSX.utils.aoa_to_sheet(templateData); ws['!cols'] = [{wch:10}, {wch:30}, {wch:20}, {wch:40}, {wch:15}, {wch:20}, {wch:15}]; const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Import_Template"); XLSX.writeFile(wb, "Template_นำเข้าบุคลากร.xlsx");
 };
 
 function showLoadingState() { const tbody = document.getElementById('tableBody'); if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-16 text-center text-blue-500 font-medium">กำลังโหลดข้อมูล...</td></tr>`; }
