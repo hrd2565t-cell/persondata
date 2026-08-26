@@ -11,7 +11,6 @@ let pendingImportData = [];
 let currentPreviewPage = 1;
 const previewItemsPerPage = 10;
 
-// ตัวแปรเก็บช่วงปีทั้งหมดที่มีในระบบสำหรับตารางไขว้
 let matrixAvailableYears = [];
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -27,7 +26,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('searchInput').addEventListener('input', triggerSearch);
   document.getElementById('filterCourse').addEventListener('change', () => { handleCascadingFilter('course'); triggerSearch(); });
   document.getElementById('filterYear').addEventListener('change', () => { handleCascadingFilter('year'); triggerSearch(); });
-  // เพิ่ม Event Listener สำหรับฟิลเตอร์กลุ่มบุคลากร
   document.getElementById('filterGroup').addEventListener('change', () => { triggerSearch(); });
   
   document.getElementById('excelUpload').addEventListener('change', handleExcelUpload);
@@ -484,7 +482,7 @@ window.viewProfile = function(uid) {
   if (!person) { alert("❌ ไม่พบข้อมูลบุคลากร"); return; }
   document.getElementById('profileName').textContent = person.fullName; document.getElementById('profileUid').textContent = `รหัสอ้างอิง: ${person.uid}`; 
   document.getElementById('profileAgency').textContent = `${person.agency} (${person.status})`;
-  document.getElementById('profileGroup').textContent = person.group || 'ไม่ระบุกลุ่ม'; // 📌 เพิ่มแสดงกลุ่มบุคลากร
+  document.getElementById('profileGroup').textContent = person.group || 'ไม่ระบุกลุ่ม'; 
 
   const timelineEl = document.getElementById('profileTrainings');
   if (person.trainings && person.trainings.length > 0) {
@@ -566,7 +564,6 @@ function updateDropdownUI() {
   
   populateDropdown('filterYear', availableYears, selectedYear, 'ทุกปีการศึกษา'); 
   populateDropdown('filterCourse', availableCourses, selectedCourse, 'ทุกหลักสูตร');
-  // 📌 เพิ่มการยัดข้อมูลใส่ Dropdown "กลุ่มบุคลากร"
   populateDropdown('filterGroup', availableGroups, selectedGroup, 'ทุกกลุ่มบุคลากร');
 }
 
@@ -586,7 +583,6 @@ window.exportToExcel = function() {
     let matchedTrainings = userTrainings.filter(t => { const matchY = filterYear === '' || String(t.year) === String(filterYear); const matchC = filterCourse === '' || String(t.course) === String(filterCourse); return matchY && matchC; });
     if (matchedTrainings.length > 0) { 
       matchedTrainings.forEach(t => { 
-        // 📌 เพิ่มคอลัมน์ "กลุ่มหน่วยงาน" ในไฟล์ Excel ขาออก
         exportData.push({ 'รหัส UID': user.uid, 'ชื่อ-นามสกุล': user.fullName, 'กลุ่มหน่วยงาน': user.group || '-', 'หน่วยงาน': user.agency, 'สถานะ': user.status, 'ชื่อหลักสูตร': t.course, 'ปีที่อบรม': parseInt(t.year) || t.year }); 
       }); 
     } 
