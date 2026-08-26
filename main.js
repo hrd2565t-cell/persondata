@@ -355,6 +355,32 @@ function renderTimeline(relations, years, courses) {
   }).join('');
 }
 
+// 📌 เพิ่มฟังก์ชันลอจิกใหม่: ตรวจสอบความถูกต้องของชื่อด้วยเทคนิคไร้ช่องว่าง (No-Space) และ Keyword
+function isSmartMatch(importName, existingName) {
+  // ทำความสะอาดข้อความ ลบอักขระซ่อนเร้น (Zero-width space) และตัวขึ้นบรรทัดใหม่
+  let cleanImp = String(importName).replace(/[\u200B-\u200D\uFEFF\r\n]/g, '').toLowerCase();
+  let cleanExt = String(existingName).replace(/[\u200B-\u200D\uFEFF\r\n]/g, '').toLowerCase();
+
+  // 1. เทียบแบบไร้ช่องว่าง (แก้ปัญหาเว้นวรรคไม่เท่ากัน หรือพิมพ์ติดกันในไฟล์ Excel)
+  let noSpaceImp = cleanImp.replace(/\s+/g, '');
+  let noSpaceExt = cleanExt.replace(/\s+/g, '');
+  if (noSpaceImp === noSpaceExt) return true;
+
+  // 2. เทียบด้วย Keyword (แก้ปัญหามีคำนำหน้าโผล่มา หรือเรียงคำสลับ)
+  let impKeywords = cleanImp.split(/\s+/).filter(k => k.length > 2);
+  let extKeywords = cleanExt.split(/\s+/).filter(k => k.length > 2);
+  
+  if (impKeywords.length > 0 && extKeywords.length > 0) {
+    // เช็คว่าคำหลักทุกคำของไฟล์นำเข้า อยู่ในชื่อที่มีในระบบหรือไม่
+    let matchAllImport = impKeywords.every(kw => noSpaceExt.includes(kw));
+    // หรือเช็คกลับกัน
+    let matchAllExisting = extKeywords.every(kw => noSpaceImp.includes(kw));
+    
+    if (matchAllImport || matchAllExisting) return true;
+  }
+  return false;
+}
+
 function calculateSimilarity(str1, str2) {
   let s1 = String(str1).toLowerCase().replace(/\s+/g, '').trim(); let s2 = String(str2).toLowerCase().replace(/\s+/g, '').trim();
   if (s1 === s2) return 1.0;
@@ -383,18 +409,25 @@ function handleExcelUpload(e) {
       if (jsonRows.length === 0) { alert("⚠️ ไม่พบข้อมูลในไฟล์ Excel"); e.target.value = ''; return; }
 
       let cleanedRows = jsonRows.map((row, index) => {
-        let fullName = String(row['ชื่อ-นามสกุล'] || '').replace(/\s+/g, ' ').trim();
+        let fullName = String(row['ชื่อ-นามสกุล'] || '').trim();
         let matchedExisting = null; let matchType = 'new'; 
-        let exactFound = cachedPersonnelData.find(p => p.fullName.replace(/\s+/g, ' ').trim().toLowerCase() === fullName.toLowerCase());
-        if (exactFound) { matchedExisting = exactFound; matchType = 'exact'; } 
+        
+        // 📌 เปลี่ยนมาใช้ Smart Keyword & No-Space Match แทนการใช้แค่ตัวอักษรเป๊ะๆ
+        let smartFound = cachedPersonnelData.find(p => isSmartMatch(fullName, p.fullName));
+        
+        if (smartFound) { 
+          matchedExisting = smartFound; 
+          matchType = 'exact'; 
+        } 
         else {
           for (let p of cachedPersonnelData) {
             let sim = calculateSimilarity(p.fullName, fullName);
             if (sim >= 0.75 && sim < 1.0) { matchedExisting = p; matchType = 'fuzzy'; break; }
           }
         }
+        
         return {
-          originalIndex: index, 'คำนำหน้า': row['คำนำหน้า'] || '', 'ชื่อ-นามสกุล': fullName,
+          originalIndex: index, 'คำนำหน้า': row['คำนำหน้า'] || '', 'ชื่อ-นามสกุล': fullName.replace(/\s+/g, ' '),
           'กลุ่มหน่วยงาน': row['กลุ่มหน่วยงาน'] || '', 'หน่วยงาน': String(row['หน่วยงาน'] || '').replace(/\s+/g, ' ').trim(),
           'สถานะ': row['สถานะ'] || 'ปฏิบัติงาน', 'ชื่อหลักสูตร': row['ชื่อหลักสูตร'] || '', 'ปีที่อบรม': row['ปีที่อบรม'] || '',
           matchType: matchType, matchedUser: matchedExisting, actionType: matchType === 'exact' ? 'merge' : 'auto'
