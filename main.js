@@ -186,150 +186,111 @@ window.changePage = function(newPage) {
   }
 }
 
-// 📌 ฟังก์ชันเปิด Slide-over ดูประวัติรายบุคคล (แก้ไขให้ค้นหาจาก cachedPersonnelData ได้ชัวร์ 100%)
-window.viewProfile = function(uid) {
-  currentActiveUid = uid;
-  const person = cachedPersonnelData.find(p => p.uid === uid);
-  if (!person) {
-    alert("❌ ไม่พบข้อมูลบุคลากรในระบบ");
-    return;
-  }
-
-  document.getElementById('profileName').textContent = person.fullName;
-  document.getElementById('profileUid').textContent = `รหัสอ้างอิง: ${person.uid}`;
-  document.getElementById('profileAgency').textContent = `${person.agency} (${person.status})`;
-
-  const timelineEl = document.getElementById('profileTrainings');
-  if (person.trainings && person.trainings.length > 0) {
-    const sortedTrainings = person.trainings.sort((a, b) => b.year - a.year);
-    timelineEl.innerHTML = sortedTrainings.map(t => `
-      <li class="relative pl-6 pb-4 border-l-2 border-slate-200 last:border-0 last:pb-0">
-        <div class="absolute w-3 h-3 bg-blue-500 rounded-full -left-[7px] top-1.5 ring-4 ring-white shadow-sm"></div>
-        <p class="text-sm font-bold text-slate-800">${t.course}</p>
-        <p class="text-xs text-slate-500 mt-0.5">ปีการศึกษา: ${t.year}</p>
-      </li>
-    `).join('');
-  } else { 
-    timelineEl.innerHTML = `<li class="text-sm text-slate-500 pl-4">ยังไม่มีประวัติการอบรม</li>`; 
-  }
-
-  const dutyEl = document.getElementById('profileDuties');
-  if (person.duties && person.duties.length > 0) {
-    dutyEl.innerHTML = person.duties.map(d => `
-      <li class="bg-white p-3.5 rounded-xl border border-slate-200 flex flex-col gap-1 shadow-sm">
-        <span class="text-sm font-bold text-slate-800">${d.sport}</span>
-        <span class="text-xs text-slate-500">สถานะ: ${d.role}</span>
-      </li>
-    `).join('');
-  } else { 
-    dutyEl.innerHTML = `<div class="text-sm text-slate-500">ยังไม่มีประวัติลงพื้นที่</div>`; 
-  }
-
-  const evalEl = document.getElementById('profileEvals');
-  if (person.evals && person.evals.length > 0) {
-    evalEl.innerHTML = person.evals.map(e => `
-      <div class="bg-white p-3.5 rounded-xl border border-slate-200 text-sm text-slate-700 italic shadow-sm">"${e.feedback}"</div>
-    `).join('');
-  } else { 
-    evalEl.innerHTML = `<div class="text-sm text-slate-500">ยังไม่มีข้อเสนอแนะ</div>`; 
-  }
-
-  const slideOver = document.getElementById('slideOver');
-  const backdrop = document.getElementById('slideOverBackdrop');
-  const panel = document.getElementById('slideOverPanel');
-
-  slideOver.classList.remove('hidden');
-  setTimeout(() => {
-    backdrop.classList.remove('opacity-0'); 
-    backdrop.classList.add('opacity-100');
-    panel.classList.remove('translate-x-full'); 
-    panel.classList.add('translate-x-0');
-  }, 10);
-  switchTab('general');
-}
-
-window.closeProfile = function() {
-  currentActiveUid = null;
-  const backdrop = document.getElementById('slideOverBackdrop');
-  const panel = document.getElementById('slideOverPanel');
-  backdrop.classList.remove('opacity-100'); 
-  backdrop.classList.add('opacity-0');
-  panel.classList.remove('translate-x-0'); 
-  panel.classList.add('translate-x-full');
-  setTimeout(() => { document.getElementById('slideOver').classList.add('hidden'); }, 300);
-}
-
-window.switchTab = function(tabName) {
-  ['general', 'duty', 'eval'].forEach(t => {
-    const btn = document.getElementById(`tab-btn-${t}`);
-    const content = document.getElementById(`tab-content-${t}`);
-    if (t === tabName) {
-      btn.classList.add('border-blue-600', 'text-blue-600', 'font-bold');
-      btn.classList.remove('border-transparent', 'text-slate-500', 'font-medium');
-      content.classList.remove('hidden'); content.classList.add('block');
-    } else {
-      btn.classList.add('border-transparent', 'text-slate-500', 'font-medium');
-      btn.classList.remove('border-blue-600', 'text-blue-600', 'font-bold');
-      content.classList.remove('block'); content.classList.add('hidden');
+// 📌 ฟังก์ชันคำนวณความคล้ายคลึงของข้อความ (Levenshtein Distance / Fuzzy Match)
+function calculateSimilarity(str1, str2) {
+  let s1 = String(str1).toLowerCase().replace(/\s+/g, '').trim();
+  let s2 = String(str2).toLowerCase().replace(/\s+/g, '').trim();
+  if (s1 === s2) return 1.0;
+  let longer = s1; let shorter = s2;
+  if (s1.length < s2.length) { longer = s2; shorter = s1; }
+  let longerLength = longer.length;
+  if (longerLength === 0) return 1.0;
+  let costs = new Array();
+  for (let i = 0; i <= s1.length; i++) {
+    let lastValue = i;
+    for (let j = 0; j <= s2.length; j++) {
+      if (i === 0) { costs[j] = j; } 
+      else {
+        if (j > 0) {
+          let newValue = costs[j - 1];
+          if (s1.charAt(i - 1) !== s2.charAt(j - 1)) {
+            newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
+          }
+          costs[j - 1] = lastValue;
+          lastValue = newValue;
+        }
+      }
     }
-  });
+    if (s2.length > 0) costs[s2.length] = lastValue;
+  }
+  return (longerLength - costs[s2.length]) / longerLength;
 }
 
-window.submitDuty = async function() {
-  if (!currentActiveUid) return;
-  const sport = document.getElementById('inputDutySport').value.trim();
-  const role = document.getElementById('inputDutyRole').value.trim();
-  if (!sport || !role) return alert('⚠️ กรุณากรอก ชนิดกีฬา และ ประเภทบุคลากร ให้ครบถ้วน');
-  
-  const btn = document.getElementById('btnSaveDuty');
-  btn.textContent = 'กำลังบันทึก...'; btn.disabled = true;
+// 📌 ฟังก์ชันอ่านไฟล์ และทำ Data Normalization พร้อมสแกนหาชื่อใกล้เคียง
+function handleExcelUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
 
-  try {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action: 'saveDuty', uid: currentActiveUid, sport: sport, role: role }),
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-    });
-    const result = await response.json();
-    if(result.status === 'success') {
-      alert('✅ บันทึกประวัติสำเร็จ');
-      document.getElementById('inputDutySport').value = '';
-      document.getElementById('inputDutyRole').value = '';
-      fetchData(); 
-    } else { alert(`❌ ข้อผิดพลาด: ${result.message}`); }
-  } catch(e) { alert('❌ การเชื่อมต่อล้มเหลว'); }
-  btn.textContent = 'บันทึกข้อมูล'; btn.disabled = false;
-}
+  const reader = new FileReader();
+  reader.onload = function(event) {
+    try {
+      const data = new Uint8Array(event.target.result);
+      const workbook = XLSX.read(data, {type: 'array'});
+      const jsonRows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: "" });
+      
+      if (jsonRows.length > 0 && !('ชื่อ-นามสกุล' in jsonRows[0])) {
+        alert("❌ โครงสร้างไฟล์ผิดพลาด กรุณาใช้ไฟล์ Template มาตรฐานจากระบบเท่านั้น");
+        e.target.value = ''; return;
+      }
 
-window.submitEval = async function() {
-  if (!currentActiveUid) return;
-  const feedback = document.getElementById('inputEvalFeedback').value.trim();
-  if (!feedback) return alert('⚠️ กรุณากรอกข้อเสนอแนะก่อนบันทึก');
-  
-  const btn = document.getElementById('btnSaveEval');
-  btn.textContent = 'กำลังบันทึก...'; btn.disabled = true;
+      if (jsonRows.length === 0) {
+        alert("⚠️ ไม่พบข้อมูลในไฟล์ Excel");
+        e.target.value = ''; return;
+      }
 
-  try {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action: 'saveEval', uid: currentActiveUid, feedback: feedback }),
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-    });
-    const result = await response.json();
-    if(result.status === 'success') {
-      alert('✅ บันทึกข้อเสนอแนะสำเร็จ');
-      document.getElementById('inputEvalFeedback').value = '';
-      fetchData(); 
-    } else { alert(`❌ ข้อผิดพลาด: ${result.message}`); }
-  } catch(e) { alert('❌ การเชื่อมต่อล้มเหลว'); }
-  btn.textContent = 'บันทึกข้อเสนอแนะ'; btn.disabled = false;
+      // ทำความสะอาดข้อความ (Data Normalization: ตัดช่องว่างเกิน)
+      let cleanedRows = jsonRows.map((row, index) => {
+        let fullName = String(row['ชื่อ-นามสกุล'] || '').replace(/\s+/g, ' ').trim();
+        let matchedExisting = null;
+        let matchType = 'new'; // 'exact', 'fuzzy', 'new'
+
+        // 1. เช็คชื่อซ้ำเป๊ะๆ (Exact Match)
+        let exactFound = cachedPersonnelData.find(p => p.fullName.toLowerCase() === fullName.toLowerCase());
+        if (exactFound) {
+          matchedExisting = exactFound;
+          matchType = 'exact';
+        } else {
+          // 2. เช็คชื่อใกล้เคียง / พิมพ์ผิด (Fuzzy Match ความเหมือน >= 75%)
+          for (let p of cachedPersonnelData) {
+            let sim = calculateSimilarity(p.fullName, fullName);
+            if (sim >= 0.75 && sim < 1.0) {
+              matchedExisting = p;
+              matchType = 'fuzzy';
+              break;
+            }
+          }
+        }
+
+        return {
+          originalIndex: index,
+          'คำนำหน้า': row['คำนำหน้า'] || '',
+          'ชื่อ-นามสกุล': fullName,
+          'กลุ่มหน่วยงาน': row['กลุ่มหน่วยงาน'] || '',
+          'หน่วยงาน': String(row['หน่วยงาน'] || '').replace(/\s+/g, ' ').trim(),
+          'สถานะ': row['สถานะ'] || 'ปฏิบัติงาน',
+          'ชื่อหลักสูตร': row['ชื่อหลักสูตร'] || '',
+          'ปีที่อบรม': row['ปีที่อบรม'] || '',
+          matchType: matchType,
+          matchedUser: matchedExisting,
+          actionType: matchType === 'exact' ? 'merge' : 'auto' // ค่าเริ่มต้น
+        };
+      });
+
+      pendingImportData = cleanedRows;
+      showPreviewSection(cleanedRows);
+
+    } catch (error) { 
+      alert("❌ เกิดข้อผิดพลาดในการอ่านไฟล์"); 
+    }
+    e.target.value = ''; 
+  };
+  reader.readAsArrayBuffer(file);
 }
 
 function showPreviewSection(data) {
   document.getElementById('importUploadSection').classList.add('hidden');
   document.getElementById('importPreviewSection').classList.remove('hidden');
   
-  pendingImportData = data;
   currentPreviewPage = 1;
   renderPreviewTablePage();
 }
@@ -346,22 +307,55 @@ function renderPreviewTablePage() {
 
   document.getElementById('previewTotalText').innerHTML = `พบข้อมูลในไฟล์ทั้งหมด <span class="font-bold text-blue-600">${totalItems}</span> รายการ`;
 
-  tbody.innerHTML = pageData.map((row, idx) => `
-    <tr class="hover:bg-slate-50">
-      <td class="px-4 py-3 border-r border-slate-100 text-center font-mono text-xs text-slate-400">${startIndex + idx + 1}</td>
-      <td class="px-4 py-3 border-r border-slate-100 font-medium text-slate-800">${row['ชื่อ-นามสกุล'] || '-'}</td>
-      <td class="px-4 py-3 border-r border-slate-100 truncate max-w-[200px]">${row['หน่วยงาน'] || '-'}</td>
-      <td class="px-4 py-3 border-r border-slate-100 text-center"><span class="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-full text-xs font-medium">${row['สถานะ'] || 'ปฏิบัติงาน'}</span></td>
-      <td class="px-4 py-3 border-r border-slate-100">${row['ชื่อหลักสูตร'] || '-'}</td>
-      <td class="px-4 py-3 text-center font-mono text-slate-600">${row['ปีที่อบรม'] || '-'}</td>
-    </tr>
-  `).join('');
+  tbody.innerHTML = pageData.map((row, idx) => {
+    let badgeHtml = `<span class="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full text-xs font-semibold">✨ บุคคลใหม่</span>`;
+    let targetUidVal = '';
+
+    if (row.matchType === 'exact') {
+      badgeHtml = `<span class="bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-1 rounded-full text-xs font-semibold" title=" UID: ${row.matchedUser.uid} ">🔄 รวมกับคนเดิม (${row.matchedUser.fullName})</span>`;
+      targetUidVal = row.matchedUser.uid;
+    } else if (row.matchType === 'fuzzy') {
+      badgeHtml = `
+        <div class="space-y-1.5">
+          <span class="inline-block bg-amber-50 text-amber-800 border border-amber-300 px-2.5 py-0.5 rounded text-[11px] font-semibold">
+            ⚠️ ชื่อคล้าย: ${row.matchedUser.fullName}
+          </span>
+          <select onchange="updateImportAction(${startIndex + idx}, this.value)" class="w-full text-xs bg-slate-50 border border-slate-300 rounded p-1.5 outline-none font-medium text-slate-700">
+            <option value="merge" ${row.actionType === 'merge' ? 'selected' : ''}>🔗 รวมประวัติเป็นคนเดียวกัน</option>
+            <option value="new" ${row.actionType === 'new' ? 'selected' : ''}>➕ สร้างเป็นคนใหม่ (แยก)</option>
+          </select>
+        </div>
+      `;
+      targetUidVal = row.matchedUser.uid;
+    }
+
+    return `
+      <tr class="hover:bg-slate-50 align-top">
+        <td class="px-4 py-3.5 border-r border-slate-100 text-center font-mono text-xs text-slate-400">${startIndex + idx + 1}</td>
+        <td class="px-4 py-3.5 border-r border-slate-100 font-medium text-slate-800">${row['ชื่อ-นามสกุล']}</td>
+        <td class="px-4 py-3.5 border-r border-slate-100 truncate max-w-[180px]">${row['หน่วยงาน'] || '-'}</td>
+        <td class="px-4 py-3.5 border-r border-slate-100 text-center"><span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-xs">${row['สถานะ']}</span></td>
+        <td class="px-4 py-3.5 border-r border-slate-100">${row['ชื่อหลักสูตร'] || '-'} <span class="text-xs text-slate-400">(${row['ปีที่อบรม'] || '-'})</span></td>
+        <td class="px-4 py-3.5 text-center">
+          <input type="hidden" id="targetUid_${startIndex + idx}" value="${targetUidVal}">
+          ${badgeHtml}
+        </td>
+      </tr>
+    `;
+  }).join('');
 
   if (previewInfo) {
     previewInfo.innerHTML = `แสดงรายการที่ <span class="font-bold text-slate-800 mx-1">${startIndex + 1} - ${endIndex}</span> จากทั้งหมด <span class="font-bold text-slate-800 mx-1">${totalItems}</span> รายการ`;
   }
 
   renderPreviewPaginationNav(totalPages);
+}
+
+// 📌 ฟังก์ชันอัปเดตการตัดสินใจของแอดมิน (Merge หรือ New) ทีละเคส
+window.updateImportAction = function(absoluteIndex, choice) {
+  if (pendingImportData[absoluteIndex]) {
+    pendingImportData[absoluteIndex].actionType = choice;
+  }
 }
 
 function renderPreviewPaginationNav(totalPages) {
@@ -397,6 +391,15 @@ window.cancelImport = function() {
 window.confirmImport = async function() {
   if (!pendingImportData || pendingImportData.length === 0) return;
   
+  // รวบรวมข้อมูล UID ที่แอดมินเลือกในแต่ละแถวพรีวิวส่งไปหลังบ้าน
+  const processedRows = pendingImportData.map((row, idx) => {
+    const targetUidInput = document.getElementById(`targetUid_${idx}`);
+    return {
+      ...row,
+      targetUid: targetUidInput ? targetUidInput.value : ''
+    };
+  });
+
   const btn = document.getElementById('btnConfirmImport');
   const originalText = btn.innerHTML;
   btn.innerHTML = `<svg class="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> กำลังบันทึก...`;
@@ -405,7 +408,7 @@ window.confirmImport = async function() {
   try {
     const response = await fetch(API_URL, {
       method: 'POST',
-      body: JSON.stringify({ action: 'bulkImport', rows: pendingImportData }),
+      body: JSON.stringify({ action: 'bulkImport', rows: processedRows }),
       headers: { 'Content-Type': 'text/plain;charset=utf-8' }
     });
     const result = await response.json();
@@ -610,35 +613,129 @@ window.downloadTemplate = function() {
   XLSX.writeFile(wb, "Template_นำเข้าบุคลากร.xlsx");
 };
 
-function handleExcelUpload(e) {
-  const file = e.target.files[0];
-  if (!file) return;
+window.viewProfile = function(uid) {
+  currentActiveUid = uid;
+  const person = cachedPersonnelData.find(p => p.uid === uid);
+  if (!person) { alert("❌ ไม่พบข้อมูลบุคลากรในระบบ"); return; }
 
-  const reader = new FileReader();
-  reader.onload = function(event) {
-    try {
-      const data = new Uint8Array(event.target.result);
-      const workbook = XLSX.read(data, {type: 'array'});
-      const jsonRows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: "" });
-      
-      if (jsonRows.length > 0 && !('ชื่อ-นามสกุล' in jsonRows[0])) {
-        alert("❌ โครงสร้างไฟล์ผิดพลาด กรุณาใช้ไฟล์ Template มาตรฐานจากระบบเท่านั้น");
-        e.target.value = ''; return;
-      }
+  document.getElementById('profileName').textContent = person.fullName;
+  document.getElementById('profileUid').textContent = `รหัสอ้างอิง: ${person.uid}`;
+  document.getElementById('profileAgency').textContent = `${person.agency} (${person.status})`;
 
-      if (jsonRows.length === 0) {
-        alert("⚠️ ไม่พบข้อมูลในไฟล์ Excel");
-        e.target.value = ''; return;
-      }
+  const timelineEl = document.getElementById('profileTrainings');
+  if (person.trainings && person.trainings.length > 0) {
+    const sortedTrainings = person.trainings.sort((a, b) => b.year - a.year);
+    timelineEl.innerHTML = sortedTrainings.map(t => `
+      <li class="relative pl-6 pb-4 border-l-2 border-slate-200 last:border-0 last:pb-0">
+        <div class="absolute w-3 h-3 bg-blue-500 rounded-full -left-[7px] top-1.5 ring-4 ring-white shadow-sm"></div>
+        <p class="text-sm font-bold text-slate-800">${t.course}</p>
+        <p class="text-xs text-slate-500 mt-0.5">ปีการศึกษา: ${t.year}</p>
+      </li>
+    `).join('');
+  } else { timelineEl.innerHTML = `<li class="text-sm text-slate-500 pl-4">ยังไม่มีประวัติการอบรม</li>`; }
 
-      showPreviewSection(jsonRows);
+  const dutyEl = document.getElementById('profileDuties');
+  if (person.duties && person.duties.length > 0) {
+    dutyEl.innerHTML = person.duties.map(d => `
+      <li class="bg-white p-3.5 rounded-xl border border-slate-200 flex flex-col gap-1 shadow-sm">
+        <span class="text-sm font-bold text-slate-800">${d.sport}</span>
+        <span class="text-xs text-slate-500">สถานะ: ${d.role}</span>
+      </li>
+    `).join('');
+  } else { dutyEl.innerHTML = `<div class="text-sm text-slate-500">ยังไม่มีประวัติลงพื้นที่</div>`; }
 
-    } catch (error) { 
-      alert("❌ เกิดข้อผิดพลาดในการอ่านไฟล์"); 
+  const evalEl = document.getElementById('profileEvals');
+  if (person.evals && person.evals.length > 0) {
+    evalEl.innerHTML = person.evals.map(e => `
+      <div class="bg-white p-3.5 rounded-xl border border-slate-200 text-sm text-slate-700 italic shadow-sm">"${e.feedback}"</div>
+    `).join('');
+  } else { evalEl.innerHTML = `<div class="text-sm text-slate-500">ยังไม่มีข้อเสนอแนะ</div>`; }
+
+  const slideOver = document.getElementById('slideOver');
+  const backdrop = document.getElementById('slideOverBackdrop');
+  const panel = document.getElementById('slideOverPanel');
+
+  slideOver.classList.remove('hidden');
+  setTimeout(() => {
+    backdrop.classList.remove('opacity-0'); backdrop.classList.add('opacity-100');
+    panel.classList.remove('translate-x-full'); panel.classList.add('translate-x-0');
+  }, 10);
+  switchTab('general');
+}
+
+window.closeProfile = function() {
+  currentActiveUid = null;
+  const backdrop = document.getElementById('slideOverBackdrop');
+  const panel = document.getElementById('slideOverPanel');
+  backdrop.classList.remove('opacity-100'); backdrop.classList.add('opacity-0');
+  panel.classList.remove('translate-x-0'); panel.classList.add('translate-x-full');
+  setTimeout(() => { document.getElementById('slideOver').classList.add('hidden'); }, 300);
+}
+
+window.switchTab = function(tabName) {
+  ['general', 'duty', 'eval'].forEach(t => {
+    const btn = document.getElementById(`tab-btn-${t}`);
+    const content = document.getElementById(`tab-content-${t}`);
+    if (t === tabName) {
+      btn.classList.add('border-blue-600', 'text-blue-600', 'font-bold');
+      btn.classList.remove('border-transparent', 'text-slate-500', 'font-medium');
+      content.classList.remove('hidden'); content.classList.add('block');
+    } else {
+      btn.classList.add('border-transparent', 'text-slate-500', 'font-medium');
+      btn.classList.remove('border-blue-600', 'text-blue-600', 'font-bold');
+      content.classList.remove('block'); content.classList.add('hidden');
     }
-    e.target.value = ''; 
-  };
-  reader.readAsArrayBuffer(file);
+  });
+}
+
+window.submitDuty = async function() {
+  if (!currentActiveUid) return;
+  const sport = document.getElementById('inputDutySport').value.trim();
+  const role = document.getElementById('inputDutyRole').value.trim();
+  if (!sport || !role) return alert('⚠️ กรุณากรอก ชนิดกีฬา และ ประเภทบุคลากร ให้ครบถ้วน');
+  
+  const btn = document.getElementById('btnSaveDuty');
+  btn.textContent = 'กำลังบันทึก...'; btn.disabled = true;
+
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'saveDuty', uid: currentActiveUid, sport: sport, role: role }),
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+    });
+    const result = await response.json();
+    if(result.status === 'success') {
+      alert('✅ บันทึกประวัติสำเร็จ');
+      document.getElementById('inputDutySport').value = '';
+      document.getElementById('inputDutyRole').value = '';
+      fetchData(); 
+    } else { alert(`❌ ข้อผิดพลาด: ${result.message}`); }
+  } catch(e) { alert('❌ การเชื่อมต่อล้มเหลว'); }
+  btn.textContent = 'บันทึกข้อมูล'; btn.disabled = false;
+}
+
+window.submitEval = async function() {
+  if (!currentActiveUid) return;
+  const feedback = document.getElementById('inputEvalFeedback').value.trim();
+  if (!feedback) return alert('⚠️ กรุณากรอกข้อเสนอแนะก่อนบันทึก');
+  
+  const btn = document.getElementById('btnSaveEval');
+  btn.textContent = 'กำลังบันทึก...'; btn.disabled = true;
+
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'saveEval', uid: currentActiveUid, feedback: feedback }),
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+    });
+    const result = await response.json();
+    if(result.status === 'success') {
+      alert('✅ บันทึกข้อเสนอแนะสำเร็จ');
+      document.getElementById('inputEvalFeedback').value = '';
+      fetchData(); 
+    } else { alert(`❌ ข้อผิดพลาด: ${result.message}`); }
+  } catch(e) { alert('❌ การเชื่อมต่อล้มเหลว'); }
+  btn.textContent = 'บันทึกข้อเสนอแนะ'; btn.disabled = false;
 }
 
 function showLoadingState() { const tbody = document.getElementById('tableBody'); if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-16 text-center text-blue-500 font-medium">กำลังโหลดข้อมูล...</td></tr>`; }
