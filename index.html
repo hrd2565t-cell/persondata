@@ -114,7 +114,6 @@
             <input type="text" id="searchInput" placeholder="ค้นหาด้วยชื่อ, หน่วยงาน หรือรหัส UID..." class="w-full bg-slate-50 border border-slate-300 text-slate-800 placeholder-slate-400 text-sm rounded-lg focus:ring-2 focus:ring-blue-500 block pl-10 p-2.5 outline-none shadow-sm">
           </div>
           <div class="flex flex-wrap items-center gap-3 w-full xl:w-auto">
-            <!-- 📌 เพิ่มตัวกรอง "กลุ่มบุคลากร" ตรงนี้ -->
             <select id="filterGroup" class="bg-slate-50 border border-slate-300 text-slate-700 text-sm rounded-lg focus:ring-2 focus:ring-blue-500 p-2.5 outline-none min-w-[150px]">
               <option value="">ทุกกลุ่มบุคลากร</option>
             </select>
@@ -238,7 +237,6 @@
     <div class="min-h-screen flex items-center justify-center p-4">
       <div class="bg-white w-full max-w-6xl rounded-2xl shadow-2xl relative overflow-hidden print-shadow-none">
         
-        <!-- แถบเครื่องมือ Control Bar (ซ่อนตอน Print) -->
         <div class="bg-slate-50 border-b border-slate-200 px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4 print-hide sticky top-0 z-10">
           <div class="flex items-center gap-3">
             <span class="text-sm font-bold text-slate-700">ตัวกรองช่วงปี:</span>
@@ -262,7 +260,6 @@
           </div>
         </div>
 
-        <!-- หน้ากระดาษพิมพ์รายงาน -->
         <div class="p-8 space-y-6 text-slate-800">
           <div class="text-center space-y-2 mb-6">
             <h1 class="text-xl md:text-2xl font-bold uppercase tracking-tight text-slate-900">
@@ -273,7 +270,6 @@
           </div>
           
           <div class="overflow-x-auto w-full" id="matrixTableContainer">
-            <!-- ตารางจะถูกสร้างที่นี่โดย JS ตามช่วงปีที่เลือก -->
           </div>
         </div>
       </div>
