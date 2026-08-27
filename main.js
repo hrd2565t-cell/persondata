@@ -14,7 +14,6 @@ const previewItemsPerPage = 10;
 let matrixAvailableYears = [];
 let isAdmin = false;
 
-// ตัวแปรเก็บ Object กราฟ (เพื่อเอาไว้ทำลายทิ้งก่อนวาดใหม่)
 let barChartObj = null;
 let donutChartObj = null;
 
@@ -37,7 +36,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('excelUpload').addEventListener('change', (e) => processExcelFile(e.target.files[0], e.target));
 });
 
-// 🔐 ระบบรักษาความปลอดภัย (Login)
 function openLoginModal() {
   document.getElementById('loginModal').classList.remove('hidden');
   document.getElementById('loginErrorMsg').classList.add('hidden');
@@ -57,7 +55,6 @@ function setupOTPInputs() {
     input.addEventListener('keydown', (e) => {
       if(e.key === 'Backspace' && e.target.value === '' && index > 0) inputs[index - 1].focus();
     });
-    // รองรับการ Paste (Ctrl+V) 6 หลักรวดเดียว
     input.addEventListener('paste', (e) => {
       e.preventDefault();
       const pastedData = e.clipboardData.getData('text').slice(0, 6).split('');
@@ -80,7 +77,7 @@ function checkOTP() {
       document.getElementById('btnLogout').classList.remove('hidden');
       document.getElementById('btnLogout').classList.add('flex');
       closeLoginModal();
-      renderTablePage(); // อัปเดตปุ่มจัดการในตาราง
+      renderTablePage(); 
     } else {
       document.getElementById('loginErrorMsg').classList.remove('hidden');
       inputs.forEach(input => input.value = '');
@@ -141,7 +138,7 @@ async function fetchData() {
       cachedPersonnelData = result.data.list;
       if (!globalFiltersMaster) { globalFiltersMaster = result.data.filters; updateDropdownUI(); }
       renderDashboard(result.data.stats);
-      drawCharts(result.data.filters.years, result.data.filters.groups); // วาดกราฟ
+      drawCharts(result.data.filters.years, result.data.filters.groups); 
       currentFilteredData = result.data.list; currentPage = 1;
       updateSmartSummary(course, year, currentFilteredData.length);
       renderTablePage();
@@ -149,12 +146,9 @@ async function fetchData() {
   } catch (error) { showErrorState('การเชื่อมต่อกับฐานข้อมูลขัดข้อง'); }
 }
 
-// 📊 ฟังก์ชันวาดกราฟ Visual Analytics (แสดงตัวเลขและเปอร์เซ็นต์)
 function drawCharts(allYears, allGroups) {
-  // ลงทะเบียน Plugin สำหรับแสดง Data Labels บน Chart
   Chart.register(ChartDataLabels);
 
-  // 1. Bar Chart (5 ปีล่าสุด)
   const sortedYears = [...allYears].sort((a,b)=>a-b);
   const last5Years = sortedYears.slice(-5);
   const yearData = last5Years.map(y => {
@@ -184,7 +178,6 @@ function drawCharts(allYears, allGroups) {
     }
   });
 
-  // 2. Donut Chart (สัดส่วนกลุ่ม)
   let groupCounts = {};
   cachedPersonnelData.forEach(p => { let g = p.group || 'ไม่ระบุ'; groupCounts[g] = (groupCounts[g] || 0) + 1; });
   let topGroups = Object.entries(groupCounts).sort((a,b)=>b[1]-a[1]).slice(0, 4);
@@ -228,8 +221,14 @@ function renderDashboard(stats) {
 
   tbody.innerHTML = stats.courseSummary.map((item, index) => {
     const retentionPercent = item.totalPeople > 0 ? Math.round((item.activePeople / item.totalPeople) * 100) : 0;
-    // 📌 สร้างปุ่มพร้อมดักการแปลง Single Quote ในชื่อคอร์สป้องกันการกดไม่ได้ (Bug Fixed)
-    const escapedCourseName = String(item.courseName).replace(/'/g, "\\'");
+    
+    // 📌 แก้ไขบั๊กสำคัญตรงนี้: แปลงอักขระพิเศษเพื่อป้องกัน JS Syntax Error ในการกดปุ่ม
+    const safeCourseName = String(item.courseName)
+      .replace(/\\/g, '\\\\')
+      .replace(/'/g, "\\'")
+      .replace(/"/g, '&quot;')
+      .replace(/[\r\n]+/g, ' ');
+
     return `
       <tr class="hover:bg-slate-50 border-b border-slate-100">
         <td class="px-6 py-4 text-center font-mono text-xs text-slate-400">${index + 1}</td>
@@ -240,8 +239,9 @@ function renderDashboard(stats) {
           <div class="w-full bg-slate-100 rounded-full h-2"><div class="bg-emerald-500 h-2 rounded-full" style="width: ${retentionPercent}%"></div></div>
         </td>
         <td class="px-6 py-4 text-center">
-           <button onclick="openProposalReport('${escapedCourseName}', ${item.totalPeople}, ${item.activePeople})" class="text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-600 hover:text-white px-3 py-1.5 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1.5 w-full max-w-[120px] mx-auto">
-             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg> PDCA Report
+           <button onclick="openProposalReport('${safeCourseName}', ${item.totalPeople}, ${item.activePeople})" class="bg-blue-600 text-white hover:bg-blue-700 px-3 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 w-full max-w-[120px] mx-auto shadow-md">
+             <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg> 
+             <span>PDCA Report</span>
            </button>
         </td>
       </tr>
@@ -297,7 +297,6 @@ function buildMatrixTable(startYear, endYear) {
 window.closeMatrixReport = function() { document.getElementById('matrixModal').classList.add('hidden'); }
 window.printMatrixReport = function() { document.getElementById('matrixModal').classList.add('print-modal-active'); window.print(); document.getElementById('matrixModal').classList.remove('print-modal-active'); }
 
-// 📑 PDCA Proposal Builder (อัปเดตโมดูลข้อความ PDCA ให้สอดคล้องกับภาระงานจริง)
 window.openProposalReport = function(courseName, totalPeople, activePeople) {
   const courseUsers = cachedPersonnelData.filter(u => u.trainings && u.trainings.some(t => t.course === courseName));
   const agencyCount = {}; courseUsers.forEach(u => { if(u.agency) agencyCount[u.agency] = (agencyCount[u.agency] || 0) + 1; });
@@ -310,7 +309,6 @@ window.openProposalReport = function(courseName, totalPeople, activePeople) {
   document.getElementById('reportActive').textContent = activePeople;
   document.getElementById('reportRetention').textContent = totalPeople > 0 ? Math.round((activePeople/totalPeople)*100) + '%' : '0%';
   
-  // ยัดข้อมูลใส่ PDCA หน้า 2
   document.querySelectorAll('.pdca-course-name').forEach(el => el.textContent = courseName);
   document.getElementById('pdcaPlanTarget').textContent = totalPeople;
   document.getElementById('pdcaDoActual').textContent = totalPeople;
@@ -321,7 +319,6 @@ window.openProposalReport = function(courseName, totalPeople, activePeople) {
   const feedbackHtml = displayFeedbacks.length > 0 ? displayFeedbacks.map(f => `<div class="bg-blue-50/50 border border-blue-100 p-4 rounded-xl text-sm italic text-slate-700 shadow-sm leading-relaxed">"${f}"</div>`).join('') : '<p class="text-sm text-slate-400 col-span-2 text-center py-4">ยังไม่มีข้อมูลข้อเสนอแนะในระบบ</p>';
   document.getElementById('reportFeedback').innerHTML = feedbackHtml;
   
-  // ใส่ Feedback ลง Check ใน PDCA ด้วย
   const pdcaFeedbackHtml = displayFeedbacks.length > 0 ? displayFeedbacks.map(f => `<li>"${f}"</li>`).join('') : '<li>ยังไม่มีการแจ้งปัญหาหรือข้อเสนอแนะในระบบ</li>';
   document.getElementById('pdcaCheckFeedback').innerHTML = pdcaFeedbackHtml;
 
@@ -432,7 +429,6 @@ function calculateSimilarity(str1, str2) {
   return (longerLength - costs[s2.length]) / longerLength;
 }
 
-// 📥 จัดการนำเข้าผ่านไฟล์/ลากวาง
 function setupDragAndDrop() {
   const dropZone = document.getElementById('dragDropZone');
   if(!dropZone) return;
@@ -473,7 +469,6 @@ function processExcelFile(file, inputElement) {
   reader.readAsArrayBuffer(file);
 }
 
-// 📥 จัดการฟอร์มนำเข้ารายบุคคล
 window.submitSingleEntry = function() {
   const pPrefix = document.getElementById('singlePrefix').value;
   const pName = document.getElementById('singleFullName').value;
