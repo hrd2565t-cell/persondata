@@ -7,6 +7,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <!-- เพิ่มไลบรารี Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body { font-family: 'Plus Jakarta Sans', sans-serif; }
     ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -16,6 +18,10 @@
     .hide-scrollbar::-webkit-scrollbar { display: none; }
     .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     
+    .admin-only { display: none; }
+    body.is-admin .admin-only { display: flex; } /* Flex for buttons */
+    body.is-admin .admin-only-block { display: block; } /* Block for sections */
+    
     @media print {
       body * { visibility: hidden; }
       .print-modal-active { visibility: visible !important; position: absolute; left: 0; top: 0; width: 100%; background: white; padding: 10px; box-shadow: none; z-index: 9999; }
@@ -23,6 +29,7 @@
       .print-hide { display: none !important; }
       .print-shadow-none { border: none !important; box-shadow: none !important; }
       * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      .page-break { page-break-before: always; }
     }
   </style>
 </head>
@@ -41,9 +48,20 @@
             <p class="text-xs text-slate-500">ระบบทะเบียนและประเมินบุคลากรกีฬาอัจฉริยะ</p>
           </div>
         </div>
-        <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-full">
-          <span class="relative flex h-2.5 w-2.5"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span></span>
-          <span class="text-xs font-medium text-slate-600">API Connected</span>
+        <div class="flex items-center gap-4">
+          <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-full">
+            <span class="relative flex h-2.5 w-2.5"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span></span>
+            <span class="text-xs font-medium text-slate-600">API Connected</span>
+          </div>
+          <!-- 🔐 Login Button -->
+          <button id="btnLogin" onclick="openLoginModal()" class="text-xs font-bold bg-slate-800 hover:bg-slate-900 text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+            Admin Login
+          </button>
+          <button id="btnLogout" onclick="logoutAdmin()" class="hidden text-xs font-bold bg-red-50 text-red-600 border border-red-200 px-3 py-1.5 rounded-lg items-center gap-1.5 hover:bg-red-100 transition">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+            Logout
+          </button>
         </div>
       </div>
     </div>
@@ -56,18 +74,19 @@
         <button onclick="switchPage('dashboard')" id="nav-btn-dashboard" class="border-blue-600 text-blue-600 whitespace-nowrap py-4 px-2 border-b-2 font-bold text-sm transition-all flex items-center gap-2">📊 แดชบอร์ดสรุปผล</button>
         <button onclick="switchPage('search')" id="nav-btn-search" class="border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300 whitespace-nowrap py-4 px-2 border-b-2 font-medium text-sm transition-all flex items-center gap-2">🔍 ค้นหาบุคลากร</button>
         <button onclick="switchPage('timeline')" id="nav-btn-timeline" class="border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300 whitespace-nowrap py-4 px-2 border-b-2 font-medium text-sm transition-all flex items-center gap-2">📅 ไทม์ไลน์โครงการ</button>
-        <button onclick="switchPage('import')" id="nav-btn-import" class="border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300 whitespace-nowrap py-4 px-2 border-b-2 font-medium text-sm transition-all flex items-center gap-2">📥 นำเข้าข้อมูล</button>
+        <!-- ปุ่มนำเข้าจะแสดงเฉพาะ Admin (มีคลาส admin-only) -->
+        <button onclick="switchPage('import')" id="nav-btn-import" class="admin-only border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300 whitespace-nowrap py-4 px-2 border-b-2 font-medium text-sm transition-all items-center gap-2">📥 นำเข้าข้อมูล (Admin)</button>
       </nav>
     </div>
   </div>
 
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
     
-    <!-- PAGE 1: Dashboard -->
+    <!-- PAGE 1: Dashboard (พร้อมกราฟ) -->
     <div id="page-dashboard" class="page-section block space-y-6">
       <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-2">
         <div>
-          <h2 class="text-xl font-bold text-slate-800">แดชบอร์ดสรุปผล (Executive Summary & Progress)</h2>
+          <h2 class="text-xl font-bold text-slate-800">แดชบอร์ดสรุปผล (Visual Analytics Dashboard)</h2>
           <p class="text-sm text-slate-500 mt-1">ติดตามเป้าหมาย อัตราการคงอยู่ (Retention) และจัดพิมพ์รายงานนำเสนอ</p>
         </div>
         <button onclick="openMatrixReport()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-md transition-colors flex items-center gap-2">
@@ -75,11 +94,25 @@
           พิมพ์ตารางสรุปไขว้ (Matrix Report)
         </button>
       </div>
+
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm"><h2 class="text-xs font-semibold uppercase tracking-wider text-slate-500">บุคลากรในระบบทั้งหมด</h2><div class="flex items-baseline mt-4 gap-2"><p class="text-5xl font-extrabold text-blue-600" id="stat-total">--</p><span class="text-sm text-slate-500 font-medium">คน</span></div></div>
         <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm"><h2 class="text-xs font-semibold uppercase tracking-wider text-slate-500">ปีที่มีการจัดอบรมหลักสูตรเยอะที่สุด</h2><div class="flex items-baseline mt-4 gap-2"><p class="text-5xl font-extrabold text-emerald-500" id="stat-top-year">--</p><span class="text-sm text-slate-500 font-medium">ปีการศึกษา</span></div></div>
         <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm"><h2 class="text-xs font-semibold uppercase tracking-wider text-slate-500">หลักสูตรที่มีผู้เรียนสูงสุด</h2><p class="text-xl font-bold text-slate-800 mt-4 truncate" id="stat-top-course">กำลังประมวลผล...</p></div>
       </div>
+
+      <!-- 📊 โซนกราฟ Visual Analytics -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
+          <h3 class="text-sm font-bold text-slate-800 mb-4">แนวโน้มผู้ผ่านการอบรม 5 ปีย้อนหลัง</h3>
+          <div class="relative h-64 w-full"><canvas id="barChart"></canvas></div>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
+          <h3 class="text-sm font-bold text-slate-800 mb-4">สัดส่วนกลุ่มบุคลากร (ภาพรวม)</h3>
+          <div class="relative h-64 w-full flex justify-center"><canvas id="donutChart"></canvas></div>
+        </div>
+      </div>
+
       <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mt-8">
         <div class="px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
           <h3 class="text-base font-bold text-slate-800">สรุปความสำเร็จโครงการ (Retention Tracking)</h3>
@@ -92,7 +125,7 @@
                   <th class="px-6 py-4 font-semibold">ชื่อหลักสูตรการอบรม</th>
                   <th class="px-6 py-4 font-semibold text-center w-32">ปีที่เคยจัด</th>
                   <th class="px-6 py-4 font-semibold w-56">อัตราผู้ปฏิบัติหน้าที่คงอยู่ (Retention)</th>
-                  <th class="px-6 py-4 font-semibold text-center w-40">Proposal Builder</th>
+                  <th class="px-6 py-4 font-semibold text-center w-40">PDCA Proposal</th>
                 </tr>
              </thead>
              <tbody id="courseSummaryBody" class="divide-y divide-slate-100 bg-white">
@@ -138,7 +171,7 @@
                 <th class="px-6 py-4 border-r border-slate-100">ชื่อ-นามสกุล</th>
                 <th class="px-6 py-4 border-r border-slate-100">หน่วยงาน</th>
                 <th class="px-6 py-4 text-center w-36 border-r border-slate-100">สถานะ</th>
-                <th class="px-6 py-4 text-center w-24">จัดการ</th>
+                <th class="px-6 py-4 text-center w-24">ดูข้อมูล</th>
               </tr>
             </thead>
             <tbody id="tableBody" class="divide-y divide-slate-100 bg-white">
@@ -170,26 +203,58 @@
       </div>
     </div>
 
-    <!-- PAGE 4: Import Data -->
+    <!-- PAGE 4: Import Data (Admin Only) -->
     <div id="page-import" class="page-section hidden">
       <div class="max-w-5xl mx-auto mt-8">
-        <div id="importUploadSection" class="bg-white border border-slate-200 rounded-3xl shadow-lg p-10 text-center space-y-8">
-          <div class="w-20 h-20 mx-auto bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shadow-inner">
-             <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+        
+        <!-- แท็บสลับโหมดนำเข้า -->
+        <div class="flex space-x-4 mb-6 border-b border-slate-200 px-2">
+          <button onclick="switchImportMode('bulk')" id="tab-import-bulk" class="pb-3 border-b-2 border-blue-600 text-blue-600 font-bold text-sm transition px-4 flex items-center gap-2"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg> นำเข้ากลุ่ม (Excel)</button>
+          <button onclick="switchImportMode('single')" id="tab-import-single" class="pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-700 font-medium text-sm transition px-4 flex items-center gap-2"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg> เพิ่มรายบุคคล (ฟอร์ม)</button>
+        </div>
+
+        <div id="importUploadSection" class="bg-white border border-slate-200 rounded-3xl shadow-lg p-10 space-y-8">
+          
+          <!-- Mode 1: Drag & Drop Bulk Import -->
+          <div id="importModeBulk" class="block">
+            <div class="text-center mb-8">
+              <h2 class="text-xl font-bold text-slate-800">อัปโหลดไฟล์ Excel แบบกลุ่ม</h2>
+              <p class="text-sm text-slate-500 mt-2">ลากไฟล์มาวางในกรอบ หรือคลิกเพื่อเลือกไฟล์ (ระบบจำทำการ Auto-Format ให้อัตโนมัติ)</p>
+            </div>
+            
+            <!-- Drag Drop Zone -->
+            <div id="dragDropZone" class="border-2 border-dashed border-slate-300 rounded-2xl bg-slate-50 hover:bg-blue-50 hover:border-blue-400 transition-colors flex flex-col items-center justify-center p-12 cursor-pointer relative group">
+              <svg class="w-16 h-16 text-blue-400 mb-4 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+              <h3 class="text-lg font-bold text-slate-700">ลากไฟล์ Excel (.xlsx) มาวางที่นี่</h3>
+              <p class="text-sm text-slate-500 mt-1">หรือคลิกเพื่อค้นหาไฟล์ในเครื่องของคุณ</p>
+              <input type="file" id="excelUpload" accept=".xlsx, .xls" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+            </div>
+
+            <div class="mt-6 text-center">
+              <button type="button" onclick="downloadTemplate()" class="text-emerald-600 hover:text-emerald-700 font-semibold text-sm inline-flex items-center gap-1.5 underline decoration-emerald-300 underline-offset-4">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg> โหลดไฟล์ Template มาตรฐาน
+              </button>
+            </div>
           </div>
-          <div>
-            <h2 class="text-xl font-bold text-slate-800">นำเข้าข้อมูลบุคลากรแบบกลุ่ม</h2>
-            <p class="text-sm text-slate-500 mt-2">อัปโหลดไฟล์ Excel (.xlsx) ระบบจะทำความสะอาดชื่อ และตรวจสอบชื่อด้วย Smart Keyword ให้อัตโนมัติ</p>
+
+          <!-- Mode 2: Single Entry Form -->
+          <div id="importModeSingle" class="hidden">
+            <h2 class="text-lg font-bold text-slate-800 mb-4 border-l-4 border-blue-600 pl-3">กรอกข้อมูลรายบุคคล</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 bg-slate-50 p-6 rounded-2xl border border-slate-200">
+              <div><label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase">คำนำหน้า (ไม่จำเป็นต้องใส่ถ้ารวมในชื่อ)</label><input type="text" id="singlePrefix" class="w-full text-sm border-slate-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500"></div>
+              <div><label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase">ชื่อ-นามสกุล <span class="text-red-500">*</span></label><input type="text" id="singleFullName" class="w-full text-sm border-slate-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500" placeholder="เช่น จิระศักดิ์ ทัศณรงค์"></div>
+              <div><label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase">กลุ่มบุคลากร</label><input type="text" id="singleGroup" class="w-full text-sm border-slate-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500" placeholder="เช่น สมาคมกีฬาแห่งจังหวัด"></div>
+              <div><label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase">หน่วยงานต้นสังกัด <span class="text-red-500">*</span></label><input type="text" id="singleAgency" class="w-full text-sm border-slate-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500"></div>
+              <div><label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase">ชื่อหลักสูตร</label><input type="text" id="singleCourse" class="w-full text-sm border-slate-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500"></div>
+              <div><label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase">ปีที่อบรม</label><input type="text" id="singleYear" class="w-full text-sm border-slate-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500" placeholder="เช่น 2569"></div>
+            </div>
+            <div class="mt-6 flex justify-end">
+              <button onclick="submitSingleEntry()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-md transition flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg> ตรวจสอบและดำเนินการต่อ
+              </button>
+            </div>
           </div>
-          <div class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-6 border-t border-slate-100">
-             <button type="button" onclick="downloadTemplate()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3.5 px-6 rounded-xl transition-all inline-flex items-center gap-2 text-sm">
-               <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg> ดาวน์โหลดไฟล์ Template
-             </button>
-             <label class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3.5 px-8 rounded-xl shadow-md transition-all inline-flex items-center gap-2 text-sm">
-               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg> เลือกไฟล์ Excel เพื่อนำเข้า
-               <input type="file" id="excelUpload" accept=".xlsx, .xls" class="hidden" />
-             </label>
-          </div>
+          
         </div>
 
         <div id="importPreviewSection" class="hidden bg-white border border-slate-200 rounded-3xl shadow-lg p-6 md:p-8 space-y-6">
@@ -232,63 +297,47 @@
     </div>
   </main>
 
-  <!-- 🟢 Modal: Matrix Report (ตารางไขว้ภาพรวม) พร้อม Filter ช่วงปี -->
+  <!-- 🟢 Modal: Matrix Report -->
   <div id="matrixModal" class="fixed inset-0 z-[100] hidden bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
     <div class="min-h-screen flex items-center justify-center p-4">
       <div class="bg-white w-full max-w-6xl rounded-2xl shadow-2xl relative overflow-hidden print-shadow-none">
-        
         <div class="bg-slate-50 border-b border-slate-200 px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4 print-hide sticky top-0 z-10">
           <div class="flex items-center gap-3">
             <span class="text-sm font-bold text-slate-700">ตัวกรองช่วงปี:</span>
-            <button onclick="applyMatrixFilter('all')" class="px-3 py-1.5 bg-white border border-slate-300 rounded text-xs font-semibold text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition">ทั้งหมด</button>
-            <button onclick="applyMatrixFilter('5')" class="px-3 py-1.5 bg-white border border-slate-300 rounded text-xs font-semibold text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition">5 ปีย้อนหลัง</button>
-            <button onclick="applyMatrixFilter('10')" class="px-3 py-1.5 bg-white border border-slate-300 rounded text-xs font-semibold text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition">10 ปีย้อนหลัง</button>
-            
+            <button onclick="applyMatrixFilter('all')" class="px-3 py-1.5 bg-white border border-slate-300 rounded text-xs font-semibold text-slate-600 hover:bg-blue-50 transition">ทั้งหมด</button>
+            <button onclick="applyMatrixFilter('5')" class="px-3 py-1.5 bg-white border border-slate-300 rounded text-xs font-semibold text-slate-600 hover:bg-blue-50 transition">5 ปีล่าสุด</button>
             <div class="flex items-center gap-1.5 ml-2 border-l border-slate-300 pl-3">
-              <select id="matrixStartYear" class="text-xs bg-white border border-slate-300 rounded p-1 outline-none"></select>
-              <span class="text-xs text-slate-500">-</span>
+              <select id="matrixStartYear" class="text-xs bg-white border border-slate-300 rounded p-1 outline-none"></select> <span class="text-xs text-slate-500">-</span>
               <select id="matrixEndYear" class="text-xs bg-white border border-slate-300 rounded p-1 outline-none"></select>
               <button onclick="applyMatrixFilter('custom')" class="px-2 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded text-xs font-bold transition">ตกลง</button>
             </div>
           </div>
-
           <div class="flex gap-3">
             <button onclick="closeMatrixReport()" class="px-4 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100 transition">ปิด</button>
-            <button onclick="printMatrixReport()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-sm font-semibold text-white shadow-sm transition flex items-center gap-2">
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.728 10.364V6.5a.5.5 0 01.5-.5h9.544a.5.5 0 01.5.5v3.864M18.75 12v3.75m-13.5-3.75v3.75m13.5-3.75A2.25 2.25 0 0021 9.75h-1.5M4.5 12A2.25 2.25 0 012.25 9.75H3.75m13.5 6H6.75v3.5a.5.5 0 00.5.5h9.5a.5.5 0 00.5-.5v-3.5z" /></svg> พิมพ์รายงาน (PDF)
-            </button>
+            <button onclick="printMatrixReport()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-sm font-semibold text-white shadow-sm transition flex items-center gap-2"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.728 10.364V6.5a.5.5 0 01.5-.5h9.544a.5.5 0 01.5.5v3.864M18.75 12v3.75m-13.5-3.75v3.75m13.5-3.75A2.25 2.25 0 0021 9.75h-1.5M4.5 12A2.25 2.25 0 012.25 9.75H3.75m13.5 6H6.75v3.5a.5.5 0 00.5.5h9.5a.5.5 0 00.5-.5v-3.5z" /></svg> พิมพ์รายงาน</button>
           </div>
         </div>
-
         <div class="p-8 space-y-6 text-slate-800">
-          <div class="text-center space-y-2 mb-6">
-            <h1 class="text-xl md:text-2xl font-bold uppercase tracking-tight text-slate-900">
-              โครงการพัฒนาบุคลากรโดยการกีฬาแห่งประเทศไทย 
-              <span id="matrixYearRangeText" class="text-lg text-blue-700 ml-1 inline-block bg-blue-50 px-2 py-0.5 rounded border border-blue-200"></span>
-            </h1>
-            <p class="text-sm font-medium text-slate-600">(งานพัฒนาบุคลากรกีฬาระดับนานาชาติ กองพัฒนาบุคลากรกีฬา ฝ่ายพัฒนากีฬาเป็นเลิศ)</p>
-          </div>
-          
-          <div class="overflow-x-auto w-full" id="matrixTableContainer">
-          </div>
+          <div class="text-center space-y-2 mb-6"><h1 class="text-xl md:text-2xl font-bold uppercase tracking-tight text-slate-900">โครงการพัฒนาบุคลากรโดยการกีฬาแห่งประเทศไทย <span id="matrixYearRangeText" class="text-lg text-blue-700 ml-1 inline-block bg-blue-50 px-2 py-0.5 rounded border border-blue-200"></span></h1><p class="text-sm font-medium text-slate-600">(งานพัฒนาบุคลากรกีฬาระดับนานาชาติ กองพัฒนาบุคลากรกีฬา ฝ่ายพัฒนากีฬาเป็นเลิศ)</p></div>
+          <div class="overflow-x-auto w-full" id="matrixTableContainer"></div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- 🟢 Modal: Proposal Builder -->
+  <!-- 🟢 Modal: Proposal Builder + PDCA Report -->
   <div id="proposalModal" class="fixed inset-0 z-[100] hidden bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
     <div class="min-h-screen flex items-center justify-center p-4">
       <div class="bg-white w-full max-w-4xl rounded-2xl shadow-2xl relative overflow-hidden print-shadow-none">
         <div class="bg-slate-50 border-b border-slate-200 px-6 py-4 flex justify-between items-center print-hide sticky top-0 z-10">
-          <h2 class="text-slate-700 font-bold text-sm">Proposal / Report Builder</h2>
+          <h2 class="text-slate-700 font-bold text-sm">Proposal / PDCA Report Builder</h2>
           <div class="flex gap-3">
             <button onclick="closeProposalReport()" class="px-4 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100 transition">ปิด</button>
-            <button onclick="printProposalReport()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-semibold text-white shadow-sm transition flex items-center gap-2">
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.728 10.364V6.5a.5.5 0 01.5-.5h9.544a.5.5 0 01.5.5v3.864M18.75 12v3.75m-13.5-3.75v3.75m13.5-3.75A2.25 2.25 0 0021 9.75h-1.5M4.5 12A2.25 2.25 0 012.25 9.75H3.75m13.5 6H6.75v3.5a.5.5 0 00.5.5h9.5a.5.5 0 00.5-.5v-3.5z" /></svg> พิมพ์รายงาน (PDF)
-            </button>
+            <button onclick="printProposalReport()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-semibold text-white shadow-sm transition flex items-center gap-2"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6.728 10.364V6.5a.5.5 0 01.5-.5h9.544a.5.5 0 01.5.5v3.864M18.75 12v3.75m-13.5-3.75v3.75m13.5-3.75A2.25 2.25 0 0021 9.75h-1.5M4.5 12A2.25 2.25 0 012.25 9.75H3.75m13.5 6H6.75v3.5a.5.5 0 00.5.5h9.5a.5.5 0 00.5-.5v-3.5z" /></svg> พิมพ์รายงาน (PDF)</button>
           </div>
         </div>
+        
+        <!-- แผ่นที่ 1: Proposal Overview -->
         <div class="p-10 md:p-14 space-y-10 text-slate-800">
           <div class="text-center space-y-3 border-b-2 border-slate-800 pb-8">
             <h1 class="text-2xl md:text-3xl font-extrabold uppercase tracking-tight">รายงานสรุปผลการดำเนินงานโครงการ</h1>
@@ -304,10 +353,67 @@
             </div>
           </div>
           <div><h3 class="text-lg font-bold border-l-4 border-blue-600 pl-3 mb-5">2. การกระจายตัวของหน่วยงานต้นสังกัด (Top Agencies)</h3><div class="bg-white border border-slate-200 rounded-xl overflow-hidden"><div class="p-5 space-y-4" id="reportAgencies"></div></div></div>
-          <div><h3 class="text-lg font-bold border-l-4 border-blue-600 pl-3 mb-5">3. สรุปข้อเสนอแนะเชิงธรรมาภิบาล (Key Feedback)</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="reportFeedback"></div></div>
-          <div class="pt-16 mt-16 border-t border-slate-200 flex justify-end"><div class="text-center w-64 space-y-4"><div class="border-b border-slate-400 w-full h-8"></div><p class="text-sm font-semibold">ผู้รายงานผลโครงการ</p><p class="text-xs text-slate-500">ข้อมูลอัปเดต ณ ปัจจุบันจากระบบ</p></div></div>
+        </div>
+
+        <!-- แผ่นที่ 2: PDCA Module -->
+        <div class="page-break p-10 md:p-14 space-y-8 text-slate-800 border-t-8 border-slate-100 print:border-t-0">
+          <div class="text-center space-y-2 mb-8">
+            <h2 class="text-2xl font-bold uppercase tracking-tight text-slate-800">สรุปการดำเนินการตามวงจรคุณภาพ (PDCA)</h2>
+          </div>
+          
+          <div class="space-y-6">
+            <div class="border border-slate-200 rounded-xl overflow-hidden">
+              <div class="bg-blue-50 px-5 py-3 border-b border-slate-200"><h3 class="font-bold text-blue-800 flex items-center gap-2"><span class="w-6 h-6 bg-blue-600 text-white rounded flex items-center justify-center text-sm">P</span> PLAN (การวางแผน)</h3></div>
+              <div class="p-5 bg-white text-sm text-slate-700 space-y-2">
+                <p><strong>วัตถุประสงค์:</strong> เพื่อพัฒนาและยกระดับบุคลากรกีฬาหลักสูตร <span class="pdca-course-name font-bold">---</span> ให้ได้มาตรฐานระดับนานาชาติ</p>
+                <p><strong>เป้าหมาย:</strong> สร้างและขึ้นทะเบียนบุคลากรกีฬาเข้าสู่ระบบไม่น้อยกว่า <span class="font-bold text-blue-600" id="pdcaPlanTarget">0</span> ราย</p>
+              </div>
+            </div>
+
+            <div class="border border-slate-200 rounded-xl overflow-hidden">
+              <div class="bg-emerald-50 px-5 py-3 border-b border-slate-200"><h3 class="font-bold text-emerald-800 flex items-center gap-2"><span class="w-6 h-6 bg-emerald-600 text-white rounded flex items-center justify-center text-sm">D</span> DO (การปฏิบัติ)</h3></div>
+              <div class="p-5 bg-white text-sm text-slate-700">
+                <p>ดำเนินการจัดอบรมและขึ้นทะเบียนบุคลากรเข้าสู่ระบบสำเร็จจำนวน <span class="font-bold text-emerald-600" id="pdcaDoActual">0</span> ราย (คิดเป็นอัตราความสำเร็จ 100% ตามเป้าหมาย) โดยบุคลากรทั้งหมดได้รับการบรรจุลงฐานข้อมูลและติดตามการปฏิบัติหน้าที่เรียบร้อยแล้ว</p>
+              </div>
+            </div>
+
+            <div class="border border-slate-200 rounded-xl overflow-hidden">
+              <div class="bg-amber-50 px-5 py-3 border-b border-slate-200"><h3 class="font-bold text-amber-800 flex items-center gap-2"><span class="w-6 h-6 bg-amber-500 text-white rounded flex items-center justify-center text-sm">C</span> CHECK (การตรวจสอบและประเมินผล)</h3></div>
+              <div class="p-5 bg-white text-sm text-slate-700 space-y-3">
+                <p><strong>ผลการติดตามการคงอยู่ (Retention):</strong> มีบุคลากรที่ยังคงนำความรู้ไปปฏิบัติหน้าที่จำนวน <span class="font-bold text-amber-600" id="pdcaCheckActive">0</span> ราย</p>
+                <div><strong>ข้อเสนอแนะเชิงธรรมาภิบาล / ปัญหาที่พบ:</strong><br/><ul class="list-disc pl-5 mt-1 space-y-1 text-slate-600" id="pdcaCheckFeedback"></ul></div>
+              </div>
+            </div>
+
+            <div class="border border-slate-200 rounded-xl overflow-hidden">
+              <div class="bg-purple-50 px-5 py-3 border-b border-slate-200"><h3 class="font-bold text-purple-800 flex items-center gap-2"><span class="w-6 h-6 bg-purple-600 text-white rounded flex items-center justify-center text-sm">A</span> ACT (การปรับปรุงและพัฒนา)</h3></div>
+              <div class="p-5 bg-white text-sm text-slate-700 space-y-2">
+                <p>จากผลการประเมิน กองพัฒนาบุคลากรกีฬาจะนำข้อเสนอแนะไปปรับปรุงเนื้อหาหลักสูตร <span class="pdca-course-name font-bold">---</span> ในปีงบประมาณถัดไป พร้อมทั้งสร้างมาตรการติดตามการลงพื้นที่ปฏิบัติงานของบุคลากรที่ขาดการติดต่อให้เข้มข้นยิ่งขึ้น</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- 🟢 Modal: Login OTP (Security) -->
+  <div id="loginModal" class="fixed inset-0 z-[110] hidden bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl p-8 md:p-12 w-full max-w-md text-center relative transform transition-all scale-100">
+      <button onclick="closeLoginModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+      <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4"><svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg></div>
+      <h2 class="text-2xl font-bold text-slate-800">Admin Authentication</h2>
+      <p class="text-sm text-slate-500 mt-2 mb-8">กรุณากรอกรหัส PIN 6 หลักเพื่อเข้าถึงระบบจัดการข้อมูล</p>
+      
+      <div class="flex justify-center gap-2 mb-6" id="otpContainer">
+        <input type="password" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-extrabold border-2 border-slate-300 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all">
+        <input type="password" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-extrabold border-2 border-slate-300 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all">
+        <input type="password" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-extrabold border-2 border-slate-300 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all">
+        <input type="password" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-extrabold border-2 border-slate-300 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all">
+        <input type="password" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-extrabold border-2 border-slate-300 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all">
+        <input type="password" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-extrabold border-2 border-slate-300 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all">
+      </div>
+      <p id="loginErrorMsg" class="text-red-500 text-sm font-semibold h-5 mb-4 hidden">❌ รหัส PIN ไม่ถูกต้อง</p>
     </div>
   </div>
 
@@ -334,8 +440,8 @@
             <div><h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">ไทม์ไลน์การอบรม</h3><ul class="space-y-4 relative border-l-2 border-blue-200 ml-3 pl-4" id="profileTrainings"></ul></div>
           </div>
           <div id="tab-content-duty" class="hidden space-y-5">
-            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
-              <h3 class="text-xs font-semibold text-blue-600 uppercase tracking-wider">เพิ่มประวัติการปฏิบัติหน้าที่</h3>
+            <div class="admin-only-block bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
+              <h3 class="text-xs font-semibold text-blue-600 uppercase tracking-wider">เพิ่มประวัติการปฏิบัติหน้าที่ (Admin)</h3>
               <input type="text" id="inputDutySport" placeholder="ชนิดกีฬา (เช่น ฟุตบอล)" class="w-full text-sm bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500">
               <input type="text" id="inputDutyRole" placeholder="ประเภทบุคลากร (เช่น ผู้ตัดสิน)" class="w-full text-sm bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500">
               <button id="btnSaveDuty" onclick="submitDuty()" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-2.5 rounded-xl shadow-md transition-colors">บันทึกข้อมูล</button>
@@ -343,8 +449,8 @@
             <div class="space-y-3" id="profileDuties"></div>
           </div>
           <div id="tab-content-eval" class="hidden space-y-5">
-             <div class="space-y-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                <label class="block text-xs font-semibold text-blue-600 uppercase tracking-wider">เพิ่มข้อเสนอแนะเชิงธรรมาภิบาล</label>
+             <div class="admin-only-block space-y-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <label class="block text-xs font-semibold text-blue-600 uppercase tracking-wider">เพิ่มข้อเสนอแนะเชิงธรรมาภิบาล (Admin)</label>
                 <textarea id="inputEvalFeedback" rows="4" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-sm text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500" placeholder="บันทึกข้อคิดเห็น..."></textarea>
                 <button id="btnSaveEval" onclick="submitEval()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-xl shadow-md transition-colors text-sm">บันทึกข้อเสนอแนะ</button>
              </div>
