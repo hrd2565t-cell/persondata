@@ -443,7 +443,7 @@
     </div>
   </main>
 
-  <!-- 🟢 Modal: Impact Assessment Report Builder -->
+  <!-- 🟢 Modal: Impact Assessment Report Builder (ซ่อน Rationale) -->
   <div id="proposalModal" class="fixed inset-0 z-[100] hidden bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
     <div class="min-h-screen flex items-center justify-center p-4">
       <div class="bg-white w-full max-w-4xl rounded-sm shadow-2xl relative overflow-hidden print-shadow-none">
@@ -474,7 +474,7 @@
           <div id="reportProjectOverview" class="hidden space-y-4">
              <h3 class="text-lg font-bold border-l-4 border-blue-600 pl-3 mb-3">1. ข้อมูลพื้นฐานโครงการ (Project Overview)</h3>
              <div class="bg-slate-50 p-5 rounded-xl border border-slate-200 text-sm space-y-4">
-                <div><h4 class="font-bold text-slate-800 mb-1">หลักการและเหตุผล:</h4><p id="reportRationale" class="text-slate-600 leading-relaxed"></p></div>
+                <!-- 📌 นำกล่อง 'หลักการและเหตุผล' ออกจากหน้ารายงาน เพื่อให้ดูกระชับ -->
                 <div><h4 class="font-bold text-slate-800 mb-1">วัตถุประสงค์โครงการ:</h4><p id="reportObjectives" class="text-slate-600 leading-relaxed whitespace-pre-line"></p></div>
                 <div><h4 class="font-bold text-slate-800 mb-1">กลุ่มเป้าหมายโครงการ (ตามแผน):</h4><div id="reportTargetGroups" class="flex flex-wrap gap-2 mt-2"></div></div>
              </div>
