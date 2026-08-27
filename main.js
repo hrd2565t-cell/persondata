@@ -44,7 +44,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('singleFullName').addEventListener('blur', function() { if(this.value) this.value = this.value.trim().replace(/\s+/g, ' '); });
 });
 
-// 📌 ฟังก์ชันแจ้งเตือนแบบ Toast
 window.showToast = function(message) {
    const toast = document.getElementById('toastNotification');
    document.getElementById('toastMessage').textContent = message;
@@ -52,7 +51,6 @@ window.showToast = function(message) {
    setTimeout(() => { toast.classList.add('translate-y-20', 'opacity-0'); }, 3000);
 }
 
-// 📌 ฟังก์ชันเปลี่ยนสถานะในตาราง (Inline Edit)
 window.updatePersonnelStatus = async function(uid, newStatus, selectElement) {
   selectElement.disabled = true;
   selectElement.classList.add('opacity-50', 'animate-pulse');
@@ -74,7 +72,6 @@ window.updatePersonnelStatus = async function(uid, newStatus, selectElement) {
       
       showToast('บันทึกสถานะเรียบร้อยแล้ว');
       
-      // อัปเดตสถิติหลังบ้านแบบเงียบๆ (Silent Sync)
       fetch(API_URL + '?action=getData').then(res => res.json()).then(json => {
           if (json.status === 'success') {
              globalFiltersMaster = json.data.filters;
@@ -88,7 +85,6 @@ window.updatePersonnelStatus = async function(uid, newStatus, selectElement) {
   selectElement.disabled = false;
   selectElement.classList.remove('opacity-50', 'animate-pulse');
 }
-
 
 function populateProvinces() {
   const select = document.getElementById('srProvince');
@@ -426,7 +422,8 @@ window.renderReportData = function() {
   if(cachedProjectDetails && cachedProjectDetails[courseName]) {
      pdOverview.classList.remove('hidden');
      const d = cachedProjectDetails[courseName];
-     document.getElementById('reportRationale').textContent = d.rationale || '-';
+     
+     // 📌 ถอด 'หลักการและเหตุผล' ออกจากหน้ารายงานตามคำขอ
      document.getElementById('reportObjectives').textContent = d.objectives || '-';
      
      if(d.targets) {
@@ -519,7 +516,6 @@ function renderTablePage() {
     const initials = item.fullName.substring(0, 2).toUpperCase() || 'U';
     const isResigned = item.status === 'พ้นสภาพ';
     
-    // 📌 สร้างป้ายสถานะแบบ Dropdown สำหรับ Admin
     let statusBadge = '';
     if (isAdmin) {
       statusBadge = `<select onchange="updatePersonnelStatus('${item.uid}', this.value, this)" class="text-xs font-bold bg-white border ${isResigned ? 'border-slate-300 text-slate-500' : 'border-amber-300 text-amber-600'} rounded-full px-2 py-1.5 outline-none cursor-pointer shadow-sm text-center w-[110px] mx-auto block transition-colors">
