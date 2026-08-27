@@ -1,7 +1,7 @@
 const API_URL = 'https://script.google.com/macros/s/AKfycbw--515Ocaod1h_wkMMc8dfiUumw4XD7anSkhWcM4coEXQJAVjGSKORwIMGLgq9t6Fi/exec';
 
 let cachedPersonnelData = [];
-let cachedProjectDetails = {}; // 📌 ตัวแปรเก็บข้อมูลโครงการทั้งหมด
+let cachedProjectDetails = {}; 
 let currentActiveUid = null;
 let globalFiltersMaster = null; 
 let currentFilteredData = [];
@@ -50,18 +50,20 @@ function populateProvinces() {
   select.innerHTML = '<option value="">-- เลือกจังหวัด --</option>' + provinces.map(p => `<option value="${p}">${p}</option>`).join('');
 }
 
-// 📌 ฟังก์ชันโหลดข้อมูลโปรเจกต์เดิมมาแสดงเมื่อแอดมินเลือก Dropdown
 window.loadProjectData = function(course) {
   const form = document.getElementById('pdFormContainer');
   if(!course) { form.classList.add('hidden'); return; }
   
   form.classList.remove('hidden');
   
-  // รีเซ็ตฟอร์ม
   document.getElementById('pdRationale').value = '';
   document.getElementById('pdObjectives').value = '';
   document.getElementById('pdExpected').value = '';
-  document.querySelectorAll('.pd-target-cb').forEach(cb => cb.checked = false);
+  document.querySelectorAll('.pd-target-cb').forEach(cb => {
+      cb.checked = false;
+      let numInput = cb.parentElement.nextElementSibling;
+      if(numInput) { numInput.value = ''; numInput.classList.add('hidden'); }
+  });
 
   if(cachedProjectDetails && cachedProjectDetails[course]) {
     const d = cachedProjectDetails[course];
@@ -69,15 +71,25 @@ window.loadProjectData = function(course) {
     document.getElementById('pdObjectives').value = d.objectives || '';
     document.getElementById('pdExpected').value = d.expected || '';
     if(d.targets) {
-      const targets = d.targets.split(', ');
-      document.querySelectorAll('.pd-target-cb').forEach(cb => {
-        if(targets.includes(cb.value)) cb.checked = true;
+      const targets = d.targets.includes('||') ? d.targets.split('||') : d.targets.split(',').map(t=>t.trim()+'|0');
+      targets.forEach(t => {
+        let [tName, tCount] = t.split('|');
+        document.querySelectorAll('.pd-target-cb').forEach(cb => {
+          if(cb.value === tName) {
+            cb.checked = true;
+            let numInput = cb.parentElement.nextElementSibling;
+            if(numInput) {
+              numInput.value = parseInt(tCount) > 0 ? tCount : '';
+              numInput.classList.remove('hidden');
+            }
+          }
+        });
       });
     }
   }
 }
 
-// 📌 ฟังก์ชันบันทึก Project Details เข้าฐานข้อมูล
+// 📌 ฟังก์ชันบันทึกข้อมูลโครงการพร้อมจำนวนเป้าหมาย
 window.submitProjectDetails = async function() {
   const course = document.getElementById('pdCourse').value;
   const rationale = document.getElementById('pdRationale').value.trim();
@@ -87,13 +99,18 @@ window.submitProjectDetails = async function() {
   if(!course || !expected) return alert('⚠️ กรุณาเลือกหลักสูตรและระบุผลที่คาดว่าจะได้รับ');
   
   let targets = [];
-  document.querySelectorAll('.pd-target-cb:checked').forEach(cb => targets.push(cb.value));
+  document.querySelectorAll('.pd-target-cb:checked').forEach(cb => {
+    let numInput = cb.parentElement.nextElementSibling;
+    let count = numInput && numInput.value ? parseInt(numInput.value) : 0;
+    targets.push(`${cb.value}|${count}`);
+  });
+  const targetString = targets.join('||');
   
   const btn = document.getElementById('btnSaveProjectDetails');
   btn.textContent = 'กำลังบันทึก...'; btn.disabled = true;
 
   try {
-    const payload = { action: 'saveProjectDetails', course: course, rationale: rationale, objectives: objectives, expected: expected, targets: targets.join(', ') };
+    const payload = { action: 'saveProjectDetails', course: course, rationale: rationale, objectives: objectives, expected: expected, targets: targetString };
     const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
     const result = await response.json();
     if(result.status === 'success') { alert('✅ ' + result.message); fetchData(); } else { alert('❌ ' + result.message); }
@@ -251,7 +268,7 @@ async function fetchData() {
       cachedPersonnelData = result.data.list;
       if (!globalFiltersMaster) { globalFiltersMaster = result.data.filters; updateDropdownUI(); }
       if(result.data.settings) { globalSettings = result.data.settings; document.getElementById('adminActiveYear').value = globalSettings.activeReportYear; document.getElementById('srActiveYear').value = globalSettings.activeReportYear; }
-      if(result.data.projectDetails) { cachedProjectDetails = result.data.projectDetails; } // 📌 ดึง Project Details
+      if(result.data.projectDetails) { cachedProjectDetails = result.data.projectDetails; } 
       updateDatalists(); updateSelfReportDatalist(); renderDashboard(result.data.stats); drawCharts(result.data.filters.years, result.data.filters.groups); currentFilteredData = result.data.list; currentPage = 1; updateSmartSummary(course, year, currentFilteredData.length); renderTablePage();
     } else { showErrorState(result.message); }
   } catch (error) { showErrorState('การเชื่อมต่อกับฐานข้อมูลขัดข้อง'); }
@@ -347,6 +364,7 @@ window.openProposalReport = function(encodedCourseName, btnId) {
   }, 400); 
 }
 
+// 📌 ฟังก์ชันคำนวณและแสดงผลในหน้ารายงาน (รองรับเป้าหมายและวิเคราะห์ %)
 window.renderReportData = function() {
   if(!currentReportCourseBase64) return;
   const courseName = base64ToUtf8(currentReportCourseBase64);
@@ -357,16 +375,30 @@ window.renderReportData = function() {
 
   document.getElementById('reportCourseName').textContent = courseName + (selectedYear === 'all' ? ' (ภาพรวมทั้งหมด)' : ` (รุ่นปี ${selectedYear})`);
 
-  // 📌 แทรก Project Details เข้าสู่ส่วนที่ 1 ของรายงาน A4
+  // ดึงเป้าหมายจาก Project Details
+  let projectTargets = {};
+  let totalTargetCount = 0;
+  
   const pdOverview = document.getElementById('reportProjectOverview');
   if(cachedProjectDetails && cachedProjectDetails[courseName]) {
      pdOverview.classList.remove('hidden');
      const d = cachedProjectDetails[courseName];
      document.getElementById('reportRationale').textContent = d.rationale || '-';
      document.getElementById('reportObjectives').textContent = d.objectives || '-';
+     
      if(d.targets) {
-        document.getElementById('reportTargetGroups').innerHTML = d.targets.split(', ').map(t => `<span class="bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1 rounded-full text-xs font-semibold">${t}</span>`).join('');
+        let targetList = d.targets.includes('||') ? d.targets.split('||') : d.targets.split(',').map(t=>t.trim()+'|0');
+        document.getElementById('reportTargetGroups').innerHTML = targetList.map(t => {
+            let [tName, tCount] = t.split('|');
+            let countBadge = parseInt(tCount) > 0 ? `<span class="bg-blue-100 text-blue-800 ml-1 px-1.5 py-0.5 rounded text-[10px]">เป้า: ${tCount} คน</span>` : '';
+            if(parseInt(tCount) > 0) {
+              projectTargets[tName] = parseInt(tCount);
+              totalTargetCount += parseInt(tCount);
+            }
+            return `<span class="bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1 rounded-full text-xs font-semibold flex items-center">${tName} ${countBadge}</span>`;
+        }).join('');
      } else { document.getElementById('reportTargetGroups').innerHTML = '-'; }
+     
      document.getElementById('titleStatSec').textContent = "2. ข้อมูลสถิติและกลุ่มเป้าหมาย (Target Group Breakdown)";
      document.getElementById('titleImpSec').textContent = "3. การติดตามการนำความรู้ไปปฏิบัติหน้าที่ (Implementation Tracking)";
      document.getElementById('titleExecSec').textContent = "4. บทสรุปผู้บริหารและการวิเคราะห์ภาพรวม (Executive Summary)";
@@ -384,8 +416,38 @@ window.renderReportData = function() {
   document.getElementById('reportActive').textContent = activePeople; 
   document.getElementById('reportRetention').textContent = retentionPercent;
 
-  let groupStats = {}; courseUsers.forEach(u => { let g = u.group || 'ไม่ระบุกลุ่มหน่วยงาน'; if(!groupStats[g]) groupStats[g] = { total: 0, active: 0 }; groupStats[g].total++; if(u.status !== 'พ้นสภาพ') groupStats[g].active++; });
-  let groupHtml = Object.entries(groupStats).sort((a,b) => b[1].total - a[1].total).map(([gName, stat]) => { let ret = stat.total > 0 ? Math.round((stat.active/stat.total)*100) : 0; return `<div class="flex justify-between items-center py-2.5 border-b border-slate-100 last:border-0"><span class="text-sm font-semibold text-slate-700 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-blue-500"></span> ${gName}</span><span class="text-sm"><span class="font-bold text-slate-800">${stat.total}</span> คน <span class="text-[11px] font-bold text-emerald-600 ml-2 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-full">ทำงานต่อ ${stat.active} (${ret}%)</span></span></div>`; }).join('');
+  let groupStats = {}; 
+  courseUsers.forEach(u => { 
+    let g = u.group || 'ไม่ระบุกลุ่มหน่วยงาน'; 
+    if(!groupStats[g]) groupStats[g] = { total: 0, active: 0 }; 
+    groupStats[g].total++; 
+    if(u.status !== 'พ้นสภาพ') groupStats[g].active++; 
+  });
+  
+  // 📌 นำสถิติจริงมาชนกับเป้าหมายที่ตั้งไว้
+  let allGroupNames = new Set([...Object.keys(groupStats), ...Object.keys(projectTargets)]);
+  let groupHtml = Array.from(allGroupNames).map(gName => {
+      let stat = groupStats[gName] || { total: 0, active: 0 };
+      let target = projectTargets[gName] || 0;
+      let ret = stat.total > 0 ? Math.round((stat.active/stat.total)*100) : 0;
+      
+      let targetBadge = target > 0 ? `<span class="text-xs text-slate-500 mr-3">เป้าหมาย: <span class="font-bold text-slate-700">${target}</span></span>` : '';
+      let actualBadge = `<span class="font-bold text-slate-800">${stat.total}</span> คน`;
+      let achievePercent = target > 0 ? Math.round((stat.total/target)*100) : 0;
+      let achieveBadge = target > 0 ? `<span class="text-[10px] ml-2 ${achievePercent >= 100 ? 'text-emerald-600' : 'text-amber-600'}">(${achievePercent}% ของเป้า)</span>` : '';
+
+      return `
+      <div class="flex justify-between items-center py-2.5 border-b border-slate-100 last:border-0">
+          <span class="text-sm font-semibold text-slate-700 flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-blue-500"></span> ${gName}
+          </span>
+          <div class="text-sm flex items-center">
+              ${targetBadge}
+              <span>เข้าร่วมจริง: ${actualBadge} ${achieveBadge}</span>
+              <span class="text-[11px] font-bold text-emerald-600 ml-3 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-full">ทำงานต่อ ${stat.active} (${ret}%)</span>
+          </div>
+      </div>`;
+  }).join('');
   document.getElementById('reportGroupBreakdown').innerHTML = groupHtml || '<p class="text-sm text-slate-400">ไม่มีข้อมูลกลุ่มเป้าหมาย</p>';
 
   let roleStats = {}; let sportStats = {}; let recentEvents = [];
@@ -398,15 +460,18 @@ window.renderReportData = function() {
 
   let feedbacks = []; courseUsers.forEach(u => { if (u.evals) u.evals.forEach(e => feedbacks.push(e.feedback)); }); let recentFeedbacks = feedbacks.slice(-3);
   
-  // 📌 อัปเกรดบทสรุปผู้บริหารโดยใช้เป้าหมายที่คาดหวังมาเปรียบเทียบ
-  let expectedText = "";
-  if(cachedProjectDetails && cachedProjectDetails[courseName] && cachedProjectDetails[courseName].expected) {
-     expectedText = `โครงการตั้งเป้าหมายผลลัพธ์ไว้ที่ <u>"${cachedProjectDetails[courseName].expected}"</u> ซึ่ง`;
-  }
-
+  // 📌 แต่งประโยคสรุปผู้บริหารแบบ AI
   let summaryText = `จากข้อมูลในระบบทะเบียนบุคลากรกีฬาพบว่า ผู้ผ่านการอบรมหลักสูตร <span class="font-bold text-blue-600">${courseName}</span> `;
   if(selectedYear !== 'all') summaryText += `(เฉพาะผู้ที่อบรมในปี <span class="font-bold text-blue-600">${selectedYear}</span>) `;
-  summaryText += `${expectedText} จากหลักฐานเชิงประจักษ์พบว่ามีอัตราการปฏิบัติหน้าที่คงอยู่ในระบบภาพรวมที่ <span class="font-bold text-emerald-600">${retentionPercent}</span> `;
+  
+  if(totalTargetCount > 0) {
+      let achievePct = Math.round((totalPeople / totalTargetCount) * 100);
+      summaryText += `มีผู้เข้าร่วมจริง <span class="font-bold text-blue-600">${totalPeople}</span> คน (คิดเป็น ${achievePct}% จากเป้าหมายรวม ${totalTargetCount} คน) `;
+  } else {
+      summaryText += `มีผู้เข้าร่วมจริง <span class="font-bold text-blue-600">${totalPeople}</span> คน `;
+  }
+
+  summaryText += `และมีอัตราการปฏิบัติหน้าที่คงอยู่ในระบบภาพรวมที่ <span class="font-bold text-emerald-600">${retentionPercent}</span> `;
   
   if(sortedRoles.length > 0) { summaryText += `โดยส่วนใหญ่นำความรู้ไปประยุกต์ใช้ในหน้าที่ <span class="font-bold text-blue-600">${topRole}</span> เป็นหลัก และมีการกระจายตัวลงพื้นที่ปฏิบัติงานในชนิดกีฬา <span class="font-bold text-blue-600">${topSport}</span> มากที่สุด `; } else { summaryText += `อย่างไรก็ตาม ขณะนี้ยังอยู่ในช่วงการติดตามเก็บสถิติการลงพื้นที่ปฏิบัติงานจริงของกลุ่มเป้าหมายเพื่อตอบชี้วัดของโครงการต่อไป `; }
   summaryText += recentFeedbacks.length > 0 ? `นอกจากนี้ ข้อคิดเห็นและข้อเสนอแนะเชิงธรรมาภิบาลจากผู้ใช้งานระบบได้ระบุประเด็นที่น่าสนใจดังนี้:` : `(ยังไม่มีการประเมินหรือข้อเสนอแนะเพิ่มเติมในขณะนี้)`;
