@@ -16,16 +16,17 @@ let isAdmin = false;
 let barChartObj = null;
 let donutChartObj = null;
 
-// ข้อมูลสำหรับหน้า Self Report
 let srSelectedUser = null; 
-let globalSettings = { activeReportYear: '2569' }; // 📌 ตัวแปรเก็บค่าปีจาก Settings
+let globalSettings = { activeReportYear: '2569' }; 
 const provinces = ["กรุงเทพมหานคร","กระบี่","กาญจนบุรี","กาฬสินธุ์","กำแพงเพชร","ขอนแก่น","จันทบุรี","ฉะเชิงเทรา","ชลบุรี","ชัยนาท","ชัยภูมิ","ชุมพร","เชียงราย","เชียงใหม่","ตรัง","ตราด","ตาก","นครนายก","นครปฐม","นครพนม","นครราชสีมา","นครศรีธรรมราช","นครสวรรค์","นนทบุรี","นราธิวาส","น่าน","บึงกาฬ","บุรีรัมย์","ปทุมธานี","ประจวบคีรีขันธ์","ปราจีนบุรี","ปัตตานี","พระนครศรีอยุธยา","พะเยา","พังงา","พัทลุง","พิจิตร","พิษณุโลก","เพชรบุรี","เพชรบูรณ์","แพร่","ภูเก็ต","มหาสารคาม","มุกดาหาร","แม่ฮ่องสอน","ยโสธร","ยะลา","ร้อยเอ็ด","ระนอง","ระยอง","ราชบุรี","ลพบุรี","ลำปาง","ลำพูน","เลย","ศรีสะเกษ","สกลนคร","สงขลา","สตูล","สมุทรปราการ","สมุทรสงคราม","สมุทรสาคร","สระแก้ว","สระบุรี","สิงห์บุรี","สุโขทัย","สุพรรณบุรี","สุราษฎร์ธานี","สุรินทร์","หนองคาย","หนองบัวลำภู","อ่างทอง","อำนาจเจริญ","อุดรธานี","อุตรดิตถ์","อุทัยธานี","อุบลราชธานี"];
+
+function utf8ToBase64(str) { return btoa(unescape(encodeURIComponent(str))); }
+function base64ToUtf8(str) { return decodeURIComponent(escape(atob(str))); }
 
 document.addEventListener('DOMContentLoaded', () => {
   fetchData();
   setupDragAndDrop();
   setupOTPInputs();
-  populateProvinces();
   
   let delayTimer;
   const triggerSearch = () => { clearTimeout(delayTimer); showLoadingState(); delayTimer = setTimeout(fetchData, 500); };
@@ -35,17 +36,9 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('filterYear').addEventListener('change', () => { handleCascadingFilter('year'); triggerSearch(); });
   document.getElementById('filterGroup').addEventListener('change', () => { triggerSearch(); });
   document.getElementById('excelUpload').addEventListener('change', (e) => processExcelFile(e.target.files[0], e.target));
-  
   document.getElementById('singleFullName').addEventListener('blur', function() { if(this.value) this.value = this.value.trim().replace(/\s+/g, ' '); });
 });
 
-function populateProvinces() {
-  const select = document.getElementById('srProvince');
-  if(!select) return;
-  select.innerHTML = '<option value="">-- เลือกจังหวัด --</option>' + provinces.map(p => `<option value="${p}">${p}</option>`).join('');
-}
-
-// 📌 ฟังก์ชันเซฟการตั้งค่าของ Admin
 window.saveAdminSettings = async function() {
   const yearInput = document.getElementById('adminActiveYear').value.trim();
   if(!yearInput) return alert('⚠️ กรุณาระบุปี');
@@ -60,152 +53,244 @@ window.saveAdminSettings = async function() {
     if(result.status === 'success') {
       alert('✅ ' + result.message);
       globalSettings.activeReportYear = yearInput;
-      document.getElementById('srActiveYear').value = yearInput; // อัปเดตในฟอร์มผู้ใช้ทันที
-    } else {
-      alert('❌ ข้อผิดพลาด: ' + result.message);
-    }
+      document.getElementById('srActiveYear').value = yearInput; 
+    } else { alert('❌ ข้อผิดพลาด: ' + result.message); }
   } catch(e) { alert('❌ การเชื่อมต่อล้มเหลว'); }
   
   btn.textContent = 'บันทึก'; btn.disabled = false;
 }
 
-// ==========================================
-// 📝 ระบบรายงานการปฏิบัติหน้าที่ (Self Report)
-// ==========================================
 function updateSelfReportDatalist() {
   const dl = document.getElementById('dl-all-users');
-  if(dl) {
-    dl.innerHTML = cachedPersonnelData.map(p => `<option value="${p.fullName} (${p.uid})">`).join('');
-  }
+  if(dl) { dl.innerHTML = cachedPersonnelData.map(p => `<option value="${p.fullName} (${p.uid})">`).join(''); }
 }
 
+// 📌 ฟังก์ชันจัดการหลักสูตรและสร้างการ์ดอัตโนมัติ
 window.handleSelfReportUserSelect = function() {
   const inputVal = document.getElementById('srSearchName').value;
   const warnText = document.getElementById('srUserWarn');
   const formContainer = document.getElementById('srFormContainer');
+  const dynamicForms = document.getElementById('srDynamicForms');
+  const activeYear = globalSettings.activeReportYear;
   
   const match = inputVal.match(/\((USR-\d{4}-\d{4})\)/);
   if(match) {
     const uid = match[1];
     srSelectedUser = cachedPersonnelData.find(p => p.uid === uid);
     if(srSelectedUser) {
+      // 1. กรองเฉพาะหลักสูตรในปีที่กำหนด
+      const filteredCourses = (srSelectedUser.trainings || []).filter(t => String(t.year) === String(activeYear));
+      
+      if(filteredCourses.length === 0) {
+        warnText.textContent = `⚠️ ท่านไม่มีประวัติการอบรมในปีงบประมาณ ${activeYear} จึงไม่ต้องรายงานผลในรอบนี้`;
+        warnText.classList.remove('hidden');
+        formContainer.classList.add('hidden');
+        return;
+      }
+      
       warnText.classList.add('hidden');
       formContainer.classList.remove('hidden');
+
+      // 2. สร้างโครงสร้าง Dropdown จังหวัดไว้รอ
+      const provOptions = '<option value="">-- เลือกจังหวัด --</option>' + provinces.map(p => `<option value="${p}">${p}</option>`).join('');
       
-      const courseSelect = document.getElementById('srCourse');
-      if(srSelectedUser.trainings && srSelectedUser.trainings.length > 0) {
-        courseSelect.innerHTML = '<option value="">-- กรุณาเลือกหลักสูตรที่ท่านประยุกต์ใช้ความรู้ --</option>' + 
-          srSelectedUser.trainings.map(t => `<option value="${t.course}">${t.course} (ปี ${t.year})</option>`).join('');
-      } else {
-        courseSelect.innerHTML = '<option value="">-- ไม่พบประวัติการอบรม --</option>';
-      }
+      // 3. ปั้มการ์ดออกมาตามจำนวนหลักสูตร (Dynamic Form Loop)
+      let html = '';
+      filteredCourses.forEach((c, i) => {
+        let copyBtn = i > 0 ? `
+          <div class="flex items-center gap-2 mb-4 p-3 bg-blue-50 border border-blue-200 rounded-xl">
+            <input type="checkbox" id="copyCheck_${i}" onchange="copyFormData(${i})" class="w-4 h-4 text-blue-600 rounded cursor-pointer">
+            <label for="copyCheck_${i}" class="text-sm font-bold text-blue-800 cursor-pointer">📋 คัดลอกข้อมูลสถานที่และเวลาจากหลักสูตรด้านบน</label>
+          </div>` : '';
+
+        html += `
+          <div class="sr-card-item bg-white border-2 border-slate-100 rounded-2xl p-6 md:p-8 relative shadow-sm">
+            <input type="hidden" id="srCourse_${i}" value="${c.course}">
+            <div class="absolute top-0 right-0 bg-gradient-to-r from-blue-600 to-blue-800 text-white px-4 py-1.5 rounded-bl-2xl rounded-tr-2xl text-xs font-bold shadow-md">
+              หลักสูตรที่ ${i + 1} / ${filteredCourses.length}
+            </div>
+            <h3 class="text-lg font-extrabold text-slate-800 mb-2 border-l-4 border-blue-500 pl-3">หลักสูตร: <span class="text-blue-600">${c.course}</span></h3>
+            <p class="text-xs text-slate-500 mb-6 pl-4">กรุณากรอกรายละเอียดการนำความรู้ไปใช้ประโยชน์</p>
+
+            ${copyBtn}
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+              <div><label class="block text-xs font-bold text-slate-500 mb-1.5">รูปแบบงาน / ระดับการแข่งขัน <span class="text-red-500">*</span></label>
+                <select id="srEventType_${i}" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500"><option value="">-- เลือกรูปแบบงาน --</option><option value="รายการแข่งขันระดับจังหวัด">รายการแข่งขันระดับจังหวัด</option><option value="รายการแข่งขันระดับชาติ">รายการแข่งขันระดับชาติ</option><option value="รายการแข่งขันระดับนานาชาติ">รายการแข่งขันระดับนานาชาติ</option><option value="รายการอบรมสัมมนา">รายการอบรมสัมมนา</option><option value="ปฏิบัติงานบริหารจัดการทั่วไป">ปฏิบัติงานบริหารจัดการทั่วไป</option><option value="อื่นๆ">อื่นๆ</option></select>
+              </div>
+              <div><label class="block text-xs font-bold text-slate-500 mb-1.5">ชื่องาน / รายการที่ไปปฏิบัติหน้าที่ <span class="text-red-500">*</span></label>
+                <input type="text" id="srEventName_${i}" placeholder="เช่น กีฬาแห่งชาติ ครั้งที่ 49" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500">
+              </div>
+              <div><label class="block text-xs font-bold text-slate-500 mb-1.5">ตำแหน่งที่ท่านปฏิบัติหน้าที่ <span class="text-red-500">*</span></label>
+                <select id="srRole_${i}" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500"><option value="">-- เลือกตำแหน่ง --</option><option value="ผู้ตัดสิน">ผู้ตัดสิน</option><option value="ผู้ฝึกสอน">ผู้ฝึกสอน</option><option value="วิทยากร">วิทยากร</option><option value="ประธานจัดการแข่งขัน">ประธานจัดการแข่งขัน</option><option value="ผู้จัดการทีม">ผู้จัดการทีม</option><option value="เจ้าหน้าที่เทคนิค">เจ้าหน้าที่เทคนิค</option><option value="ผู้ดูแลระบบ/ประสานงาน">ผู้ดูแลระบบ/ประสานงาน</option><option value="อื่นๆ">อื่นๆ</option></select>
+              </div>
+              <div><label class="block text-xs font-bold text-slate-500 mb-1.5">ชนิดกีฬา <span class="text-red-500">*</span></label>
+                <input type="text" id="srSport_${i}" placeholder="เช่น ฟุตบอล, มวยไทย (หากไม่มีให้ใส่ -)" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500">
+              </div>
+              <div><label class="block text-xs font-bold text-slate-500 mb-1.5">วันที่เริ่มต้นปฏิบัติงาน <span class="text-red-500">*</span></label>
+                <input type="date" id="srStartDate_${i}" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+              </div>
+              <div><label class="block text-xs font-bold text-slate-500 mb-1.5">วันที่สิ้นสุดการปฏิบัติงาน <span class="text-red-500">*</span></label>
+                <input type="date" id="srEndDate_${i}" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+              </div>
+              <div><label class="block text-xs font-bold text-slate-500 mb-1.5">สถานที่ (จังหวัด) <span class="text-red-500">*</span></label>
+                <select id="srProvince_${i}" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500">${provOptions}</select>
+              </div>
+              <div><label class="block text-xs font-bold text-slate-500 mb-1.5">สถานที่จัดงาน (รายละเอียด) <span class="text-red-500">*</span></label>
+                <input type="text" id="srLocation_${i}" placeholder="เช่น สนามกีฬาจังหวัด..." class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500">
+              </div>
+            </div>
+
+            <div class="space-y-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-500 mb-2">อธิบายความรู้ที่ท่านได้นำไปประยุกต์ใช้ <span class="text-red-500">*</span></label>
+                <textarea id="srKnowledge_${i}" rows="3" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-4 outline-none focus:ring-2 focus:ring-blue-500 resize-none" placeholder="อธิบายสั้นๆ..."></textarea>
+              </div>
+              <div class="bg-blue-50/50 border border-blue-100 p-4 rounded-xl">
+                <label class="block text-xs font-bold text-slate-700 mb-2">แนบรูปภาพหลักฐานประกอบ (ถ้ามี / ไม่เกิน 5MB ต่อภาพ)</label>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div><input type="file" id="srFile1_${i}" accept="image/jpeg, image/png, image/jpg" class="w-full text-xs text-slate-500 file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 bg-white border border-slate-200 rounded p-1 cursor-pointer"></div>
+                  <div><input type="file" id="srFile2_${i}" accept="image/jpeg, image/png, image/jpg" class="w-full text-xs text-slate-500 file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 bg-white border border-slate-200 rounded p-1 cursor-pointer"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+      dynamicForms.innerHTML = html;
       return;
     }
   }
   
   srSelectedUser = null;
+  warnText.textContent = '⚠️ ไม่พบประวัติการอบรมของชื่อนี้ กรุณาตรวจสอบการสะกดคำ';
   warnText.classList.remove('hidden');
   formContainer.classList.add('hidden');
+}
+
+// 📌 ฟังก์ชันคัดลอกข้อมูลจากหลักสูตรด้านบน (ลดการพิมพ์ซ้ำ)
+window.copyFormData = function(idx) {
+  const isChecked = document.getElementById(`copyCheck_${idx}`).checked;
+  if (isChecked) {
+    const prev = idx - 1;
+    document.getElementById(`srEventType_${idx}`).value = document.getElementById(`srEventType_${prev}`).value;
+    document.getElementById(`srEventName_${idx}`).value = document.getElementById(`srEventName_${prev}`).value;
+    document.getElementById(`srRole_${idx}`).value = document.getElementById(`srRole_${prev}`).value;
+    document.getElementById(`srSport_${idx}`).value = document.getElementById(`srSport_${prev}`).value;
+    document.getElementById(`srStartDate_${idx}`).value = document.getElementById(`srStartDate_${prev}`).value;
+    document.getElementById(`srEndDate_${idx}`).value = document.getElementById(`srEndDate_${prev}`).value;
+    document.getElementById(`srProvince_${idx}`).value = document.getElementById(`srProvince_${prev}`).value;
+    document.getElementById(`srLocation_${idx}`).value = document.getElementById(`srLocation_${prev}`).value;
+  }
 }
 
 function getBase64(file) {
   return new Promise((resolve, reject) => {
     if(file.size > 5 * 1024 * 1024) { reject(new Error('ขนาดไฟล์เกิน 5MB')); return; }
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
+    const reader = new FileReader(); reader.readAsDataURL(file);
     reader.onload = () => resolve(reader.result.split(',')[1]); 
     reader.onerror = error => reject(error);
   });
 }
 
+// 📌 ฟังก์ชันส่งข้อมูลแบบลูป ป้องกันเว็บค้าง
 window.submitSelfReport = async function() {
-  if(!srSelectedUser) return alert('⚠️ กรุณาค้นหาและเลือกชื่อของท่านก่อน');
-  
-  const course = document.getElementById('srCourse').value;
-  const eventType = document.getElementById('srEventType').value;
-  const eventName = document.getElementById('srEventName').value.trim();
-  const role = document.getElementById('srRole').value;
-  const sport = document.getElementById('srSport').value.trim();
-  const startDate = document.getElementById('srStartDate').value;
-  const endDate = document.getElementById('srEndDate').value;
-  const province = document.getElementById('srProvince').value;
-  const location = document.getElementById('srLocation').value.trim();
-  const knowledge = document.getElementById('srKnowledge').value.trim();
-  const activeYear = document.getElementById('srActiveYear').value; // 📌 ดึงปีที่ถูกล็อกไว้มาใช้
-  
-  if(!course || !eventType || !eventName || !role || !sport || !startDate || !endDate || !province || !location || !knowledge) {
-    return alert('⚠️ กรุณากรอกข้อมูลที่มีเครื่องหมายดอกจัน (*) ให้ครบถ้วน');
+  const activeYear = document.getElementById('srActiveYear').value;
+  const cards = document.querySelectorAll('.sr-card-item');
+  let allReports = [];
+
+  // ขั้นตอนที่ 1: ตรวจสอบความครบถ้วนของข้อมูลทุกใบก่อนส่ง
+  for (let i = 0; i < cards.length; i++) {
+    const course = document.getElementById(`srCourse_${i}`).value;
+    const eventType = document.getElementById(`srEventType_${i}`).value;
+    const eventName = document.getElementById(`srEventName_${i}`).value.trim();
+    const role = document.getElementById(`srRole_${i}`).value;
+    const sport = document.getElementById(`srSport_${i}`).value.trim();
+    const startDate = document.getElementById(`srStartDate_${i}`).value;
+    const endDate = document.getElementById(`srEndDate_${i}`).value;
+    const province = document.getElementById(`srProvince_${i}`).value;
+    const location = document.getElementById(`srLocation_${i}`).value.trim();
+    const knowledge = document.getElementById(`srKnowledge_${i}`).value.trim();
+
+    if(!eventType || !eventName || !role || !sport || !startDate || !endDate || !province || !location || !knowledge) {
+      return alert(`⚠️ กรุณากรอกข้อมูลในหลักสูตรที่ ${i+1} ให้ครบถ้วน`);
+    }
+
+    const file1 = document.getElementById(`srFile1_${i}`).files[0];
+    const file2 = document.getElementById(`srFile2_${i}`).files[0];
+    
+    allReports.push({ course, eventType, eventName, role, sport, startDate, endDate, province, location, knowledge, file1, file2 });
   }
 
-  const file1 = document.getElementById('srFile1').files[0];
-  const file2 = document.getElementById('srFile2').files[0];
-  let file1Data = null, file1Name = '', file1Mime = '';
-  let file2Data = null, file2Name = '', file2Mime = '';
-
-  const btn = document.getElementById('btnSubmitSelfReport');
-  const oriBtnText = btn.innerHTML;
-  btn.innerHTML = `<svg class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> กำลังอัปโหลดข้อมูลและรูปภาพ...`;
-  btn.disabled = true;
+  // ขั้นตอนที่ 2: เริ่มเข้าสู่โหมดอัปโหลดแบบลูป
+  document.getElementById('srLoadingOverlay').classList.remove('hidden');
 
   try {
-    if(file1) { file1Data = await getBase64(file1); file1Name = file1.name; file1Mime = file1.type; }
-    if(file2) { file2Data = await getBase64(file2); file2Name = file2.name; file2Mime = file2.type; }
+    for (let i = 0; i < allReports.length; i++) {
+      document.getElementById('srLoadingTitle').textContent = `กำลังอัปโหลดข้อมูลหลักสูตรที่ ${i+1} / ${allReports.length}`;
+      let r = allReports[i];
 
-    const payload = {
-      action: 'saveSelfReport',
-      uid: srSelectedUser.uid,
-      fullName: srSelectedUser.fullName,
-      course: course,
-      eventType: eventType,
-      eventName: eventName,
-      role: role,
-      sport: sport,
-      startDate: startDate,
-      endDate: endDate,
-      year: activeYear, // 📌 ส่งปีที่ถูกตั้งค่าโดยแอดมินไปบันทึก
-      province: province,
-      location: location,
-      knowledge: knowledge,
-      file1Data: file1Data, file1Name: file1Name, file1Mime: file1Mime,
-      file2Data: file2Data, file2Name: file2Name, file2Mime: file2Mime
-    };
+      let file1Data = null, file1Name = '', file1Mime = '';
+      let file2Data = null, file2Name = '', file2Mime = '';
 
-    const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
-    const result = await response.json();
-    
-    if(result.status === 'success') {
-      alert('✅ ' + result.message);
-      document.getElementById('srSearchName').value = '';
-      document.getElementById('srFormContainer').classList.add('hidden');
-      srSelectedUser = null;
-      document.getElementById('srEventName').value = '';
-      document.getElementById('srSport').value = '';
-      document.getElementById('srStartDate').value = '';
-      document.getElementById('srEndDate').value = '';
-      document.getElementById('srLocation').value = '';
-      document.getElementById('srKnowledge').value = '';
-      document.getElementById('srFile1').value = '';
-      document.getElementById('srFile2').value = '';
-      fetchData(); 
-    } else {
-      alert('❌ ข้อผิดพลาด: ' + result.message);
+      if(r.file1) { file1Data = await getBase64(r.file1); file1Name = r.file1.name; file1Mime = r.file1.type; }
+      if(r.file2) { file2Data = await getBase64(r.file2); file2Name = r.file2.name; file2Mime = r.file2.type; }
+
+      const payload = {
+        action: 'saveSelfReport',
+        uid: srSelectedUser.uid,
+        fullName: srSelectedUser.fullName,
+        course: r.course,
+        eventType: r.eventType, eventName: r.eventName, role: r.role, sport: r.sport,
+        startDate: r.startDate, endDate: r.endDate,
+        year: activeYear, province: r.province, location: r.location, knowledge: r.knowledge,
+        file1Data: file1Data, file1Name: file1Name, file1Mime: file1Mime,
+        file2Data: file2Data, file2Name: file2Name, file2Mime: file2Mime
+      };
+
+      const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+      const json = await res.json();
+      if(json.status !== 'success') throw new Error(json.message);
     }
-  } catch (error) {
-    if(error.message === 'ขนาดไฟล์เกิน 5MB') alert('❌ ' + error.message);
-    else alert('❌ การเชื่อมต่อขัดข้อง กรุณาลองใหม่อีกครั้ง');
+
+    alert('✅ บันทึกรายงานสำเร็จทั้งหมด');
+    document.getElementById('srSearchName').value = '';
+    document.getElementById('srFormContainer').classList.add('hidden');
+    srSelectedUser = null;
+    fetchData(); // ดึงข้อมูลอัปเดตระบบ
+  } catch(err) {
+    if(err.message === 'ขนาดไฟล์เกิน 5MB') alert('❌ ' + err.message);
+    else alert('❌ เกิดข้อผิดพลาด: ' + err.message);
   }
-
-  btn.innerHTML = oriBtnText;
-  btn.disabled = false;
+  
+  document.getElementById('srLoadingOverlay').classList.add('hidden');
 }
-// ==========================================
 
 
-function openLoginModal() { document.getElementById('loginModal').classList.remove('hidden'); document.getElementById('loginErrorMsg').classList.add('hidden'); const inputs = document.querySelectorAll('.otp-input'); inputs.forEach(input => input.value = ''); inputs[0].focus(); }
-function closeLoginModal() { document.getElementById('loginModal').classList.add('hidden'); }
-function setupOTPInputs() { const inputs = document.querySelectorAll('.otp-input'); inputs.forEach((input, index) => { input.addEventListener('input', (e) => { if(e.target.value.length === 1 && index < inputs.length - 1) inputs[index + 1].focus(); checkOTP(); }); input.addEventListener('keydown', (e) => { if(e.key === 'Backspace' && e.target.value === '' && index > 0) inputs[index - 1].focus(); }); input.addEventListener('paste', (e) => { e.preventDefault(); const pastedData = e.clipboardData.getData('text').slice(0, 6).split(''); inputs.forEach((inp, i) => { if(pastedData[i]) inp.value = pastedData[i]; }); if(pastedData.length > 0) inputs[Math.min(pastedData.length, 5)].focus(); checkOTP(); }); }); }
-function checkOTP() { const inputs = document.querySelectorAll('.otp-input'); let pin = ''; inputs.forEach(input => pin += input.value); if(pin.length === 6) { if(pin === "336699") { isAdmin = true; document.body.classList.add('is-admin'); document.getElementById('btnLogin').classList.add('hidden'); document.getElementById('btnLogout').classList.remove('hidden'); document.getElementById('btnLogout').classList.add('flex'); closeLoginModal(); renderTablePage(); } else { document.getElementById('loginErrorMsg').classList.remove('hidden'); inputs.forEach(input => input.value = ''); inputs[0].focus(); } } }
-window.logoutAdmin = function() { isAdmin = false; document.body.classList.remove('is-admin'); document.getElementById('btnLogin').classList.remove('hidden'); document.getElementById('btnLogout').classList.add('hidden'); document.getElementById('btnLogout').classList.remove('flex'); if(document.getElementById('page-import').classList.contains('block')) switchPage('dashboard'); renderTablePage(); }
+window.openLoginModal = function() { const modal = document.getElementById('loginModal'); modal.classList.remove('hidden'); document.getElementById('loginErrorMsg').classList.add('hidden'); const inputs = document.querySelectorAll('.otp-input'); inputs.forEach(input => input.value = ''); inputs[0].focus(); }
+window.closeLoginModal = function() { document.getElementById('loginModal').classList.add('hidden'); }
+
+function setupOTPInputs() { 
+    const inputs = document.querySelectorAll('.otp-input'); 
+    inputs.forEach((input, index) => { 
+        input.addEventListener('input', (e) => { if(e.target.value.length === 1 && index < inputs.length - 1) inputs[index + 1].focus(); checkOTP(); }); 
+        input.addEventListener('keydown', (e) => { if(e.key === 'Backspace' && e.target.value === '' && index > 0) inputs[index - 1].focus(); }); 
+        input.addEventListener('paste', (e) => { e.preventDefault(); const pastedData = e.clipboardData.getData('text').slice(0, 6).split(''); inputs.forEach((inp, i) => { if(pastedData[i]) inp.value = pastedData[i]; }); if(pastedData.length > 0) inputs[Math.min(pastedData.length, 5)].focus(); checkOTP(); }); 
+    }); 
+}
+
+window.checkOTP = function() { 
+    const inputs = document.querySelectorAll('.otp-input'); let pin = ''; inputs.forEach(input => pin += input.value); 
+    if(pin.length === 6) { 
+        if(pin === "336699") { 
+            isAdmin = true; document.body.classList.add('is-admin'); document.getElementById('btnLogin').classList.add('hidden'); const btnLogout = document.getElementById('btnLogout'); btnLogout.classList.remove('hidden'); btnLogout.classList.add('flex'); closeLoginModal(); renderTablePage(); 
+        } else { 
+            document.getElementById('loginErrorMsg').classList.remove('hidden'); inputs.forEach(input => input.value = ''); inputs[0].focus(); 
+        } 
+    } 
+}
+
+window.logoutAdmin = function() { isAdmin = false; document.body.classList.remove('is-admin'); document.getElementById('btnLogin').classList.remove('hidden'); const btnLogout = document.getElementById('btnLogout'); btnLogout.classList.add('hidden'); btnLogout.classList.remove('flex'); if(document.getElementById('page-import').classList.contains('block')) switchPage('dashboard'); renderTablePage(); }
 
 window.switchPage = function(pageId) {
   const pages = ['dashboard', 'search', 'timeline', 'import', 'report'];
@@ -244,29 +329,14 @@ async function fetchData() {
     if (result.status === 'success') {
       cachedPersonnelData = result.data.list;
       if (!globalFiltersMaster) { globalFiltersMaster = result.data.filters; updateDropdownUI(); }
-      
-      // 📌 ดึง Settings มาจากเซิร์ฟเวอร์
-      if(result.data.settings) {
-         globalSettings = result.data.settings;
-         document.getElementById('adminActiveYear').value = globalSettings.activeReportYear;
-         document.getElementById('srActiveYear').value = globalSettings.activeReportYear;
-      }
-      
-      updateDatalists();
-      updateSelfReportDatalist(); 
-      renderDashboard(result.data.stats);
-      drawCharts(result.data.filters.years, result.data.filters.groups); 
-      currentFilteredData = result.data.list; currentPage = 1;
-      updateSmartSummary(course, year, currentFilteredData.length);
-      renderTablePage();
+      if(result.data.settings) { globalSettings = result.data.settings; document.getElementById('adminActiveYear').value = globalSettings.activeReportYear; document.getElementById('srActiveYear').value = globalSettings.activeReportYear; }
+      updateDatalists(); updateSelfReportDatalist(); renderDashboard(result.data.stats); drawCharts(result.data.filters.years, result.data.filters.groups); currentFilteredData = result.data.list; currentPage = 1; updateSmartSummary(course, year, currentFilteredData.length); renderTablePage();
     } else { showErrorState(result.message); }
   } catch (error) { showErrorState('การเชื่อมต่อกับฐานข้อมูลขัดข้อง'); }
 }
 
 function updateDatalists() {
-  if (!globalFiltersMaster) return;
-  let agencies = new Set(); let groups = new Set();
-  cachedPersonnelData.forEach(p => { if(p.agency) agencies.add(p.agency); if(p.group) groups.add(p.group); });
+  if (!globalFiltersMaster) return; let agencies = new Set(); let groups = new Set(); cachedPersonnelData.forEach(p => { if(p.agency) agencies.add(p.agency); if(p.group) groups.add(p.group); });
   const agencyList = document.getElementById('dl-agencies'); if(agencyList) agencyList.innerHTML = Array.from(agencies).sort().map(a => `<option value="${a}">`).join('');
   const groupList = document.getElementById('dl-groups'); if(groupList) groupList.innerHTML = Array.from(groups).sort().map(g => `<option value="${g}">`).join('');
   const courseList = document.getElementById('dl-courses'); if(courseList) courseList.innerHTML = globalFiltersMaster.courses.map(c => `<option value="${c}">`).join('');
@@ -293,24 +363,8 @@ function renderDashboard(stats) {
 
   tbody.innerHTML = stats.courseSummary.map((item, index) => {
     const retentionPercent = item.totalPeople > 0 ? Math.round((item.activePeople / item.totalPeople) * 100) : 0;
-    const safeEncodedCourseName = encodeURIComponent(item.courseName);
-    return `
-      <tr class="hover:bg-slate-50 border-b border-slate-100">
-        <td class="px-6 py-4 text-center font-mono text-xs text-slate-400">${index + 1}</td>
-        <td class="px-6 py-4 font-bold text-slate-800">${item.courseName}</td>
-        <td class="px-6 py-4 text-center"><span class="bg-slate-100 px-3 py-1 rounded-lg text-slate-600 text-xs">${item.yearsHeld}</span></td>
-        <td class="px-6 py-4">
-          <div class="flex justify-between text-xs mb-1.5"><span class="text-slate-500 font-medium">ยังทำงาน ${item.activePeople}/${item.totalPeople} คน</span><span class="font-bold text-emerald-600">${retentionPercent}%</span></div>
-          <div class="w-full bg-slate-100 rounded-full h-2"><div class="bg-emerald-500 h-2 rounded-full" style="width: ${retentionPercent}%"></div></div>
-        </td>
-        <td class="px-6 py-4 text-center">
-           <button id="btn_report_${index}" onclick="openProposalReport('${safeEncodedCourseName}', 'btn_report_${index}')" class="bg-blue-600 text-white hover:bg-blue-700 px-3 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 w-full max-w-[130px] mx-auto shadow-md">
-             <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg> 
-             <span>สรุปผลสัมฤทธิ์</span>
-           </button>
-        </td>
-      </tr>
-    `;
+    const safeEncodedCourseName = utf8ToBase64(item.courseName);
+    return `<tr class="hover:bg-slate-50 border-b border-slate-100"><td class="px-6 py-4 text-center font-mono text-xs text-slate-400">${index + 1}</td><td class="px-6 py-4 font-bold text-slate-800">${item.courseName}</td><td class="px-6 py-4 text-center"><span class="bg-slate-100 px-3 py-1 rounded-lg text-slate-600 text-xs">${item.yearsHeld}</span></td><td class="px-6 py-4"><div class="flex justify-between text-xs mb-1.5"><span class="text-slate-500 font-medium">ยังทำงาน ${item.activePeople}/${item.totalPeople} คน</span><span class="font-bold text-emerald-600">${retentionPercent}%</span></div><div class="w-full bg-slate-100 rounded-full h-2"><div class="bg-emerald-500 h-2 rounded-full" style="width: ${retentionPercent}%"></div></div></td><td class="px-6 py-4 text-center"><button id="btn_report_${index}" onclick="openProposalReport('${safeEncodedCourseName}', 'btn_report_${index}')" class="bg-blue-600 text-white hover:bg-blue-700 px-3 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 w-full max-w-[130px] mx-auto shadow-md"><svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"></path></svg><span>สรุปผลสัมฤทธิ์</span></button></td></tr>`;
   }).join('');
 }
 
@@ -350,8 +404,9 @@ window.exportMatrixToExcel = function() { const table = document.querySelector('
 window.openProposalReport = function(encodedCourseName, btnId) {
   const btn = document.getElementById(btnId); const originalBtnHTML = btn.innerHTML;
   btn.innerHTML = `<svg class="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> กำลังสร้างรายงาน...`;
+  
   setTimeout(() => {
-    const courseName = decodeURIComponent(encodedCourseName);
+    const courseName = base64ToUtf8(encodedCourseName);
     const courseUsers = cachedPersonnelData.filter(u => u.trainings && u.trainings.some(t => t.course === courseName));
     const totalPeople = courseUsers.length; const activePeople = courseUsers.filter(u => u.status !== 'พ้นสภาพ').length; const retentionPercent = totalPeople > 0 ? Math.round((activePeople/totalPeople)*100) + '%' : '0%';
     document.getElementById('reportCourseName').textContent = courseName; document.getElementById('reportTotal').textContent = totalPeople; document.getElementById('reportActive').textContent = activePeople; document.getElementById('reportRetention').textContent = retentionPercent;
