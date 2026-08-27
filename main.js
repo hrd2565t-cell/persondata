@@ -221,8 +221,6 @@ function renderDashboard(stats) {
 
   tbody.innerHTML = stats.courseSummary.map((item, index) => {
     const retentionPercent = item.totalPeople > 0 ? Math.round((item.activePeople / item.totalPeople) * 100) : 0;
-    
-    // 📌 แก้ไขบั๊กปุ่มกดไม่ได้แบบ Bulletproof: เข้ารหัสชื่อเต็มรูปแบบ
     const safeEncodedCourseName = encodeURIComponent(item.courseName);
 
     return `
@@ -293,16 +291,28 @@ function buildMatrixTable(startYear, endYear) {
 window.closeMatrixReport = function() { document.getElementById('matrixModal').classList.add('hidden'); }
 window.printMatrixReport = function() { document.getElementById('matrixModal').classList.add('print-modal-active'); window.print(); document.getElementById('matrixModal').classList.remove('print-modal-active'); }
 
+// 📌 ฟังก์ชัน Export Excel สำหรับ Matrix Report
+window.exportMatrixToExcel = function() {
+  const table = document.querySelector('#matrixTableContainer table');
+  if(!table) return alert('ไม่พบข้อมูลตาราง กรุณาลองใหม่อีกครั้ง');
+  
+  // Clone ตารางเพื่อลบช่องว่างสีเทาออกก่อน Export
+  const clonedTable = table.cloneNode(true);
+  const cells = clonedTable.querySelectorAll('td.bg-gray-400');
+  cells.forEach(cell => cell.textContent = '');
 
-// 📑 Impact Assessment Report Builder (อัปเดตเป็นโมดูล A4 อัจฉริยะ)
+  const wb = XLSX.utils.table_to_book(clonedTable, {sheet: "Matrix_Report"});
+  XLSX.writeFile(wb, "รายงานสรุปตารางไขว้_Matrix.xlsx");
+}
+
+
+// 📑 Impact Assessment Report Builder
 window.openProposalReport = function(encodedCourseName, btnId) {
-  // สร้าง Loading Effect ให้ปุ่ม
   const btn = document.getElementById(btnId);
   const originalBtnHTML = btn.innerHTML;
   btn.innerHTML = `<svg class="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> กำลังสร้างรายงาน...`;
   
   setTimeout(() => {
-    // 📌 คืนค่าชื่อหลักสูตรที่ถูกต้อง (ถอดรหัส)
     const courseName = decodeURIComponent(encodedCourseName);
     const courseUsers = cachedPersonnelData.filter(u => u.trainings && u.trainings.some(t => t.course === courseName));
     
@@ -315,7 +325,6 @@ window.openProposalReport = function(encodedCourseName, btnId) {
     document.getElementById('reportActive').textContent = activePeople;
     document.getElementById('reportRetention').textContent = retentionPercent;
     
-    // --- ส่วนที่ 1: จัดกลุ่มเป้าหมาย (Group Breakdown) ---
     let groupStats = {};
     courseUsers.forEach(u => {
         let g = u.group || 'ไม่ระบุกลุ่มหน่วยงาน';
@@ -336,21 +345,21 @@ window.openProposalReport = function(encodedCourseName, btnId) {
     }).join('');
     document.getElementById('reportGroupBreakdown').innerHTML = groupHtml || '<p class="text-sm text-slate-400">ไม่มีข้อมูลกลุ่มเป้าหมาย</p>';
 
-    // --- ส่วนที่ 2: การติดตามการปฏิบัติหน้าที่ (Implementation Tracking) ---
-    let roleStats = {}; let sportStats = {};
+    // --- ดึงข้อมูลการลงพื้นที่ปฏิบัติงาน (รวมชื่องานและปี) ---
+    let roleStats = {}; let sportStats = {}; let recentEvents = [];
     courseUsers.forEach(u => {
         if(u.duties && u.duties.length > 0) {
             u.duties.forEach(d => {
                 let r = d.role || 'ไม่ระบุ'; let s = d.sport || 'ไม่ระบุ';
                 roleStats[r] = (roleStats[r] || 0) + 1;
                 sportStats[s] = (sportStats[s] || 0) + 1;
+                if(d.event) recentEvents.push(`${d.event} (ปี ${d.year || 'ไม่ระบุ'})`);
             });
         }
     });
     
     let sortedRoles = Object.entries(roleStats).sort((a,b)=>b[1]-a[1]);
     let sortedSports = Object.entries(sportStats).sort((a,b)=>b[1]-a[1]);
-    
     let topRole = sortedRoles[0]?.[0] || 'หลายบทบาท';
     let topSport = sortedSports[0]?.[0] || 'หลายชนิดกีฬา';
     
@@ -359,20 +368,24 @@ window.openProposalReport = function(encodedCourseName, btnId) {
         <div class="bg-slate-50 p-5 rounded-xl border border-slate-200 shadow-sm">
           <h4 class="text-xs font-bold text-slate-500 mb-3 uppercase flex items-center gap-1.5"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg> บทบาทหน้าที่หลัก (Top Roles)</h4>
           <ul class="text-sm space-y-2">
-            ${sortedRoles.slice(0,3).map(r => `<li class="flex justify-between border-b border-slate-200 border-dashed pb-1"><span class="font-medium text-slate-700">${r[0]}</span> <span class="text-blue-600 font-bold">${r[1]} คน</span></li>`).join('') || '<li class="text-slate-400 italic">ยังไม่มีข้อมูลบุคลากรลงพื้นที่ปฏิบัติหน้าที่</li>'}
+            ${sortedRoles.slice(0,3).map(r => `<li class="flex justify-between border-b border-slate-200 border-dashed pb-1"><span class="font-medium text-slate-700">${r[0]}</span> <span class="text-blue-600 font-bold">${r[1]} คน</span></li>`).join('') || '<li class="text-slate-400 italic">ยังไม่มีข้อมูลลงพื้นที่ปฏิบัติหน้าที่</li>'}
           </ul>
         </div>
         <div class="bg-slate-50 p-5 rounded-xl border border-slate-200 shadow-sm">
           <h4 class="text-xs font-bold text-slate-500 mb-3 uppercase flex items-center gap-1.5"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> ชนิดกีฬาที่ปฏิบัติงาน (Top Sports)</h4>
           <ul class="text-sm space-y-2">
-            ${sortedSports.slice(0,3).map(s => `<li class="flex justify-between border-b border-slate-200 border-dashed pb-1"><span class="font-medium text-slate-700">${s[0]}</span> <span class="text-blue-600 font-bold">${s[1]} ครั้ง</span></li>`).join('') || '<li class="text-slate-400 italic">ยังไม่มีข้อมูลบุคลากรลงพื้นที่ปฏิบัติหน้าที่</li>'}
+            ${sortedSports.slice(0,3).map(s => `<li class="flex justify-between border-b border-slate-200 border-dashed pb-1"><span class="font-medium text-slate-700">${s[0]}</span> <span class="text-blue-600 font-bold">${s[1]} ครั้ง</span></li>`).join('') || '<li class="text-slate-400 italic">ยังไม่มีข้อมูลลงพื้นที่ปฏิบัติหน้าที่</li>'}
           </ul>
         </div>
       </div>
     `;
+    // แปะข้อมูลชื่องานที่ไปทำล่าสุด
+    if(recentEvents.length > 0) {
+       const uniqueEvents = [...new Set(recentEvents)].slice(0, 3);
+       implHtml += `<div class="mt-4 text-sm text-slate-600"><strong>ตัวอย่างการปฏิบัติงาน:</strong> ${uniqueEvents.join(', ')}</div>`;
+    }
     document.getElementById('reportImplementation').innerHTML = implHtml;
 
-    // --- ส่วนที่ 3: บทสรุปผู้บริหารแบบ AI Auto-Text ---
     let feedbacks = []; courseUsers.forEach(u => { if (u.evals) u.evals.forEach(e => feedbacks.push(e.feedback)); });
     let recentFeedbacks = feedbacks.slice(-3);
     
@@ -393,10 +406,10 @@ window.openProposalReport = function(encodedCourseName, btnId) {
     }
     document.getElementById('reportExecutiveSummary').innerHTML = summaryHtml;
 
-    btn.innerHTML = originalBtnHTML; // คืนค่าปุ่มเดิม
+    btn.innerHTML = originalBtnHTML; 
     document.getElementById('proposalModal').classList.remove('hidden');
     
-  }, 400); // ดีเลย์ 0.4 วิให้ดูเนียนตา
+  }, 400); 
 }
 
 window.closeProposalReport = function() { document.getElementById('proposalModal').classList.add('hidden'); }
@@ -645,6 +658,7 @@ window.confirmImport = async function() {
   btn.innerHTML = originalText; btn.disabled = false;
 };
 
+// 📌 แสดงผลโปรไฟล์และดึงข้อมูลชื่องาน/ปี มาโชว์
 window.viewProfile = function(uid) {
   currentActiveUid = uid; const person = cachedPersonnelData.find(p => p.uid === uid);
   if (!person) { alert("❌ ไม่พบข้อมูลบุคลากร"); return; }
@@ -660,7 +674,15 @@ window.viewProfile = function(uid) {
   
   const dutyEl = document.getElementById('profileDuties');
   if (person.duties && person.duties.length > 0) {
-    dutyEl.innerHTML = person.duties.map(d => `<li class="bg-white p-3.5 rounded-xl border border-slate-200 flex flex-col gap-1 shadow-sm"><span class="text-sm font-bold text-slate-800">${d.sport}</span><span class="text-xs text-slate-500">สถานะ: ${d.role}</span></li>`).join('');
+    dutyEl.innerHTML = person.duties.map(d => `
+      <li class="bg-white p-3.5 rounded-xl border border-slate-200 flex flex-col gap-1 shadow-sm">
+        <div class="flex justify-between items-start">
+          <span class="text-sm font-bold text-slate-800">${d.sport}</span>
+          <span class="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded">ปี ${d.year || '-'}</span>
+        </div>
+        <span class="text-xs text-blue-600 font-semibold">${d.role}</span>
+        <span class="text-xs text-slate-500 flex items-center gap-1 mt-1"><svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg> ${d.event || 'ไม่ระบุชื่องาน'}</span>
+      </li>`).join('');
   } else { dutyEl.innerHTML = `<div class="text-sm text-slate-500">ยังไม่มีประวัติลงพื้นที่</div>`; }
   
   const evalEl = document.getElementById('profileEvals');
@@ -688,13 +710,30 @@ window.switchTab = function(tabName) {
 }
 
 window.submitDuty = async function() {
-  if (!currentActiveUid) return; const sport = document.getElementById('inputDutySport').value.trim(); const role = document.getElementById('inputDutyRole').value.trim();
-  if (!sport || !role) return alert('⚠️ กรุณากรอก ชนิดกีฬา และ ประเภทบุคลากร');
+  if (!currentActiveUid) return; 
+  const sport = document.getElementById('inputDutySport').value.trim(); 
+  const role = document.getElementById('inputDutyRole').value.trim();
+  const event = document.getElementById('inputDutyEvent').value.trim();
+  const year = document.getElementById('inputDutyYear').value.trim();
+
+  if (!sport || !role || !event || !year) return alert('⚠️ กรุณากรอกข้อมูล ชนิดกีฬา, ประเภทบุคลากร, ชื่องาน และ ปีที่ปฏิบัติงาน ให้ครบถ้วน');
+  
   const btn = document.getElementById('btnSaveDuty'); btn.textContent = 'กำลังบันทึก...'; btn.disabled = true;
   try {
-    const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveDuty', uid: currentActiveUid, sport: sport, role: role }), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
+    const response = await fetch(API_URL, { 
+      method: 'POST', 
+      body: JSON.stringify({ action: 'saveDuty', uid: currentActiveUid, sport: sport, role: role, event: event, year: year }), 
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' } 
+    });
     const result = await response.json();
-    if(result.status === 'success') { alert('✅ บันทึกสำเร็จ'); document.getElementById('inputDutySport').value = ''; document.getElementById('inputDutyRole').value = ''; fetchData(); } else { alert(`❌ ข้อผิดพลาด: ${result.message}`); }
+    if(result.status === 'success') { 
+      alert('✅ บันทึกสำเร็จ'); 
+      document.getElementById('inputDutySport').value = ''; 
+      document.getElementById('inputDutyRole').value = ''; 
+      document.getElementById('inputDutyEvent').value = ''; 
+      document.getElementById('inputDutyYear').value = ''; 
+      fetchData(); 
+    } else { alert(`❌ ข้อผิดพลาด: ${result.message}`); }
   } catch(e) { alert('❌ การเชื่อมต่อล้มเหลว'); }
   btn.textContent = 'บันทึกข้อมูล'; btn.disabled = false;
 }
