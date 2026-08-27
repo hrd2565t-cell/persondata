@@ -44,6 +44,52 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('singleFullName').addEventListener('blur', function() { if(this.value) this.value = this.value.trim().replace(/\s+/g, ' '); });
 });
 
+// 📌 ฟังก์ชันแจ้งเตือนแบบ Toast
+window.showToast = function(message) {
+   const toast = document.getElementById('toastNotification');
+   document.getElementById('toastMessage').textContent = message;
+   toast.classList.remove('translate-y-20', 'opacity-0');
+   setTimeout(() => { toast.classList.add('translate-y-20', 'opacity-0'); }, 3000);
+}
+
+// 📌 ฟังก์ชันเปลี่ยนสถานะในตาราง (Inline Edit)
+window.updatePersonnelStatus = async function(uid, newStatus, selectElement) {
+  selectElement.disabled = true;
+  selectElement.classList.add('opacity-50', 'animate-pulse');
+  
+  try {
+    const payload = { action: 'updateStatus', uid: uid, status: newStatus };
+    const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
+    const result = await response.json();
+    
+    if (result.status === 'success') {
+      const userIndex = cachedPersonnelData.findIndex(u => u.uid === uid);
+      if(userIndex > -1) cachedPersonnelData[userIndex].status = newStatus;
+      
+      if(newStatus === 'พ้นสภาพ') {
+         selectElement.className = "text-xs font-bold bg-white border border-slate-300 text-slate-500 rounded-full px-2 py-1 outline-none cursor-pointer shadow-sm text-center w-[110px] mx-auto block transition-colors";
+      } else {
+         selectElement.className = "text-xs font-bold bg-white border border-amber-300 text-amber-600 rounded-full px-2 py-1 outline-none cursor-pointer shadow-sm text-center w-[110px] mx-auto block transition-colors";
+      }
+      
+      showToast('บันทึกสถานะเรียบร้อยแล้ว');
+      
+      // อัปเดตสถิติหลังบ้านแบบเงียบๆ (Silent Sync)
+      fetch(API_URL + '?action=getData').then(res => res.json()).then(json => {
+          if (json.status === 'success') {
+             globalFiltersMaster = json.data.filters;
+             renderDashboard(json.data.stats);
+             drawCharts(json.data.filters.years, json.data.filters.groups);
+          }
+      });
+    } else { alert('❌ ' + result.message); }
+  } catch(err) { alert('❌ การเชื่อมต่อล้มเหลว'); }
+  
+  selectElement.disabled = false;
+  selectElement.classList.remove('opacity-50', 'animate-pulse');
+}
+
+
 function populateProvinces() {
   const select = document.getElementById('srProvince');
   if(!select) return;
@@ -89,7 +135,6 @@ window.loadProjectData = function(course) {
   }
 }
 
-// 📌 ฟังก์ชันบันทึกข้อมูลโครงการพร้อมจำนวนเป้าหมาย
 window.submitProjectDetails = async function() {
   const course = document.getElementById('pdCourse').value;
   const rationale = document.getElementById('pdRationale').value.trim();
@@ -364,7 +409,6 @@ window.openProposalReport = function(encodedCourseName, btnId) {
   }, 400); 
 }
 
-// 📌 ฟังก์ชันคำนวณและแสดงผลในหน้ารายงาน (รองรับเป้าหมายและวิเคราะห์ %)
 window.renderReportData = function() {
   if(!currentReportCourseBase64) return;
   const courseName = base64ToUtf8(currentReportCourseBase64);
@@ -375,7 +419,6 @@ window.renderReportData = function() {
 
   document.getElementById('reportCourseName').textContent = courseName + (selectedYear === 'all' ? ' (ภาพรวมทั้งหมด)' : ` (รุ่นปี ${selectedYear})`);
 
-  // ดึงเป้าหมายจาก Project Details
   let projectTargets = {};
   let totalTargetCount = 0;
   
@@ -391,10 +434,7 @@ window.renderReportData = function() {
         document.getElementById('reportTargetGroups').innerHTML = targetList.map(t => {
             let [tName, tCount] = t.split('|');
             let countBadge = parseInt(tCount) > 0 ? `<span class="bg-blue-100 text-blue-800 ml-1 px-1.5 py-0.5 rounded text-[10px]">เป้า: ${tCount} คน</span>` : '';
-            if(parseInt(tCount) > 0) {
-              projectTargets[tName] = parseInt(tCount);
-              totalTargetCount += parseInt(tCount);
-            }
+            if(parseInt(tCount) > 0) { projectTargets[tName] = parseInt(tCount); totalTargetCount += parseInt(tCount); }
             return `<span class="bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1 rounded-full text-xs font-semibold flex items-center">${tName} ${countBadge}</span>`;
         }).join('');
      } else { document.getElementById('reportTargetGroups').innerHTML = '-'; }
@@ -417,14 +457,8 @@ window.renderReportData = function() {
   document.getElementById('reportRetention').textContent = retentionPercent;
 
   let groupStats = {}; 
-  courseUsers.forEach(u => { 
-    let g = u.group || 'ไม่ระบุกลุ่มหน่วยงาน'; 
-    if(!groupStats[g]) groupStats[g] = { total: 0, active: 0 }; 
-    groupStats[g].total++; 
-    if(u.status !== 'พ้นสภาพ') groupStats[g].active++; 
-  });
+  courseUsers.forEach(u => { let g = u.group || 'ไม่ระบุกลุ่มหน่วยงาน'; if(!groupStats[g]) groupStats[g] = { total: 0, active: 0 }; groupStats[g].total++; if(u.status !== 'พ้นสภาพ') groupStats[g].active++; });
   
-  // 📌 นำสถิติจริงมาชนกับเป้าหมายที่ตั้งไว้
   let allGroupNames = new Set([...Object.keys(groupStats), ...Object.keys(projectTargets)]);
   let groupHtml = Array.from(allGroupNames).map(gName => {
       let stat = groupStats[gName] || { total: 0, active: 0 };
@@ -436,17 +470,7 @@ window.renderReportData = function() {
       let achievePercent = target > 0 ? Math.round((stat.total/target)*100) : 0;
       let achieveBadge = target > 0 ? `<span class="text-[10px] ml-2 ${achievePercent >= 100 ? 'text-emerald-600' : 'text-amber-600'}">(${achievePercent}% ของเป้า)</span>` : '';
 
-      return `
-      <div class="flex justify-between items-center py-2.5 border-b border-slate-100 last:border-0">
-          <span class="text-sm font-semibold text-slate-700 flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-blue-500"></span> ${gName}
-          </span>
-          <div class="text-sm flex items-center">
-              ${targetBadge}
-              <span>เข้าร่วมจริง: ${actualBadge} ${achieveBadge}</span>
-              <span class="text-[11px] font-bold text-emerald-600 ml-3 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-full">ทำงานต่อ ${stat.active} (${ret}%)</span>
-          </div>
-      </div>`;
+      return `<div class="flex justify-between items-center py-2.5 border-b border-slate-100 last:border-0"><span class="text-sm font-semibold text-slate-700 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-blue-500"></span> ${gName}</span><div class="text-sm flex items-center">${targetBadge}<span>เข้าร่วมจริง: ${actualBadge} ${achieveBadge}</span><span class="text-[11px] font-bold text-emerald-600 ml-3 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-full">ทำงานต่อ ${stat.active} (${ret}%)</span></div></div>`;
   }).join('');
   document.getElementById('reportGroupBreakdown').innerHTML = groupHtml || '<p class="text-sm text-slate-400">ไม่มีข้อมูลกลุ่มเป้าหมาย</p>';
 
@@ -460,16 +484,16 @@ window.renderReportData = function() {
 
   let feedbacks = []; courseUsers.forEach(u => { if (u.evals) u.evals.forEach(e => feedbacks.push(e.feedback)); }); let recentFeedbacks = feedbacks.slice(-3);
   
-  // 📌 แต่งประโยคสรุปผู้บริหารแบบ AI
+  let expectedText = "";
+  if(cachedProjectDetails && cachedProjectDetails[courseName] && cachedProjectDetails[courseName].expected) { expectedText = `โครงการตั้งเป้าหมายผลลัพธ์ไว้ที่ <u>"${cachedProjectDetails[courseName].expected}"</u> ซึ่ง`; }
+
   let summaryText = `จากข้อมูลในระบบทะเบียนบุคลากรกีฬาพบว่า ผู้ผ่านการอบรมหลักสูตร <span class="font-bold text-blue-600">${courseName}</span> `;
   if(selectedYear !== 'all') summaryText += `(เฉพาะผู้ที่อบรมในปี <span class="font-bold text-blue-600">${selectedYear}</span>) `;
   
   if(totalTargetCount > 0) {
       let achievePct = Math.round((totalPeople / totalTargetCount) * 100);
       summaryText += `มีผู้เข้าร่วมจริง <span class="font-bold text-blue-600">${totalPeople}</span> คน (คิดเป็น ${achievePct}% จากเป้าหมายรวม ${totalTargetCount} คน) `;
-  } else {
-      summaryText += `มีผู้เข้าร่วมจริง <span class="font-bold text-blue-600">${totalPeople}</span> คน `;
-  }
+  } else { summaryText += `มีผู้เข้าร่วมจริง <span class="font-bold text-blue-600">${totalPeople}</span> คน `; }
 
   summaryText += `และมีอัตราการปฏิบัติหน้าที่คงอยู่ในระบบภาพรวมที่ <span class="font-bold text-emerald-600">${retentionPercent}</span> `;
   
@@ -493,7 +517,19 @@ function renderTablePage() {
 
   tbody.innerHTML = pageData.map(item => {
     const initials = item.fullName.substring(0, 2).toUpperCase() || 'U';
-    const statusBadge = (item.status === 'ปฏิบัติงาน' || item.status === 'ยังปฏิบัติหน้าที่') ? `<span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium border border-amber-300 text-amber-600 bg-white"><span class="w-1.5 h-1.5 rounded-full mr-2 bg-amber-500"></span>${item.status}</span>` : `<span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium border border-slate-300 text-slate-500 bg-white"><span class="w-1.5 h-1.5 rounded-full mr-2 bg-slate-400"></span>${item.status}</span>`;
+    const isResigned = item.status === 'พ้นสภาพ';
+    
+    // 📌 สร้างป้ายสถานะแบบ Dropdown สำหรับ Admin
+    let statusBadge = '';
+    if (isAdmin) {
+      statusBadge = `<select onchange="updatePersonnelStatus('${item.uid}', this.value, this)" class="text-xs font-bold bg-white border ${isResigned ? 'border-slate-300 text-slate-500' : 'border-amber-300 text-amber-600'} rounded-full px-2 py-1.5 outline-none cursor-pointer shadow-sm text-center w-[110px] mx-auto block transition-colors">
+        <option value="ปฏิบัติงาน" ${!isResigned ? 'selected' : ''}>🟢 ปฏิบัติงาน</option>
+        <option value="พ้นสภาพ" ${isResigned ? 'selected' : ''}>⚪ พ้นสภาพ</option>
+      </select>`;
+    } else {
+      statusBadge = isResigned ? `<span class="inline-flex items-center justify-center px-3 py-1.5 rounded-full text-xs font-medium border border-slate-300 text-slate-500 bg-white w-[110px]"><span class="w-1.5 h-1.5 rounded-full mr-2 bg-slate-400"></span>พ้นสภาพ</span>` : `<span class="inline-flex items-center justify-center px-3 py-1.5 rounded-full text-xs font-medium border border-amber-300 text-amber-600 bg-white w-[110px]"><span class="w-1.5 h-1.5 rounded-full mr-2 bg-amber-500"></span>ปฏิบัติงาน</span>`;
+    }
+
     const btnText = isAdmin ? `<svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg> จัดการ` : `<svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg> ดูประวัติ`;
 
     return `
