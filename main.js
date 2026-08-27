@@ -34,6 +34,13 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('filterYear').addEventListener('change', () => { handleCascadingFilter('year'); triggerSearch(); });
   document.getElementById('filterGroup').addEventListener('change', () => { triggerSearch(); });
   document.getElementById('excelUpload').addEventListener('change', (e) => processExcelFile(e.target.files[0], e.target));
+  
+  // 📌 ฟังก์ชันบังคับจัดระยะห่าง 1 เคาะ (Auto-spacing) ทันทีที่พิมพ์ชื่อ-นามสกุลเสร็จ
+  document.getElementById('singleFullName').addEventListener('blur', function() {
+    if(this.value) {
+      this.value = this.value.trim().replace(/\s+/g, ' ');
+    }
+  });
 });
 
 function openLoginModal() {
@@ -136,7 +143,14 @@ async function fetchData() {
     const result = await res.json();
     if (result.status === 'success') {
       cachedPersonnelData = result.data.list;
-      if (!globalFiltersMaster) { globalFiltersMaster = result.data.filters; updateDropdownUI(); }
+      if (!globalFiltersMaster) { 
+        globalFiltersMaster = result.data.filters; 
+        updateDropdownUI(); 
+      }
+      
+      // 📌 อัปเดตข้อมูล Datalist (Smart Autocomplete) สำหรับฟอร์มนำเข้า
+      updateDatalists();
+      
       renderDashboard(result.data.stats);
       drawCharts(result.data.filters.years, result.data.filters.groups); 
       currentFilteredData = result.data.list; currentPage = 1;
@@ -144,6 +158,30 @@ async function fetchData() {
       renderTablePage();
     } else { showErrorState(result.message); }
   } catch (error) { showErrorState('การเชื่อมต่อกับฐานข้อมูลขัดข้อง'); }
+}
+
+// 📌 ฟังก์ชันดึงข้อมูลจากระบบมาสร้างเป็นตัวเลือก Datalist อัตโนมัติ
+function updateDatalists() {
+  if (!globalFiltersMaster) return;
+  
+  let agencies = new Set();
+  let groups = new Set();
+  cachedPersonnelData.forEach(p => {
+    if(p.agency) agencies.add(p.agency);
+    if(p.group) groups.add(p.group);
+  });
+  
+  const agencyList = document.getElementById('dl-agencies');
+  if(agencyList) agencyList.innerHTML = Array.from(agencies).sort().map(a => `<option value="${a}">`).join('');
+  
+  const groupList = document.getElementById('dl-groups');
+  if(groupList) groupList.innerHTML = Array.from(groups).sort().map(g => `<option value="${g}">`).join('');
+  
+  const courseList = document.getElementById('dl-courses');
+  if(courseList) courseList.innerHTML = globalFiltersMaster.courses.map(c => `<option value="${c}">`).join('');
+  
+  const yearList = document.getElementById('dl-years');
+  if(yearList) yearList.innerHTML = globalFiltersMaster.years.map(y => `<option value="${y}">`).join('');
 }
 
 function drawCharts(allYears, allGroups) {
@@ -290,23 +328,16 @@ function buildMatrixTable(startYear, endYear) {
 
 window.closeMatrixReport = function() { document.getElementById('matrixModal').classList.add('hidden'); }
 window.printMatrixReport = function() { document.getElementById('matrixModal').classList.add('print-modal-active'); window.print(); document.getElementById('matrixModal').classList.remove('print-modal-active'); }
-
-// 📌 ฟังก์ชัน Export Excel สำหรับ Matrix Report
 window.exportMatrixToExcel = function() {
   const table = document.querySelector('#matrixTableContainer table');
   if(!table) return alert('ไม่พบข้อมูลตาราง กรุณาลองใหม่อีกครั้ง');
-  
-  // Clone ตารางเพื่อลบช่องว่างสีเทาออกก่อน Export
   const clonedTable = table.cloneNode(true);
   const cells = clonedTable.querySelectorAll('td.bg-gray-400');
   cells.forEach(cell => cell.textContent = '');
-
   const wb = XLSX.utils.table_to_book(clonedTable, {sheet: "Matrix_Report"});
   XLSX.writeFile(wb, "รายงานสรุปตารางไขว้_Matrix.xlsx");
 }
 
-
-// 📑 Impact Assessment Report Builder
 window.openProposalReport = function(encodedCourseName, btnId) {
   const btn = document.getElementById(btnId);
   const originalBtnHTML = btn.innerHTML;
@@ -345,7 +376,6 @@ window.openProposalReport = function(encodedCourseName, btnId) {
     }).join('');
     document.getElementById('reportGroupBreakdown').innerHTML = groupHtml || '<p class="text-sm text-slate-400">ไม่มีข้อมูลกลุ่มเป้าหมาย</p>';
 
-    // --- ดึงข้อมูลการลงพื้นที่ปฏิบัติงาน (รวมชื่องานและปี) ---
     let roleStats = {}; let sportStats = {}; let recentEvents = [];
     courseUsers.forEach(u => {
         if(u.duties && u.duties.length > 0) {
@@ -379,7 +409,6 @@ window.openProposalReport = function(encodedCourseName, btnId) {
         </div>
       </div>
     `;
-    // แปะข้อมูลชื่องานที่ไปทำล่าสุด
     if(recentEvents.length > 0) {
        const uniqueEvents = [...new Set(recentEvents)].slice(0, 3);
        implHtml += `<div class="mt-4 text-sm text-slate-600"><strong>ตัวอย่างการปฏิบัติงาน:</strong> ${uniqueEvents.join(', ')}</div>`;
@@ -658,7 +687,6 @@ window.confirmImport = async function() {
   btn.innerHTML = originalText; btn.disabled = false;
 };
 
-// 📌 แสดงผลโปรไฟล์และดึงข้อมูลชื่องาน/ปี มาโชว์
 window.viewProfile = function(uid) {
   currentActiveUid = uid; const person = cachedPersonnelData.find(p => p.uid === uid);
   if (!person) { alert("❌ ไม่พบข้อมูลบุคลากร"); return; }
