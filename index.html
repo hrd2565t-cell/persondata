@@ -7,8 +7,9 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <!-- เพิ่มไลบรารี Chart.js -->
+  <!-- Chart.js และ DataLabels Plugin -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
   <style>
     body { font-family: 'Plus Jakarta Sans', sans-serif; }
     ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -19,8 +20,8 @@
     .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     
     .admin-only { display: none; }
-    body.is-admin .admin-only { display: flex; } /* Flex for buttons */
-    body.is-admin .admin-only-block { display: block; } /* Block for sections */
+    body.is-admin .admin-only { display: flex; } 
+    body.is-admin .admin-only-block { display: block; } 
     
     @media print {
       body * { visibility: hidden; }
@@ -74,7 +75,6 @@
         <button onclick="switchPage('dashboard')" id="nav-btn-dashboard" class="border-blue-600 text-blue-600 whitespace-nowrap py-4 px-2 border-b-2 font-bold text-sm transition-all flex items-center gap-2">📊 แดชบอร์ดสรุปผล</button>
         <button onclick="switchPage('search')" id="nav-btn-search" class="border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300 whitespace-nowrap py-4 px-2 border-b-2 font-medium text-sm transition-all flex items-center gap-2">🔍 ค้นหาบุคลากร</button>
         <button onclick="switchPage('timeline')" id="nav-btn-timeline" class="border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300 whitespace-nowrap py-4 px-2 border-b-2 font-medium text-sm transition-all flex items-center gap-2">📅 ไทม์ไลน์โครงการ</button>
-        <!-- ปุ่มนำเข้าจะแสดงเฉพาะ Admin (มีคลาส admin-only) -->
         <button onclick="switchPage('import')" id="nav-btn-import" class="admin-only border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300 whitespace-nowrap py-4 px-2 border-b-2 font-medium text-sm transition-all items-center gap-2">📥 นำเข้าข้อมูล (Admin)</button>
       </nav>
     </div>
@@ -82,7 +82,7 @@
 
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
     
-    <!-- PAGE 1: Dashboard (พร้อมกราฟ) -->
+    <!-- PAGE 1: Dashboard -->
     <div id="page-dashboard" class="page-section block space-y-6">
       <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-2">
         <div>
@@ -125,7 +125,7 @@
                   <th class="px-6 py-4 font-semibold">ชื่อหลักสูตรการอบรม</th>
                   <th class="px-6 py-4 font-semibold text-center w-32">ปีที่เคยจัด</th>
                   <th class="px-6 py-4 font-semibold w-56">อัตราผู้ปฏิบัติหน้าที่คงอยู่ (Retention)</th>
-                  <th class="px-6 py-4 font-semibold text-center w-40">PDCA Proposal</th>
+                  <th class="px-6 py-4 font-semibold text-center w-32">PDCA Proposal</th>
                 </tr>
              </thead>
              <tbody id="courseSummaryBody" class="divide-y divide-slate-100 bg-white">
@@ -171,7 +171,7 @@
                 <th class="px-6 py-4 border-r border-slate-100">ชื่อ-นามสกุล</th>
                 <th class="px-6 py-4 border-r border-slate-100">หน่วยงาน</th>
                 <th class="px-6 py-4 text-center w-36 border-r border-slate-100">สถานะ</th>
-                <th class="px-6 py-4 text-center w-24">ดูข้อมูล</th>
+                <th class="px-6 py-4 text-center w-24">จัดการ</th>
               </tr>
             </thead>
             <tbody id="tableBody" class="divide-y divide-slate-100 bg-white">
@@ -207,7 +207,6 @@
     <div id="page-import" class="page-section hidden">
       <div class="max-w-5xl mx-auto mt-8">
         
-        <!-- แท็บสลับโหมดนำเข้า -->
         <div class="flex space-x-4 mb-6 border-b border-slate-200 px-2">
           <button onclick="switchImportMode('bulk')" id="tab-import-bulk" class="pb-3 border-b-2 border-blue-600 text-blue-600 font-bold text-sm transition px-4 flex items-center gap-2"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg> นำเข้ากลุ่ม (Excel)</button>
           <button onclick="switchImportMode('single')" id="tab-import-single" class="pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-700 font-medium text-sm transition px-4 flex items-center gap-2"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg> เพิ่มรายบุคคล (ฟอร์ม)</button>
@@ -215,21 +214,17 @@
 
         <div id="importUploadSection" class="bg-white border border-slate-200 rounded-3xl shadow-lg p-10 space-y-8">
           
-          <!-- Mode 1: Drag & Drop Bulk Import -->
           <div id="importModeBulk" class="block">
             <div class="text-center mb-8">
               <h2 class="text-xl font-bold text-slate-800">อัปโหลดไฟล์ Excel แบบกลุ่ม</h2>
-              <p class="text-sm text-slate-500 mt-2">ลากไฟล์มาวางในกรอบ หรือคลิกเพื่อเลือกไฟล์ (ระบบจำทำการ Auto-Format ให้อัตโนมัติ)</p>
+              <p class="text-sm text-slate-500 mt-2">ลากไฟล์มาวางในกรอบ หรือคลิกเพื่อเลือกไฟล์ (ระบบจะทำการ Auto-Format ให้อัตโนมัติ)</p>
             </div>
-            
-            <!-- Drag Drop Zone -->
             <div id="dragDropZone" class="border-2 border-dashed border-slate-300 rounded-2xl bg-slate-50 hover:bg-blue-50 hover:border-blue-400 transition-colors flex flex-col items-center justify-center p-12 cursor-pointer relative group">
               <svg class="w-16 h-16 text-blue-400 mb-4 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
               <h3 class="text-lg font-bold text-slate-700">ลากไฟล์ Excel (.xlsx) มาวางที่นี่</h3>
               <p class="text-sm text-slate-500 mt-1">หรือคลิกเพื่อค้นหาไฟล์ในเครื่องของคุณ</p>
               <input type="file" id="excelUpload" accept=".xlsx, .xls" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
             </div>
-
             <div class="mt-6 text-center">
               <button type="button" onclick="downloadTemplate()" class="text-emerald-600 hover:text-emerald-700 font-semibold text-sm inline-flex items-center gap-1.5 underline decoration-emerald-300 underline-offset-4">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg> โหลดไฟล์ Template มาตรฐาน
@@ -237,7 +232,6 @@
             </div>
           </div>
 
-          <!-- Mode 2: Single Entry Form -->
           <div id="importModeSingle" class="hidden">
             <h2 class="text-lg font-bold text-slate-800 mb-4 border-l-4 border-blue-600 pl-3">กรอกข้อมูลรายบุคคล</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5 bg-slate-50 p-6 rounded-2xl border border-slate-200">
@@ -278,7 +272,7 @@
               <thead class="text-xs text-slate-500 font-semibold bg-slate-50 border-b border-slate-200">
                 <tr>
                   <th class="px-4 py-3 border-r border-slate-100 w-16 text-center">ลำดับ</th>
-                  <th class="px-4 py-3 border-r border-slate-100">ชื่อ-นามสกุล <span class="text-[10px] font-normal text-slate-400 block">(จัดรูปแบบออโต้)</span></th>
+                  <th class="px-4 py-3 border-r border-slate-100">ชื่อ-นามสกุล</th>
                   <th class="px-4 py-3 border-r border-slate-100">หน่วยงาน</th>
                   <th class="px-4 py-3 border-r border-slate-100 text-center w-28">สถานะ</th>
                   <th class="px-4 py-3 border-r border-slate-100">หลักสูตร / ปี</th>
@@ -366,29 +360,29 @@
               <div class="bg-blue-50 px-5 py-3 border-b border-slate-200"><h3 class="font-bold text-blue-800 flex items-center gap-2"><span class="w-6 h-6 bg-blue-600 text-white rounded flex items-center justify-center text-sm">P</span> PLAN (การวางแผน)</h3></div>
               <div class="p-5 bg-white text-sm text-slate-700 space-y-2">
                 <p><strong>วัตถุประสงค์:</strong> เพื่อพัฒนาและยกระดับบุคลากรกีฬาหลักสูตร <span class="pdca-course-name font-bold">---</span> ให้ได้มาตรฐานระดับนานาชาติ</p>
-                <p><strong>เป้าหมาย:</strong> สร้างและขึ้นทะเบียนบุคลากรกีฬาเข้าสู่ระบบไม่น้อยกว่า <span class="font-bold text-blue-600" id="pdcaPlanTarget">0</span> ราย</p>
+                <p><strong>การดำเนินการ:</strong> ดำเนินการออกหลักเกณฑ์การพัฒนาบุคลากร และจัดทำ TOR พร้อมราคากลาง เพื่อเตรียมความพร้อมในการจัดโครงการ โดยตั้งเป้าหมายสร้างและขึ้นทะเบียนบุคลากรกีฬาเข้าสู่ระบบจำนวน <span class="font-bold text-blue-600" id="pdcaPlanTarget">0</span> ราย</p>
               </div>
             </div>
 
             <div class="border border-slate-200 rounded-xl overflow-hidden">
               <div class="bg-emerald-50 px-5 py-3 border-b border-slate-200"><h3 class="font-bold text-emerald-800 flex items-center gap-2"><span class="w-6 h-6 bg-emerald-600 text-white rounded flex items-center justify-center text-sm">D</span> DO (การปฏิบัติ)</h3></div>
               <div class="p-5 bg-white text-sm text-slate-700">
-                <p>ดำเนินการจัดอบรมและขึ้นทะเบียนบุคลากรเข้าสู่ระบบสำเร็จจำนวน <span class="font-bold text-emerald-600" id="pdcaDoActual">0</span> ราย (คิดเป็นอัตราความสำเร็จ 100% ตามเป้าหมาย) โดยบุคลากรทั้งหมดได้รับการบรรจุลงฐานข้อมูลและติดตามการปฏิบัติหน้าที่เรียบร้อยแล้ว</p>
+                <p>ดำเนินการรับสมัคร คัดเลือก ประกาศรายชื่อ และจัดอบรมในรูปแบบเชิงปฏิบัติการ (Workshop) โดยมีบุคลากรที่ผ่านเกณฑ์และได้รับการบรรจุลงฐานข้อมูลสำเร็จจำนวน <span class="font-bold text-emerald-600" id="pdcaDoActual">0</span> ราย</p>
               </div>
             </div>
 
             <div class="border border-slate-200 rounded-xl overflow-hidden">
               <div class="bg-amber-50 px-5 py-3 border-b border-slate-200"><h3 class="font-bold text-amber-800 flex items-center gap-2"><span class="w-6 h-6 bg-amber-500 text-white rounded flex items-center justify-center text-sm">C</span> CHECK (การตรวจสอบและประเมินผล)</h3></div>
               <div class="p-5 bg-white text-sm text-slate-700 space-y-3">
-                <p><strong>ผลการติดตามการคงอยู่ (Retention):</strong> มีบุคลากรที่ยังคงนำความรู้ไปปฏิบัติหน้าที่จำนวน <span class="font-bold text-amber-600" id="pdcaCheckActive">0</span> ราย</p>
-                <div><strong>ข้อเสนอแนะเชิงธรรมาภิบาล / ปัญหาที่พบ:</strong><br/><ul class="list-disc pl-5 mt-1 space-y-1 text-slate-600" id="pdcaCheckFeedback"></ul></div>
+                <p><strong>ผลการติดตามการคงอยู่ (Retention):</strong> จากการติดตามข้อมูลในระบบ พบว่ามีบุคลากรที่ยังคงนำความรู้ไปปฏิบัติหน้าที่ในหน่วยงานจำนวน <span class="font-bold text-amber-600" id="pdcaCheckActive">0</span> ราย</p>
+                <div><strong>ข้อเสนอแนะเชิงธรรมาภิบาล / ปัญหาอุปสรรคที่พบ:</strong><br/><ul class="list-disc pl-5 mt-1 space-y-1 text-slate-600" id="pdcaCheckFeedback"></ul></div>
               </div>
             </div>
 
             <div class="border border-slate-200 rounded-xl overflow-hidden">
               <div class="bg-purple-50 px-5 py-3 border-b border-slate-200"><h3 class="font-bold text-purple-800 flex items-center gap-2"><span class="w-6 h-6 bg-purple-600 text-white rounded flex items-center justify-center text-sm">A</span> ACT (การปรับปรุงและพัฒนา)</h3></div>
               <div class="p-5 bg-white text-sm text-slate-700 space-y-2">
-                <p>จากผลการประเมิน กองพัฒนาบุคลากรกีฬาจะนำข้อเสนอแนะไปปรับปรุงเนื้อหาหลักสูตร <span class="pdca-course-name font-bold">---</span> ในปีงบประมาณถัดไป พร้อมทั้งสร้างมาตรการติดตามการลงพื้นที่ปฏิบัติงานของบุคลากรที่ขาดการติดต่อให้เข้มข้นยิ่งขึ้น</p>
+                <p>นำข้อมูลผลสัมฤทธิ์และข้อเสนอแนะที่ได้รับไปประกอบการพิจารณาปรับปรุงหลักสูตร <span class="pdca-course-name font-bold">---</span> ในปีงบประมาณถัดไป พร้อมทั้งจัดทำรายงานผลสรุปโครงการฉบับสมบูรณ์ เพื่อนำส่งรายงานต่อ กองทุนพัฒนาการกีฬาแห่งชาติ (NSDF) ตามระเบียบปฏิบัติต่อไป</p>
               </div>
             </div>
           </div>
