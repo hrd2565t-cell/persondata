@@ -18,7 +18,8 @@ let donutChartObj = null;
 
 // ข้อมูลสำหรับหน้า Self Report
 let srSelectedUser = null; 
-const provinces = ["กรุงเทพมหานคร","กระบี่","กาญจนบุรี","กาฬสินธุ์","กำแพงเพชร","ขอนแก่น","จันทบุรี","ฉะเชิงเทรา","ชลบุรี","ชัยนาท","ชัยภูมิ","ชุมพร","เชียงราย","เชียงใหม่","ตรัง","ตราด","ตาก","นครนายก","นครปฐม","นครพนม","นครราชสีมา","นครศรีธรรมราช","นครสวรรค์","นนทบุรี","นราธิวาส","น่าน","บึงกาฬ","บุรีรัมย์","ปทุมธานี","ประจวบคีรีขันธ์","ปราจีนบุรี","ปัตตานี","พระนครศรีอยุธยา","พะเยา","พังงา","พัทลุง","พิจิตร","พิษณุโลก","เพชรบุรี","เพชรบูรณ์","แพร่","ภูเก็ต","มหาสารคาม","มุกดาหาร","แม่ฮ่องสอน","ยโสธร","ยะลา","ร้อยเอ็ด","ระนอง","ระยอง","ราชบุรี","ลพบุรี","ลำปาง","ลำพูน","เลย","เลย","ศรีสะเกษ","สกลนคร","สงขลา","สตูล","สมุทรปราการ","สมุทรสงคราม","สมุทรสาคร","สระแก้ว","สระบุรี","สิงห์บุรี","สุโขทัย","สุพรรณบุรี","สุราษฎร์ธานี","สุรินทร์","หนองคาย","หนองบัวลำภู","อ่างทอง","อำนาจเจริญ","อุดรธานี","อุตรดิตถ์","อุทัยธานี","อุบลราชธานี"];
+let globalSettings = { activeReportYear: '2569' }; // 📌 ตัวแปรเก็บค่าปีจาก Settings
+const provinces = ["กรุงเทพมหานคร","กระบี่","กาญจนบุรี","กาฬสินธุ์","กำแพงเพชร","ขอนแก่น","จันทบุรี","ฉะเชิงเทรา","ชลบุรี","ชัยนาท","ชัยภูมิ","ชุมพร","เชียงราย","เชียงใหม่","ตรัง","ตราด","ตาก","นครนายก","นครปฐม","นครพนม","นครราชสีมา","นครศรีธรรมราช","นครสวรรค์","นนทบุรี","นราธิวาส","น่าน","บึงกาฬ","บุรีรัมย์","ปทุมธานี","ประจวบคีรีขันธ์","ปราจีนบุรี","ปัตตานี","พระนครศรีอยุธยา","พะเยา","พังงา","พัทลุง","พิจิตร","พิษณุโลก","เพชรบุรี","เพชรบูรณ์","แพร่","ภูเก็ต","มหาสารคาม","มุกดาหาร","แม่ฮ่องสอน","ยโสธร","ยะลา","ร้อยเอ็ด","ระนอง","ระยอง","ราชบุรี","ลพบุรี","ลำปาง","ลำพูน","เลย","ศรีสะเกษ","สกลนคร","สงขลา","สตูล","สมุทรปราการ","สมุทรสงคราม","สมุทรสาคร","สระแก้ว","สระบุรี","สิงห์บุรี","สุโขทัย","สุพรรณบุรี","สุราษฎร์ธานี","สุรินทร์","หนองคาย","หนองบัวลำภู","อ่างทอง","อำนาจเจริญ","อุดรธานี","อุตรดิตถ์","อุทัยธานี","อุบลราชธานี"];
 
 document.addEventListener('DOMContentLoaded', () => {
   fetchData();
@@ -44,6 +45,30 @@ function populateProvinces() {
   select.innerHTML = '<option value="">-- เลือกจังหวัด --</option>' + provinces.map(p => `<option value="${p}">${p}</option>`).join('');
 }
 
+// 📌 ฟังก์ชันเซฟการตั้งค่าของ Admin
+window.saveAdminSettings = async function() {
+  const yearInput = document.getElementById('adminActiveYear').value.trim();
+  if(!yearInput) return alert('⚠️ กรุณาระบุปี');
+  
+  const btn = document.getElementById('btnSaveSetting');
+  btn.textContent = 'กำลังบันทึก...'; btn.disabled = true;
+  
+  try {
+    const payload = { action: 'saveSetting', key: 'ACTIVE_REPORT_YEAR', value: yearInput };
+    const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
+    const result = await response.json();
+    if(result.status === 'success') {
+      alert('✅ ' + result.message);
+      globalSettings.activeReportYear = yearInput;
+      document.getElementById('srActiveYear').value = yearInput; // อัปเดตในฟอร์มผู้ใช้ทันที
+    } else {
+      alert('❌ ข้อผิดพลาด: ' + result.message);
+    }
+  } catch(e) { alert('❌ การเชื่อมต่อล้มเหลว'); }
+  
+  btn.textContent = 'บันทึก'; btn.disabled = false;
+}
+
 // ==========================================
 // 📝 ระบบรายงานการปฏิบัติหน้าที่ (Self Report)
 // ==========================================
@@ -59,7 +84,6 @@ window.handleSelfReportUserSelect = function() {
   const warnText = document.getElementById('srUserWarn');
   const formContainer = document.getElementById('srFormContainer');
   
-  // Extract UID if present
   const match = inputVal.match(/\((USR-\d{4}-\d{4})\)/);
   if(match) {
     const uid = match[1];
@@ -68,7 +92,6 @@ window.handleSelfReportUserSelect = function() {
       warnText.classList.add('hidden');
       formContainer.classList.remove('hidden');
       
-      // ดึงคอร์สที่เคยเรียนมาใส่ Dropdown
       const courseSelect = document.getElementById('srCourse');
       if(srSelectedUser.trainings && srSelectedUser.trainings.length > 0) {
         courseSelect.innerHTML = '<option value="">-- กรุณาเลือกหลักสูตรที่ท่านประยุกต์ใช้ความรู้ --</option>' + 
@@ -80,7 +103,6 @@ window.handleSelfReportUserSelect = function() {
     }
   }
   
-  // กรณีหาไม่เจอ
   srSelectedUser = null;
   warnText.classList.remove('hidden');
   formContainer.classList.add('hidden');
@@ -109,6 +131,7 @@ window.submitSelfReport = async function() {
   const province = document.getElementById('srProvince').value;
   const location = document.getElementById('srLocation').value.trim();
   const knowledge = document.getElementById('srKnowledge').value.trim();
+  const activeYear = document.getElementById('srActiveYear').value; // 📌 ดึงปีที่ถูกล็อกไว้มาใช้
   
   if(!course || !eventType || !eventName || !role || !sport || !startDate || !endDate || !province || !location || !knowledge) {
     return alert('⚠️ กรุณากรอกข้อมูลที่มีเครื่องหมายดอกจัน (*) ให้ครบถ้วน');
@@ -128,8 +151,6 @@ window.submitSelfReport = async function() {
     if(file1) { file1Data = await getBase64(file1); file1Name = file1.name; file1Mime = file1.type; }
     if(file2) { file2Data = await getBase64(file2); file2Name = file2.name; file2Mime = file2.type; }
 
-    const reportYear = parseInt(startDate.split('-')[0]) + 543; // แปลงปี ค.ศ. เป็น พ.ศ.
-
     const payload = {
       action: 'saveSelfReport',
       uid: srSelectedUser.uid,
@@ -141,7 +162,7 @@ window.submitSelfReport = async function() {
       sport: sport,
       startDate: startDate,
       endDate: endDate,
-      year: reportYear,
+      year: activeYear, // 📌 ส่งปีที่ถูกตั้งค่าโดยแอดมินไปบันทึก
       province: province,
       location: location,
       knowledge: knowledge,
@@ -154,7 +175,6 @@ window.submitSelfReport = async function() {
     
     if(result.status === 'success') {
       alert('✅ ' + result.message);
-      // Reset Form
       document.getElementById('srSearchName').value = '';
       document.getElementById('srFormContainer').classList.add('hidden');
       srSelectedUser = null;
@@ -166,7 +186,7 @@ window.submitSelfReport = async function() {
       document.getElementById('srKnowledge').value = '';
       document.getElementById('srFile1').value = '';
       document.getElementById('srFile2').value = '';
-      fetchData(); // อัปเดตข้อมูลเบื้องหลัง
+      fetchData(); 
     } else {
       alert('❌ ข้อผิดพลาด: ' + result.message);
     }
@@ -205,9 +225,15 @@ window.switchPage = function(pageId) {
 }
 
 window.switchImportMode = function(mode) {
-  const btnBulk = document.getElementById('tab-import-bulk'); const btnSingle = document.getElementById('tab-import-single'); const secBulk = document.getElementById('importModeBulk'); const secSingle = document.getElementById('importModeSingle');
-  if(mode === 'bulk') { btnBulk.className = "pb-3 border-b-2 border-blue-600 text-blue-600 font-bold text-sm transition px-4 flex items-center gap-2"; btnSingle.className = "pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-700 font-medium text-sm transition px-4 flex items-center gap-2"; secBulk.classList.remove('hidden'); secBulk.classList.add('block'); secSingle.classList.remove('block'); secSingle.classList.add('hidden'); } 
-  else { btnSingle.className = "pb-3 border-b-2 border-blue-600 text-blue-600 font-bold text-sm transition px-4 flex items-center gap-2"; btnBulk.className = "pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-700 font-medium text-sm transition px-4 flex items-center gap-2"; secSingle.classList.remove('hidden'); secSingle.classList.add('block'); secBulk.classList.remove('block'); secBulk.classList.add('hidden'); }
+  const btnBulk = document.getElementById('tab-import-bulk'); const btnSingle = document.getElementById('tab-import-single'); const btnSettings = document.getElementById('tab-import-settings');
+  const secBulk = document.getElementById('importModeBulk'); const secSingle = document.getElementById('importModeSingle'); const secSettings = document.getElementById('importModeSettings');
+  
+  [btnBulk, btnSingle, btnSettings].forEach(b => { if(b) b.className = "pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-700 font-medium text-sm transition px-4 flex items-center gap-2" + (b.id === 'tab-import-settings' ? ' ml-auto' : ''); });
+  [secBulk, secSingle, secSettings].forEach(s => { if(s) { s.classList.remove('block'); s.classList.add('hidden'); } });
+
+  if(mode === 'bulk') { btnBulk.classList.add('border-blue-600', 'text-blue-600', 'font-bold'); btnBulk.classList.remove('border-transparent', 'text-slate-500', 'font-medium'); secBulk.classList.remove('hidden'); secBulk.classList.add('block'); } 
+  else if (mode === 'single') { btnSingle.classList.add('border-blue-600', 'text-blue-600', 'font-bold'); btnSingle.classList.remove('border-transparent', 'text-slate-500', 'font-medium'); secSingle.classList.remove('hidden'); secSingle.classList.add('block'); }
+  else if (mode === 'settings') { btnSettings.classList.add('border-blue-600', 'text-blue-600', 'font-bold'); btnSettings.classList.remove('border-transparent', 'text-slate-500', 'font-medium'); secSettings.classList.remove('hidden'); secSettings.classList.add('block'); }
 }
 
 async function fetchData() {
@@ -218,8 +244,16 @@ async function fetchData() {
     if (result.status === 'success') {
       cachedPersonnelData = result.data.list;
       if (!globalFiltersMaster) { globalFiltersMaster = result.data.filters; updateDropdownUI(); }
+      
+      // 📌 ดึง Settings มาจากเซิร์ฟเวอร์
+      if(result.data.settings) {
+         globalSettings = result.data.settings;
+         document.getElementById('adminActiveYear').value = globalSettings.activeReportYear;
+         document.getElementById('srActiveYear').value = globalSettings.activeReportYear;
+      }
+      
       updateDatalists();
-      updateSelfReportDatalist(); // 📌 อัปเดตรายชื่อค้นหาตอนรายงานตัว
+      updateSelfReportDatalist(); 
       renderDashboard(result.data.stats);
       drawCharts(result.data.filters.years, result.data.filters.groups); 
       currentFilteredData = result.data.list; currentPage = 1;
@@ -271,7 +305,7 @@ function renderDashboard(stats) {
         </td>
         <td class="px-6 py-4 text-center">
            <button id="btn_report_${index}" onclick="openProposalReport('${safeEncodedCourseName}', 'btn_report_${index}')" class="bg-blue-600 text-white hover:bg-blue-700 px-3 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 w-full max-w-[130px] mx-auto shadow-md">
-             <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg> 
+             <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg> 
              <span>สรุปผลสัมฤทธิ์</span>
            </button>
         </td>
