@@ -222,12 +222,8 @@ function renderDashboard(stats) {
   tbody.innerHTML = stats.courseSummary.map((item, index) => {
     const retentionPercent = item.totalPeople > 0 ? Math.round((item.activePeople / item.totalPeople) * 100) : 0;
     
-    // 📌 แก้ไขบั๊กสำคัญตรงนี้: แปลงอักขระพิเศษเพื่อป้องกัน JS Syntax Error ในการกดปุ่ม
-    const safeCourseName = String(item.courseName)
-      .replace(/\\/g, '\\\\')
-      .replace(/'/g, "\\'")
-      .replace(/"/g, '&quot;')
-      .replace(/[\r\n]+/g, ' ');
+    // 📌 แก้ไขบั๊กปุ่มกดไม่ได้แบบ Bulletproof: เข้ารหัสชื่อเต็มรูปแบบ
+    const safeEncodedCourseName = encodeURIComponent(item.courseName);
 
     return `
       <tr class="hover:bg-slate-50 border-b border-slate-100">
@@ -239,9 +235,9 @@ function renderDashboard(stats) {
           <div class="w-full bg-slate-100 rounded-full h-2"><div class="bg-emerald-500 h-2 rounded-full" style="width: ${retentionPercent}%"></div></div>
         </td>
         <td class="px-6 py-4 text-center">
-           <button onclick="openProposalReport('${safeCourseName}', ${item.totalPeople}, ${item.activePeople})" class="bg-blue-600 text-white hover:bg-blue-700 px-3 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 w-full max-w-[120px] mx-auto shadow-md">
-             <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg> 
-             <span>PDCA Report</span>
+           <button id="btn_report_${index}" onclick="openProposalReport('${safeEncodedCourseName}', 'btn_report_${index}')" class="bg-blue-600 text-white hover:bg-blue-700 px-3 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 w-full max-w-[130px] mx-auto shadow-md">
+             <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg> 
+             <span>สรุปผลสัมฤทธิ์</span>
            </button>
         </td>
       </tr>
@@ -297,32 +293,110 @@ function buildMatrixTable(startYear, endYear) {
 window.closeMatrixReport = function() { document.getElementById('matrixModal').classList.add('hidden'); }
 window.printMatrixReport = function() { document.getElementById('matrixModal').classList.add('print-modal-active'); window.print(); document.getElementById('matrixModal').classList.remove('print-modal-active'); }
 
-window.openProposalReport = function(courseName, totalPeople, activePeople) {
-  const courseUsers = cachedPersonnelData.filter(u => u.trainings && u.trainings.some(t => t.course === courseName));
-  const agencyCount = {}; courseUsers.forEach(u => { if(u.agency) agencyCount[u.agency] = (agencyCount[u.agency] || 0) + 1; });
-  const topAgencies = Object.entries(agencyCount).sort((a,b)=>b[1]-a[1]).slice(0,3);
-  let feedbacks = []; courseUsers.forEach(u => { if (u.evals) { u.evals.forEach(e => feedbacks.push(e.feedback)); } });
-  const displayFeedbacks = feedbacks.slice(-2);
 
-  document.getElementById('reportCourseName').textContent = courseName;
-  document.getElementById('reportTotal').textContent = totalPeople;
-  document.getElementById('reportActive').textContent = activePeople;
-  document.getElementById('reportRetention').textContent = totalPeople > 0 ? Math.round((activePeople/totalPeople)*100) + '%' : '0%';
+// 📑 Impact Assessment Report Builder (อัปเดตเป็นโมดูล A4 อัจฉริยะ)
+window.openProposalReport = function(encodedCourseName, btnId) {
+  // สร้าง Loading Effect ให้ปุ่ม
+  const btn = document.getElementById(btnId);
+  const originalBtnHTML = btn.innerHTML;
+  btn.innerHTML = `<svg class="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> กำลังสร้างรายงาน...`;
   
-  document.querySelectorAll('.pdca-course-name').forEach(el => el.textContent = courseName);
-  document.getElementById('pdcaPlanTarget').textContent = totalPeople;
-  document.getElementById('pdcaDoActual').textContent = totalPeople;
-  document.getElementById('pdcaCheckActive').textContent = activePeople;
-  
-  const agencyHtml = topAgencies.length > 0 ? topAgencies.map((a, idx) => `<div class="flex justify-between items-center py-2 border-b border-slate-100 last:border-0"><div class="flex items-center gap-3"><span class="text-blue-500 font-bold bg-blue-50 px-2 rounded">#${idx+1}</span> <span class="text-sm font-semibold">${a[0]}</span></div><span class="text-sm font-bold text-slate-500">${a[1]} คน</span></div>`).join('') : '<p class="text-sm text-slate-400">ไม่สามารถระบุหน่วยงานได้</p>';
-  document.getElementById('reportAgencies').innerHTML = agencyHtml;
-  const feedbackHtml = displayFeedbacks.length > 0 ? displayFeedbacks.map(f => `<div class="bg-blue-50/50 border border-blue-100 p-4 rounded-xl text-sm italic text-slate-700 shadow-sm leading-relaxed">"${f}"</div>`).join('') : '<p class="text-sm text-slate-400 col-span-2 text-center py-4">ยังไม่มีข้อมูลข้อเสนอแนะในระบบ</p>';
-  document.getElementById('reportFeedback').innerHTML = feedbackHtml;
-  
-  const pdcaFeedbackHtml = displayFeedbacks.length > 0 ? displayFeedbacks.map(f => `<li>"${f}"</li>`).join('') : '<li>ยังไม่มีการแจ้งปัญหาหรือข้อเสนอแนะในระบบ</li>';
-  document.getElementById('pdcaCheckFeedback').innerHTML = pdcaFeedbackHtml;
+  setTimeout(() => {
+    // 📌 คืนค่าชื่อหลักสูตรที่ถูกต้อง (ถอดรหัส)
+    const courseName = decodeURIComponent(encodedCourseName);
+    const courseUsers = cachedPersonnelData.filter(u => u.trainings && u.trainings.some(t => t.course === courseName));
+    
+    const totalPeople = courseUsers.length;
+    const activePeople = courseUsers.filter(u => u.status !== 'พ้นสภาพ').length;
+    const retentionPercent = totalPeople > 0 ? Math.round((activePeople/totalPeople)*100) + '%' : '0%';
 
-  document.getElementById('proposalModal').classList.remove('hidden');
+    document.getElementById('reportCourseName').textContent = courseName;
+    document.getElementById('reportTotal').textContent = totalPeople;
+    document.getElementById('reportActive').textContent = activePeople;
+    document.getElementById('reportRetention').textContent = retentionPercent;
+    
+    // --- ส่วนที่ 1: จัดกลุ่มเป้าหมาย (Group Breakdown) ---
+    let groupStats = {};
+    courseUsers.forEach(u => {
+        let g = u.group || 'ไม่ระบุกลุ่มหน่วยงาน';
+        if(!groupStats[g]) groupStats[g] = { total: 0, active: 0 };
+        groupStats[g].total++;
+        if(u.status !== 'พ้นสภาพ') groupStats[g].active++;
+    });
+    
+    let groupHtml = Object.entries(groupStats).sort((a,b) => b[1].total - a[1].total).map(([gName, stat]) => {
+        let ret = stat.total > 0 ? Math.round((stat.active/stat.total)*100) : 0;
+        return `
+        <div class="flex justify-between items-center py-2.5 border-b border-slate-100 last:border-0">
+            <span class="text-sm font-semibold text-slate-700 flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-blue-500"></span> ${gName}
+            </span>
+            <span class="text-sm"><span class="font-bold text-slate-800">${stat.total}</span> คน <span class="text-[11px] font-bold text-emerald-600 ml-2 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-full">ทำงานต่อ ${stat.active} (${ret}%)</span></span>
+        </div>`;
+    }).join('');
+    document.getElementById('reportGroupBreakdown').innerHTML = groupHtml || '<p class="text-sm text-slate-400">ไม่มีข้อมูลกลุ่มเป้าหมาย</p>';
+
+    // --- ส่วนที่ 2: การติดตามการปฏิบัติหน้าที่ (Implementation Tracking) ---
+    let roleStats = {}; let sportStats = {};
+    courseUsers.forEach(u => {
+        if(u.duties && u.duties.length > 0) {
+            u.duties.forEach(d => {
+                let r = d.role || 'ไม่ระบุ'; let s = d.sport || 'ไม่ระบุ';
+                roleStats[r] = (roleStats[r] || 0) + 1;
+                sportStats[s] = (sportStats[s] || 0) + 1;
+            });
+        }
+    });
+    
+    let sortedRoles = Object.entries(roleStats).sort((a,b)=>b[1]-a[1]);
+    let sortedSports = Object.entries(sportStats).sort((a,b)=>b[1]-a[1]);
+    
+    let topRole = sortedRoles[0]?.[0] || 'หลายบทบาท';
+    let topSport = sortedSports[0]?.[0] || 'หลายชนิดกีฬา';
+    
+    let implHtml = `
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="bg-slate-50 p-5 rounded-xl border border-slate-200 shadow-sm">
+          <h4 class="text-xs font-bold text-slate-500 mb-3 uppercase flex items-center gap-1.5"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg> บทบาทหน้าที่หลัก (Top Roles)</h4>
+          <ul class="text-sm space-y-2">
+            ${sortedRoles.slice(0,3).map(r => `<li class="flex justify-between border-b border-slate-200 border-dashed pb-1"><span class="font-medium text-slate-700">${r[0]}</span> <span class="text-blue-600 font-bold">${r[1]} คน</span></li>`).join('') || '<li class="text-slate-400 italic">ยังไม่มีข้อมูลบุคลากรลงพื้นที่ปฏิบัติหน้าที่</li>'}
+          </ul>
+        </div>
+        <div class="bg-slate-50 p-5 rounded-xl border border-slate-200 shadow-sm">
+          <h4 class="text-xs font-bold text-slate-500 mb-3 uppercase flex items-center gap-1.5"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> ชนิดกีฬาที่ปฏิบัติงาน (Top Sports)</h4>
+          <ul class="text-sm space-y-2">
+            ${sortedSports.slice(0,3).map(s => `<li class="flex justify-between border-b border-slate-200 border-dashed pb-1"><span class="font-medium text-slate-700">${s[0]}</span> <span class="text-blue-600 font-bold">${s[1]} ครั้ง</span></li>`).join('') || '<li class="text-slate-400 italic">ยังไม่มีข้อมูลบุคลากรลงพื้นที่ปฏิบัติหน้าที่</li>'}
+          </ul>
+        </div>
+      </div>
+    `;
+    document.getElementById('reportImplementation').innerHTML = implHtml;
+
+    // --- ส่วนที่ 3: บทสรุปผู้บริหารแบบ AI Auto-Text ---
+    let feedbacks = []; courseUsers.forEach(u => { if (u.evals) u.evals.forEach(e => feedbacks.push(e.feedback)); });
+    let recentFeedbacks = feedbacks.slice(-3);
+    
+    let summaryText = `จากข้อมูลในระบบทะเบียนบุคลากรกีฬาพบว่า ผู้ผ่านการอบรมหลักสูตร <span class="font-bold text-blue-600">${courseName}</span> มีอัตราการปฏิบัติหน้าที่คงอยู่ในระบบภาพรวมสูงถึง <span class="font-bold text-emerald-600">${retentionPercent}</span> `;
+    
+    if(sortedRoles.length > 0) {
+      summaryText += `โดยส่วนใหญ่นำความรู้ไปประยุกต์ใช้ในหน้าที่ <span class="font-bold text-blue-600">${topRole}</span> เป็นหลัก และมีการกระจายตัวลงพื้นที่ปฏิบัติงานในชนิดกีฬา <span class="font-bold text-blue-600">${topSport}</span> มากที่สุด `;
+    } else {
+      summaryText += `อย่างไรก็ตาม ขณะนี้ยังอยู่ในช่วงการติดตามเก็บสถิติการลงพื้นที่ปฏิบัติงานจริงของกลุ่มเป้าหมาย `;
+    }
+
+    summaryText += recentFeedbacks.length > 0 ? `นอกจากนี้ ข้อคิดเห็นและข้อเสนอแนะเชิงธรรมาภิบาลจากผู้ใช้งานระบบได้ระบุประเด็นที่น่าสนใจดังนี้:` : `(ยังไม่มีการประเมินหรือข้อเสนอแนะเพิ่มเติมในขณะนี้)`;
+
+    let summaryHtml = `<p class="text-sm leading-relaxed text-slate-800 bg-blue-50/70 p-5 rounded-xl border border-blue-200 shadow-sm">${summaryText}</p>`;
+    
+    if (recentFeedbacks.length > 0) {
+        summaryHtml += `<div class="mt-4 space-y-3">` + recentFeedbacks.map(f => `<div class="text-sm italic text-slate-600 border-l-4 border-blue-400 bg-slate-50 pl-4 py-2 shadow-sm rounded-r-lg">"${f}"</div>`).join('') + `</div>`;
+    }
+    document.getElementById('reportExecutiveSummary').innerHTML = summaryHtml;
+
+    btn.innerHTML = originalBtnHTML; // คืนค่าปุ่มเดิม
+    document.getElementById('proposalModal').classList.remove('hidden');
+    
+  }, 400); // ดีเลย์ 0.4 วิให้ดูเนียนตา
 }
 
 window.closeProposalReport = function() { document.getElementById('proposalModal').classList.add('hidden'); }
