@@ -27,6 +27,10 @@ document.addEventListener('DOMContentLoaded', () => {
   fetchData();
   setupDragAndDrop();
   setupOTPInputs();
+  populateProvinces();
+  
+  // 📌 ตั้งค่าเปิดหน้าแรกเป็นหน้า "รายงานปฏิบัติหน้าที่" สำหรับผู้ใช้ทั่วไป
+  switchPage('report');
   
   let delayTimer;
   const triggerSearch = () => { clearTimeout(delayTimer); showLoadingState(); delayTimer = setTimeout(fetchData, 500); };
@@ -38,6 +42,12 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('excelUpload').addEventListener('change', (e) => processExcelFile(e.target.files[0], e.target));
   document.getElementById('singleFullName').addEventListener('blur', function() { if(this.value) this.value = this.value.trim().replace(/\s+/g, ' '); });
 });
+
+function populateProvinces() {
+  const select = document.getElementById('srProvince');
+  if(!select) return;
+  select.innerHTML = '<option value="">-- เลือกจังหวัด --</option>' + provinces.map(p => `<option value="${p}">${p}</option>`).join('');
+}
 
 window.saveAdminSettings = async function() {
   const yearInput = document.getElementById('adminActiveYear').value.trim();
@@ -65,7 +75,6 @@ function updateSelfReportDatalist() {
   if(dl) { dl.innerHTML = cachedPersonnelData.map(p => `<option value="${p.fullName} (${p.uid})">`).join(''); }
 }
 
-// 📌 ฟังก์ชันจัดการหลักสูตรและสร้างการ์ดอัตโนมัติ
 window.handleSelfReportUserSelect = function() {
   const inputVal = document.getElementById('srSearchName').value;
   const warnText = document.getElementById('srUserWarn');
@@ -78,7 +87,6 @@ window.handleSelfReportUserSelect = function() {
     const uid = match[1];
     srSelectedUser = cachedPersonnelData.find(p => p.uid === uid);
     if(srSelectedUser) {
-      // 1. กรองเฉพาะหลักสูตรในปีที่กำหนด
       const filteredCourses = (srSelectedUser.trainings || []).filter(t => String(t.year) === String(activeYear));
       
       if(filteredCourses.length === 0) {
@@ -91,10 +99,8 @@ window.handleSelfReportUserSelect = function() {
       warnText.classList.add('hidden');
       formContainer.classList.remove('hidden');
 
-      // 2. สร้างโครงสร้าง Dropdown จังหวัดไว้รอ
       const provOptions = '<option value="">-- เลือกจังหวัด --</option>' + provinces.map(p => `<option value="${p}">${p}</option>`).join('');
       
-      // 3. ปั้มการ์ดออกมาตามจำนวนหลักสูตร (Dynamic Form Loop)
       let html = '';
       filteredCourses.forEach((c, i) => {
         let copyBtn = i > 0 ? `
@@ -168,7 +174,6 @@ window.handleSelfReportUserSelect = function() {
   formContainer.classList.add('hidden');
 }
 
-// 📌 ฟังก์ชันคัดลอกข้อมูลจากหลักสูตรด้านบน (ลดการพิมพ์ซ้ำ)
 window.copyFormData = function(idx) {
   const isChecked = document.getElementById(`copyCheck_${idx}`).checked;
   if (isChecked) {
@@ -193,13 +198,11 @@ function getBase64(file) {
   });
 }
 
-// 📌 ฟังก์ชันส่งข้อมูลแบบลูป ป้องกันเว็บค้าง
 window.submitSelfReport = async function() {
   const activeYear = document.getElementById('srActiveYear').value;
   const cards = document.querySelectorAll('.sr-card-item');
   let allReports = [];
 
-  // ขั้นตอนที่ 1: ตรวจสอบความครบถ้วนของข้อมูลทุกใบก่อนส่ง
   for (let i = 0; i < cards.length; i++) {
     const course = document.getElementById(`srCourse_${i}`).value;
     const eventType = document.getElementById(`srEventType_${i}`).value;
@@ -222,7 +225,6 @@ window.submitSelfReport = async function() {
     allReports.push({ course, eventType, eventName, role, sport, startDate, endDate, province, location, knowledge, file1, file2 });
   }
 
-  // ขั้นตอนที่ 2: เริ่มเข้าสู่โหมดอัปโหลดแบบลูป
   document.getElementById('srLoadingOverlay').classList.remove('hidden');
 
   try {
@@ -237,15 +239,10 @@ window.submitSelfReport = async function() {
       if(r.file2) { file2Data = await getBase64(r.file2); file2Name = r.file2.name; file2Mime = r.file2.type; }
 
       const payload = {
-        action: 'saveSelfReport',
-        uid: srSelectedUser.uid,
-        fullName: srSelectedUser.fullName,
-        course: r.course,
-        eventType: r.eventType, eventName: r.eventName, role: r.role, sport: r.sport,
-        startDate: r.startDate, endDate: r.endDate,
+        action: 'saveSelfReport', uid: srSelectedUser.uid, fullName: srSelectedUser.fullName, course: r.course,
+        eventType: r.eventType, eventName: r.eventName, role: r.role, sport: r.sport, startDate: r.startDate, endDate: r.endDate,
         year: activeYear, province: r.province, location: r.location, knowledge: r.knowledge,
-        file1Data: file1Data, file1Name: file1Name, file1Mime: file1Mime,
-        file2Data: file2Data, file2Name: file2Name, file2Mime: file2Mime
+        file1Data: file1Data, file1Name: file1Name, file1Mime: file1Mime, file2Data: file2Data, file2Name: file2Name, file2Mime: file2Mime
       };
 
       const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
@@ -257,7 +254,7 @@ window.submitSelfReport = async function() {
     document.getElementById('srSearchName').value = '';
     document.getElementById('srFormContainer').classList.add('hidden');
     srSelectedUser = null;
-    fetchData(); // ดึงข้อมูลอัปเดตระบบ
+    fetchData(); 
   } catch(err) {
     if(err.message === 'ขนาดไฟล์เกิน 5MB') alert('❌ ' + err.message);
     else alert('❌ เกิดข้อผิดพลาด: ' + err.message);
@@ -265,7 +262,6 @@ window.submitSelfReport = async function() {
   
   document.getElementById('srLoadingOverlay').classList.add('hidden');
 }
-
 
 window.openLoginModal = function() { const modal = document.getElementById('loginModal'); modal.classList.remove('hidden'); document.getElementById('loginErrorMsg').classList.add('hidden'); const inputs = document.querySelectorAll('.otp-input'); inputs.forEach(input => input.value = ''); inputs[0].focus(); }
 window.closeLoginModal = function() { document.getElementById('loginModal').classList.add('hidden'); }
@@ -283,14 +279,26 @@ window.checkOTP = function() {
     const inputs = document.querySelectorAll('.otp-input'); let pin = ''; inputs.forEach(input => pin += input.value); 
     if(pin.length === 6) { 
         if(pin === "336699") { 
-            isAdmin = true; document.body.classList.add('is-admin'); document.getElementById('btnLogin').classList.add('hidden'); const btnLogout = document.getElementById('btnLogout'); btnLogout.classList.remove('hidden'); btnLogout.classList.add('flex'); closeLoginModal(); renderTablePage(); 
+            isAdmin = true; 
+            document.body.classList.add('is-admin'); 
+            document.getElementById('btnLogin').classList.add('hidden'); 
+            const btnLogout = document.getElementById('btnLogout'); btnLogout.classList.remove('hidden'); btnLogout.classList.add('flex'); 
+            closeLoginModal(); 
+            renderTablePage(); 
         } else { 
             document.getElementById('loginErrorMsg').classList.remove('hidden'); inputs.forEach(input => input.value = ''); inputs[0].focus(); 
         } 
     } 
 }
 
-window.logoutAdmin = function() { isAdmin = false; document.body.classList.remove('is-admin'); document.getElementById('btnLogin').classList.remove('hidden'); const btnLogout = document.getElementById('btnLogout'); btnLogout.classList.add('hidden'); btnLogout.classList.remove('flex'); if(document.getElementById('page-import').classList.contains('block')) switchPage('dashboard'); renderTablePage(); }
+window.logoutAdmin = function() { 
+    isAdmin = false; 
+    document.body.classList.remove('is-admin'); 
+    document.getElementById('btnLogin').classList.remove('hidden'); 
+    const btnLogout = document.getElementById('btnLogout'); btnLogout.classList.add('hidden'); btnLogout.classList.remove('flex'); 
+    switchPage('report'); 
+    renderTablePage(); 
+}
 
 window.switchPage = function(pageId) {
   const pages = ['dashboard', 'search', 'timeline', 'import', 'report'];
