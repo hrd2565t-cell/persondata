@@ -149,8 +149,11 @@ async function fetchData() {
   } catch (error) { showErrorState('การเชื่อมต่อกับฐานข้อมูลขัดข้อง'); }
 }
 
-// 📊 ฟังก์ชันวาดกราฟ Visual Analytics
+// 📊 ฟังก์ชันวาดกราฟ Visual Analytics (แสดงตัวเลขและเปอร์เซ็นต์)
 function drawCharts(allYears, allGroups) {
+  // ลงทะเบียน Plugin สำหรับแสดง Data Labels บน Chart
+  Chart.register(ChartDataLabels);
+
   // 1. Bar Chart (5 ปีล่าสุด)
   const sortedYears = [...allYears].sort((a,b)=>a-b);
   const last5Years = sortedYears.slice(-5);
@@ -168,7 +171,17 @@ function drawCharts(allYears, allGroups) {
       labels: last5Years.map(y => 'ปี '+y),
       datasets: [{ label: 'ผู้ผ่านการอบรม', data: yearData, backgroundColor: '#3b82f6', borderRadius: 6 }]
     },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { display: false } }, x: { grid: { display: false } } } }
+    options: { 
+      responsive: true, maintainAspectRatio: false, 
+      plugins: { 
+        legend: { display: false },
+        datalabels: { color: '#334155', anchor: 'end', align: 'top', font: { weight: 'bold' } }
+      }, 
+      scales: { 
+        y: { beginAtZero: true, suggestedMax: Math.max(...yearData) * 1.2, grid: { display: false } }, 
+        x: { grid: { display: false } } 
+      } 
+    }
   });
 
   // 2. Donut Chart (สัดส่วนกลุ่ม)
@@ -186,7 +199,21 @@ function drawCharts(allYears, allGroups) {
       labels: topGroups.map(g => g[0]),
       datasets: [{ data: topGroups.map(g => g[1]), backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#94a3b8'], hoverOffset: 4, borderWidth: 2 }]
     },
-    options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'right', labels: { boxWidth: 12, usePointStyle: true, font: { size: 11, family: "'Plus Jakarta Sans', sans-serif" } } } } }
+    options: { 
+      responsive: true, maintainAspectRatio: false, cutout: '65%', 
+      plugins: { 
+        legend: { position: 'right', labels: { boxWidth: 12, usePointStyle: true, font: { size: 11, family: "'Plus Jakarta Sans', sans-serif" } } },
+        datalabels: {
+          color: '#ffffff',
+          font: { weight: 'bold', size: 10 },
+          formatter: (value, ctx) => {
+            let sum = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+            let percentage = (value * 100 / sum).toFixed(1) + "%";
+            return percentage;
+          }
+        }
+      } 
+    }
   });
 }
 
@@ -201,6 +228,8 @@ function renderDashboard(stats) {
 
   tbody.innerHTML = stats.courseSummary.map((item, index) => {
     const retentionPercent = item.totalPeople > 0 ? Math.round((item.activePeople / item.totalPeople) * 100) : 0;
+    // 📌 สร้างปุ่มพร้อมดักการแปลง Single Quote ในชื่อคอร์สป้องกันการกดไม่ได้ (Bug Fixed)
+    const escapedCourseName = String(item.courseName).replace(/'/g, "\\'");
     return `
       <tr class="hover:bg-slate-50 border-b border-slate-100">
         <td class="px-6 py-4 text-center font-mono text-xs text-slate-400">${index + 1}</td>
@@ -211,8 +240,8 @@ function renderDashboard(stats) {
           <div class="w-full bg-slate-100 rounded-full h-2"><div class="bg-emerald-500 h-2 rounded-full" style="width: ${retentionPercent}%"></div></div>
         </td>
         <td class="px-6 py-4 text-center">
-           <button onclick="openProposalReport('${item.courseName}', ${item.totalPeople}, ${item.activePeople})" class="bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 mx-auto border border-blue-200 hover:border-blue-600">
-             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg> PDCA Report
+           <button onclick="openProposalReport('${escapedCourseName}', ${item.totalPeople}, ${item.activePeople})" class="text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-600 hover:text-white px-3 py-1.5 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1.5 w-full max-w-[120px] mx-auto">
+             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg> PDCA Report
            </button>
         </td>
       </tr>
@@ -268,7 +297,7 @@ function buildMatrixTable(startYear, endYear) {
 window.closeMatrixReport = function() { document.getElementById('matrixModal').classList.add('hidden'); }
 window.printMatrixReport = function() { document.getElementById('matrixModal').classList.add('print-modal-active'); window.print(); document.getElementById('matrixModal').classList.remove('print-modal-active'); }
 
-// 📑 PDCA Proposal Builder
+// 📑 PDCA Proposal Builder (อัปเดตโมดูลข้อความ PDCA ให้สอดคล้องกับภาระงานจริง)
 window.openProposalReport = function(courseName, totalPeople, activePeople) {
   const courseUsers = cachedPersonnelData.filter(u => u.trainings && u.trainings.some(t => t.course === courseName));
   const agencyCount = {}; courseUsers.forEach(u => { if(u.agency) agencyCount[u.agency] = (agencyCount[u.agency] || 0) + 1; });
@@ -323,7 +352,6 @@ function renderTablePage() {
     const initials = item.fullName.substring(0, 2).toUpperCase() || 'U';
     const statusBadge = (item.status === 'ปฏิบัติงาน' || item.status === 'ยังปฏิบัติหน้าที่') ? `<span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium border border-amber-300 text-amber-600 bg-white"><span class="w-1.5 h-1.5 rounded-full mr-2 bg-amber-500"></span>${item.status}</span>` : `<span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium border border-slate-300 text-slate-500 bg-white"><span class="w-1.5 h-1.5 rounded-full mr-2 bg-slate-400"></span>${item.status}</span>`;
     
-    // เปลี่ยนปุ่ม จัดการ เป็น ดูข้อมูล สำหรับ Viewer
     const btnText = isAdmin ? `<svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg> จัดการ` : `<svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg> ดูประวัติ`;
 
     return `
@@ -464,7 +492,6 @@ window.submitSingleEntry = function() {
     for (let p of cachedPersonnelData) { let sim = calculateSimilarity(p.fullName, formatted.fullName); if (sim >= 0.75 && sim < 1.0) { matchedExisting = p; matchType = 'fuzzy'; break; } }
   }
 
-  // ห่อเป็น Object เดียวแล้วส่งไปให้ Preview จัดการต่อ
   pendingImportData = [{
     originalIndex: 0, 'คำนำหน้า': formatted.prefix, 'ชื่อ-นามสกุล': formatted.fullName,
     'กลุ่มหน่วยงาน': pGroup, 'หน่วยงาน': pAgency, 'สถานะ': 'ปฏิบัติงาน', 
@@ -472,7 +499,6 @@ window.submitSingleEntry = function() {
     matchType: matchType, matchedUser: matchedExisting, actionType: matchType === 'exact' ? 'merge' : 'auto'
   }];
   
-  // ล้างฟอร์ม
   document.getElementById('singlePrefix').value = ''; document.getElementById('singleFullName').value = '';
   document.getElementById('singleGroup').value = ''; document.getElementById('singleAgency').value = '';
   document.getElementById('singleCourse').value = ''; document.getElementById('singleYear').value = '';
