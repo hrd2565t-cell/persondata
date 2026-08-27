@@ -69,21 +69,13 @@ window.updatePersonnelStatus = async function(uid, newStatus, selectElement) {
       } else {
          selectElement.className = "text-xs font-bold bg-white border border-amber-300 text-amber-600 rounded-full px-2 py-1 outline-none cursor-pointer shadow-sm text-center w-[110px] mx-auto block transition-colors";
       }
-      
       showToast('บันทึกสถานะเรียบร้อยแล้ว');
-      
       fetch(API_URL + '?action=getData').then(res => res.json()).then(json => {
-          if (json.status === 'success') {
-             globalFiltersMaster = json.data.filters;
-             renderDashboard(json.data.stats);
-             drawCharts(json.data.filters.years, json.data.filters.groups);
-          }
+          if (json.status === 'success') { globalFiltersMaster = json.data.filters; renderDashboard(json.data.stats); drawCharts(json.data.filters.years, json.data.filters.groups); }
       });
     } else { alert('❌ ' + result.message); }
   } catch(err) { alert('❌ การเชื่อมต่อล้มเหลว'); }
-  
-  selectElement.disabled = false;
-  selectElement.classList.remove('opacity-50', 'animate-pulse');
+  selectElement.disabled = false; selectElement.classList.remove('opacity-50', 'animate-pulse');
 }
 
 function populateProvinces() {
@@ -97,10 +89,7 @@ window.loadProjectData = function(course) {
   if(!course) { form.classList.add('hidden'); return; }
   
   form.classList.remove('hidden');
-  
-  document.getElementById('pdRationale').value = '';
-  document.getElementById('pdObjectives').value = '';
-  document.getElementById('pdExpected').value = '';
+  document.getElementById('pdRationale').value = ''; document.getElementById('pdObjectives').value = ''; document.getElementById('pdExpected').value = '';
   document.querySelectorAll('.pd-target-cb').forEach(cb => {
       cb.checked = false;
       let numInput = cb.parentElement.nextElementSibling;
@@ -109,9 +98,7 @@ window.loadProjectData = function(course) {
 
   if(cachedProjectDetails && cachedProjectDetails[course]) {
     const d = cachedProjectDetails[course];
-    document.getElementById('pdRationale').value = d.rationale || '';
-    document.getElementById('pdObjectives').value = d.objectives || '';
-    document.getElementById('pdExpected').value = d.expected || '';
+    document.getElementById('pdRationale').value = d.rationale || ''; document.getElementById('pdObjectives').value = d.objectives || ''; document.getElementById('pdExpected').value = d.expected || '';
     if(d.targets) {
       const targets = d.targets.includes('||') ? d.targets.split('||') : d.targets.split(',').map(t=>t.trim()+'|0');
       targets.forEach(t => {
@@ -120,10 +107,7 @@ window.loadProjectData = function(course) {
           if(cb.value === tName) {
             cb.checked = true;
             let numInput = cb.parentElement.nextElementSibling;
-            if(numInput) {
-              numInput.value = parseInt(tCount) > 0 ? tCount : '';
-              numInput.classList.remove('hidden');
-            }
+            if(numInput) { numInput.value = parseInt(tCount) > 0 ? tCount : ''; numInput.classList.remove('hidden'); }
           }
         });
       });
@@ -182,6 +166,18 @@ function updateSelfReportDatalist() {
   if(dl) { dl.innerHTML = cachedPersonnelData.map(p => `<option value="${p.fullName} (${p.uid})">`).join(''); }
 }
 
+// 📌 ฟังก์ชันสลับแสดง/ซ่อนช่องพิมพ์ "อื่นๆ"
+window.toggleOtherInput = function(selectEl, otherId) {
+  const otherInput = document.getElementById(otherId);
+  if(selectEl.value === 'อื่นๆ') {
+    otherInput.classList.remove('hidden');
+    otherInput.focus();
+  } else {
+    otherInput.classList.add('hidden');
+    otherInput.value = '';
+  }
+}
+
 window.handleSelfReportUserSelect = function() {
   const inputVal = document.getElementById('srSearchName').value; const warnText = document.getElementById('srUserWarn'); const formContainer = document.getElementById('srFormContainer'); const dynamicForms = document.getElementById('srDynamicForms'); const activeYear = globalSettings.activeReportYear;
   const match = inputVal.match(/\((USR-\d{4}-\d{4})\)/);
@@ -195,7 +191,32 @@ window.handleSelfReportUserSelect = function() {
       let html = '';
       filteredCourses.forEach((c, i) => {
         let copyBtn = i > 0 ? `<div class="flex items-center gap-2 mb-4 p-3 bg-blue-50 border border-blue-200 rounded-xl"><input type="checkbox" id="copyCheck_${i}" onchange="copyFormData(${i})" class="w-4 h-4 text-blue-600 rounded cursor-pointer"><label for="copyCheck_${i}" class="text-sm font-bold text-blue-800 cursor-pointer">📋 คัดลอกข้อมูลสถานที่และเวลาจากหลักสูตรด้านบน</label></div>` : '';
-        html += `<div class="sr-card-item bg-white border-2 border-slate-100 rounded-2xl p-6 md:p-8 relative shadow-sm"><input type="hidden" id="srCourse_${i}" value="${c.course}"><div class="absolute top-0 right-0 bg-gradient-to-r from-blue-600 to-blue-800 text-white px-4 py-1.5 rounded-bl-2xl rounded-tr-2xl text-xs font-bold shadow-md">หลักสูตรที่ ${i + 1} / ${filteredCourses.length}</div><h3 class="text-lg font-extrabold text-slate-800 mb-2 border-l-4 border-blue-500 pl-3">หลักสูตร: <span class="text-blue-600">${c.course}</span></h3><p class="text-xs text-slate-500 mb-6 pl-4">กรุณากรอกรายละเอียดการนำความรู้ไปใช้ประโยชน์</p>${copyBtn}<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6"><div><label class="block text-xs font-bold text-slate-500 mb-1.5">รูปแบบงาน / ระดับการแข่งขัน <span class="text-red-500">*</span></label><select id="srEventType_${i}" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500"><option value="">-- เลือกรูปแบบงาน --</option><option value="รายการแข่งขันระดับจังหวัด">รายการแข่งขันระดับจังหวัด</option><option value="รายการแข่งขันระดับชาติ">รายการแข่งขันระดับชาติ</option><option value="รายการแข่งขันระดับนานาชาติ">รายการแข่งขันระดับนานาชาติ</option><option value="รายการอบรมสัมมนา">รายการอบรมสัมมนา</option><option value="ปฏิบัติงานบริหารจัดการทั่วไป">ปฏิบัติงานบริหารจัดการทั่วไป</option><option value="อื่นๆ">อื่นๆ</option></select></div><div><label class="block text-xs font-bold text-slate-500 mb-1.5">ชื่องาน / รายการที่ไปปฏิบัติหน้าที่ <span class="text-red-500">*</span></label><input type="text" id="srEventName_${i}" placeholder="เช่น กีฬาแห่งชาติ ครั้งที่ 49" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500"></div><div><label class="block text-xs font-bold text-slate-500 mb-1.5">ตำแหน่งที่ท่านปฏิบัติหน้าที่ <span class="text-red-500">*</span></label><select id="srRole_${i}" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500"><option value="">-- เลือกตำแหน่ง --</option><option value="ผู้ตัดสิน">ผู้ตัดสิน</option><option value="ผู้ฝึกสอน">ผู้ฝึกสอน</option><option value="วิทยากร">วิทยากร</option><option value="ประธานจัดการแข่งขัน">ประธานจัดการแข่งขัน</option><option value="ผู้จัดการทีม">ผู้จัดการทีม</option><option value="เจ้าหน้าที่เทคนิค">เจ้าหน้าที่เทคนิค</option><option value="ผู้ดูแลระบบ/ประสานงาน">ผู้ดูแลระบบ/ประสานงาน</option><option value="อื่นๆ">อื่นๆ</option></select></div><div><label class="block text-xs font-bold text-slate-500 mb-1.5">ชนิดกีฬา <span class="text-red-500">*</span></label><input type="text" id="srSport_${i}" placeholder="เช่น ฟุตบอล, มวยไทย (หากไม่มีให้ใส่ -)" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500"></div><div><label class="block text-xs font-bold text-slate-500 mb-1.5">วันที่เริ่มต้นปฏิบัติงาน <span class="text-red-500">*</span></label><input type="date" id="srStartDate_${i}" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"></div><div><label class="block text-xs font-bold text-slate-500 mb-1.5">วันที่สิ้นสุดการปฏิบัติงาน <span class="text-red-500">*</span></label><input type="date" id="srEndDate_${i}" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"></div><div><label class="block text-xs font-bold text-slate-500 mb-1.5">สถานที่ (จังหวัด) <span class="text-red-500">*</span></label><select id="srProvince_${i}" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500">${provOptions}</select></div><div><label class="block text-xs font-bold text-slate-500 mb-1.5">สถานที่จัดงาน (รายละเอียด) <span class="text-red-500">*</span></label><input type="text" id="srLocation_${i}" placeholder="เช่น สนามกีฬาจังหวัด..." class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500"></div></div><div class="space-y-4"><div><label class="block text-xs font-bold text-slate-500 mb-2">อธิบายความรู้ที่ท่านได้นำไปประยุกต์ใช้ <span class="text-red-500">*</span></label><textarea id="srKnowledge_${i}" rows="3" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-4 outline-none focus:ring-2 focus:ring-blue-500 resize-none" placeholder="อธิบายสั้นๆ..."></textarea></div><div class="bg-blue-50/50 border border-blue-100 p-4 rounded-xl"><label class="block text-xs font-bold text-slate-700 mb-2">แนบรูปภาพหลักฐานประกอบ (ถ้ามี / ไม่เกิน 5MB ต่อภาพ)</label><div class="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><input type="file" id="srFile1_${i}" accept="image/jpeg, image/png, image/jpg" class="w-full text-xs text-slate-500 file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 bg-white border border-slate-200 rounded p-1 cursor-pointer"></div><div><input type="file" id="srFile2_${i}" accept="image/jpeg, image/png, image/jpg" class="w-full text-xs text-slate-500 file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 bg-white border border-slate-200 rounded p-1 cursor-pointer"></div></div></div></div></div>`;
+        html += `
+        <div class="sr-card-item bg-white border-2 border-slate-100 rounded-2xl p-6 md:p-8 relative shadow-sm"><input type="hidden" id="srCourse_${i}" value="${c.course}">
+          <div class="absolute top-0 right-0 bg-gradient-to-r from-blue-600 to-blue-800 text-white px-4 py-1.5 rounded-bl-2xl rounded-tr-2xl text-xs font-bold shadow-md">หลักสูตรที่ ${i + 1} / ${filteredCourses.length}</div>
+          <h3 class="text-lg font-extrabold text-slate-800 mb-2 border-l-4 border-blue-500 pl-3">หลักสูตร: <span class="text-blue-600">${c.course}</span></h3>
+          <p class="text-xs text-slate-500 mb-6 pl-4">กรุณากรอกรายละเอียดการนำความรู้ไปใช้ประโยชน์</p>${copyBtn}
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+            <div><label class="block text-xs font-bold text-slate-500 mb-1.5">รูปแบบงาน / ระดับการแข่งขัน <span class="text-red-500">*</span></label>
+              <select id="srEventType_${i}" onchange="toggleOtherInput(this, 'srEventTypeOther_${i}')" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"><option value="">-- เลือกรูปแบบงาน --</option><option value="รายการแข่งขันระดับจังหวัด">รายการแข่งขันระดับจังหวัด</option><option value="รายการแข่งขันระดับชาติ">รายการแข่งขันระดับชาติ</option><option value="รายการแข่งขันระดับนานาชาติ">รายการแข่งขันระดับนานาชาติ</option><option value="รายการอบรมสัมมนา">รายการอบรมสัมมนา</option><option value="ปฏิบัติงานบริหารจัดการทั่วไป">ปฏิบัติงานบริหารจัดการทั่วไป</option><option value="อื่นๆ">อื่นๆ</option></select>
+              <input type="text" id="srEventTypeOther_${i}" placeholder="โปรดระบุรูปแบบงาน..." class="hidden w-full mt-2 text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm">
+            </div>
+            <div><label class="block text-xs font-bold text-slate-500 mb-1.5">ชื่องาน / รายการที่ไปปฏิบัติหน้าที่ <span class="text-red-500">*</span></label><input type="text" id="srEventName_${i}" placeholder="เช่น กีฬาแห่งชาติ ครั้งที่ 49" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500"></div>
+            <div><label class="block text-xs font-bold text-slate-500 mb-1.5">ตำแหน่งที่ท่านปฏิบัติหน้าที่ <span class="text-red-500">*</span></label>
+              <select id="srRole_${i}" onchange="toggleOtherInput(this, 'srRoleOther_${i}')" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"><option value="">-- เลือกตำแหน่ง --</option><option value="ผู้ตัดสิน">ผู้ตัดสิน</option><option value="ผู้ฝึกสอน">ผู้ฝึกสอน</option><option value="วิทยากร">วิทยากร</option><option value="ประธานจัดการแข่งขัน">ประธานจัดการแข่งขัน</option><option value="ผู้จัดการทีม">ผู้จัดการทีม</option><option value="เจ้าหน้าที่เทคนิค">เจ้าหน้าที่เทคนิค</option><option value="ผู้ดูแลระบบ/ประสานงาน">ผู้ดูแลระบบ/ประสานงาน</option><option value="อื่นๆ">อื่นๆ</option></select>
+              <input type="text" id="srRoleOther_${i}" placeholder="โปรดระบุตำแหน่ง..." class="hidden w-full mt-2 text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm">
+            </div>
+            <div><label class="block text-xs font-bold text-slate-500 mb-1.5">ชนิดกีฬา <span class="text-red-500">*</span></label><input type="text" id="srSport_${i}" placeholder="เช่น ฟุตบอล, มวยไทย (หากไม่มีให้ใส่ -)" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500"></div>
+            <div><label class="block text-xs font-bold text-slate-500 mb-1.5">วันที่เริ่มต้นปฏิบัติงาน <span class="text-red-500">*</span></label><input type="date" id="srStartDate_${i}" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"></div>
+            <div><label class="block text-xs font-bold text-slate-500 mb-1.5">วันที่สิ้นสุดการปฏิบัติงาน <span class="text-red-500">*</span></label><input type="date" id="srEndDate_${i}" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"></div>
+            <div><label class="block text-xs font-bold text-slate-500 mb-1.5">สถานที่ (จังหวัด) <span class="text-red-500">*</span></label><select id="srProvince_${i}" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500">${provOptions}</select></div>
+            <div><label class="block text-xs font-bold text-slate-500 mb-1.5">สถานที่จัดงาน (รายละเอียด) <span class="text-red-500">*</span></label><input type="text" id="srLocation_${i}" placeholder="เช่น สนามกีฬาจังหวัด..." class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500"></div>
+          </div>
+          <div class="space-y-4">
+            <div><label class="block text-xs font-bold text-slate-500 mb-2">อธิบายความรู้ที่ท่านได้นำไปประยุกต์ใช้ <span class="text-red-500">*</span></label><textarea id="srKnowledge_${i}" rows="3" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-4 outline-none focus:ring-2 focus:ring-blue-500 resize-none" placeholder="อธิบายสั้นๆ..."></textarea></div>
+            <div class="bg-blue-50/50 border border-blue-100 p-4 rounded-xl"><label class="block text-xs font-bold text-slate-700 mb-2">แนบรูปภาพหลักฐานประกอบ (ถ้ามี / ไม่เกิน 5MB ต่อภาพ)</label><div class="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><input type="file" id="srFile1_${i}" accept="image/jpeg, image/png, image/jpg" class="w-full text-xs text-slate-500 file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 bg-white border border-slate-200 rounded p-1 cursor-pointer"></div><div><input type="file" id="srFile2_${i}" accept="image/jpeg, image/png, image/jpg" class="w-full text-xs text-slate-500 file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 bg-white border border-slate-200 rounded p-1 cursor-pointer"></div></div></div>
+          </div>
+        </div>`;
       });
       dynamicForms.innerHTML = html; return;
     }
@@ -207,9 +228,22 @@ window.copyFormData = function(idx) {
   const isChecked = document.getElementById(`copyCheck_${idx}`).checked;
   if (isChecked) {
     const prev = idx - 1;
-    document.getElementById(`srEventType_${idx}`).value = document.getElementById(`srEventType_${prev}`).value;
+    
+    // 📌 ดึงค่าช่องระบุอื่นๆ ด้วยเพื่อมาเช็ค
+    const copyOtherEvent = document.getElementById(`srEventTypeOther_${prev}`).value;
+    const copyOtherRole = document.getElementById(`srRoleOther_${prev}`).value;
+
+    const currEventType = document.getElementById(`srEventType_${idx}`);
+    currEventType.value = document.getElementById(`srEventType_${prev}`).value;
+    toggleOtherInput(currEventType, `srEventTypeOther_${idx}`);
+    document.getElementById(`srEventTypeOther_${idx}`).value = copyOtherEvent;
+
+    const currRole = document.getElementById(`srRole_${idx}`);
+    currRole.value = document.getElementById(`srRole_${prev}`).value;
+    toggleOtherInput(currRole, `srRoleOther_${idx}`);
+    document.getElementById(`srRoleOther_${idx}`).value = copyOtherRole;
+
     document.getElementById(`srEventName_${idx}`).value = document.getElementById(`srEventName_${prev}`).value;
-    document.getElementById(`srRole_${idx}`).value = document.getElementById(`srRole_${prev}`).value;
     document.getElementById(`srSport_${idx}`).value = document.getElementById(`srSport_${prev}`).value;
     document.getElementById(`srStartDate_${idx}`).value = document.getElementById(`srStartDate_${prev}`).value;
     document.getElementById(`srEndDate_${idx}`).value = document.getElementById(`srEndDate_${prev}`).value;
@@ -223,7 +257,29 @@ function getBase64(file) { return new Promise((resolve, reject) => { if(file.siz
 window.submitSelfReport = async function() {
   const activeYear = document.getElementById('srActiveYear').value; const cards = document.querySelectorAll('.sr-card-item'); let allReports = [];
   for (let i = 0; i < cards.length; i++) {
-    const course = document.getElementById(`srCourse_${i}`).value; const eventType = document.getElementById(`srEventType_${i}`).value; const eventName = document.getElementById(`srEventName_${i}`).value.trim(); const role = document.getElementById(`srRole_${i}`).value; const sport = document.getElementById(`srSport_${i}`).value.trim(); const startDate = document.getElementById(`srStartDate_${i}`).value; const endDate = document.getElementById(`srEndDate_${i}`).value; const province = document.getElementById(`srProvince_${i}`).value; const location = document.getElementById(`srLocation_${i}`).value.trim(); const knowledge = document.getElementById(`srKnowledge_${i}`).value.trim();
+    const course = document.getElementById(`srCourse_${i}`).value; 
+    let eventType = document.getElementById(`srEventType_${i}`).value; 
+    const eventName = document.getElementById(`srEventName_${i}`).value.trim(); 
+    let role = document.getElementById(`srRole_${i}`).value; 
+    const sport = document.getElementById(`srSport_${i}`).value.trim(); 
+    const startDate = document.getElementById(`srStartDate_${i}`).value; 
+    const endDate = document.getElementById(`srEndDate_${i}`).value; 
+    const province = document.getElementById(`srProvince_${i}`).value; 
+    const location = document.getElementById(`srLocation_${i}`).value.trim(); 
+    const knowledge = document.getElementById(`srKnowledge_${i}`).value.trim();
+    
+    // 📌 ตรวจสอบกรณีเลือก "อื่นๆ" ว่าพิมพ์คำอธิบายหรือยัง
+    if (eventType === 'อื่นๆ') {
+      const otherVal = document.getElementById(`srEventTypeOther_${i}`).value.trim();
+      if(!otherVal) return alert(`⚠️ กรุณาระบุรูปแบบงาน/ระดับการแข่งขัน (ช่องอื่นๆ) ในหลักสูตรที่ ${i+1} ให้ครบถ้วน`);
+      eventType = 'อื่นๆ: ' + otherVal;
+    }
+    if (role === 'อื่นๆ') {
+      const otherVal = document.getElementById(`srRoleOther_${i}`).value.trim();
+      if(!otherVal) return alert(`⚠️ กรุณาระบุตำแหน่งที่ปฏิบัติหน้าที่ (ช่องอื่นๆ) ในหลักสูตรที่ ${i+1} ให้ครบถ้วน`);
+      role = 'อื่นๆ: ' + otherVal;
+    }
+
     if(!eventType || !eventName || !role || !sport || !startDate || !endDate || !province || !location || !knowledge) { return alert(`⚠️ กรุณากรอกข้อมูลในหลักสูตรที่ ${i+1} ให้ครบถ้วน`); }
     const file1 = document.getElementById(`srFile1_${i}`).files[0]; const file2 = document.getElementById(`srFile2_${i}`).files[0];
     allReports.push({ course, eventType, eventName, role, sport, startDate, endDate, province, location, knowledge, file1, file2 });
@@ -423,7 +479,6 @@ window.renderReportData = function() {
      pdOverview.classList.remove('hidden');
      const d = cachedProjectDetails[courseName];
      
-     // 📌 ถอด 'หลักการและเหตุผล' ออกจากหน้ารายงานตามคำขอ
      document.getElementById('reportObjectives').textContent = d.objectives || '-';
      
      if(d.targets) {
