@@ -25,7 +25,7 @@
     body.is-admin .admin-only { display: flex; } 
     body.is-admin .admin-only-block { display: block; } 
     
-    /* 📌 อัปเกรดขั้นสุด: ระบบ Print CSS สำหรับขนาด A4 */
+    /* 📌 ระบบ Print CSS สำหรับขนาด A4 (ฉบับสมบูรณ์) */
     @media print {
       @page { size: A4; margin: 12mm; }
       body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; background: white !important; }
@@ -33,14 +33,13 @@
       /* ซ่อนโครงสร้างเว็บทั้งหมด ยกเว้น Modal ที่กำลังเปิดอยู่ */
       body > * { display: none !important; }
       
-      /* นำ Modal ขึ้นมาแสดงแทน Body ดั้งเดิม เพื่อป้องกันข้อจำกัดหน้ากระดาษ */
+      /* นำ Modal ขึ้นมาแสดงแทน Body ดั้งเดิม */
       body > .print-modal-active { 
         display: block !important; 
-        position: static !important; /* สำคัญมาก: ลบ fixed ออกเพื่อให้ขึ้นหน้าใหม่ได้ */
+        position: static !important; 
         background-color: white !important;
       }
       
-      /* ลบ Padding/Margin ที่เป็นสาเหตุของกรอบสีเทารอบๆ */
       .print-modal-active .min-h-screen {
         min-height: auto !important;
         display: block !important;
@@ -50,7 +49,6 @@
         background: transparent !important;
       }
       
-      /* บังคับกระดาษ A4 100% ลบเงาและกรอบโค้งออกทั้งหมด */
       .print-modal-active .bg-white.w-full {
         max-width: 100% !important;
         width: 100% !important;
@@ -60,7 +58,6 @@
         padding: 0 !important;
       }
       
-      /* ป้องกันส่วนของข้อมูลถูกตัดขาดครึ่งกลางหน้ากระดาษ */
       table, img, .break-inside-avoid { 
         break-inside: avoid !important; 
         page-break-inside: avoid !important; 
@@ -68,7 +65,7 @@
       
       .print-hide { display: none !important; }
       
-      /* บังคับตัดขึ้นหน้าใหม่ (สำหรับข้อ 4) */
+      /* บังคับตัดขึ้นหน้าใหม่ */
       .print-page-break { 
         page-break-before: always !important; 
         break-before: page !important; 
@@ -126,7 +123,7 @@
           <p class="text-sm text-slate-500 mt-1">ติดตามเป้าหมาย อัตราการคงอยู่ (Retention) และประเมินผลสัมฤทธิ์โครงการ</p>
         </div>
         <button onclick="openMatrixReport()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-md transition-colors flex items-center gap-2">
-          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 01-1.125-1.125M3.375 19.5h7.5c.621 0 1.125-.504 1.125-1.125m-9.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-7.5A1.125 1.125 0 0112 18.375m9.75-12.75c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125m19.5 0v1.5c0 .621-.504 1.125-1.125 1.125M2.25 5.625v1.5c0 .621.504 1.125 1.125 1.125m0 0h17.25m-17.25 0h7.5c.621 0 1.125.504 1.125 1.125M3.375 8.25c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m17.25-3.75h-7.5c-.621 0-1.125.504-1.125 1.125m8.625-1.125c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125M12 10.875v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 10.875c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125M13.125 12h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125M20.625 12c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125M12 15.375v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 15.375c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125m0 1.5v-1.5m0 0c0-.621.504-1.125 1.125-1.125m0 0h7.5" /></svg>
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
           พิมพ์ตารางสรุปไขว้ (Matrix Report)
         </button>
       </div>
@@ -370,7 +367,6 @@
             <div class="space-y-3">
               <label class="block text-sm font-bold text-slate-700">1. ค้นหาชื่อ-นามสกุลของท่าน <span class="text-red-500">*</span></label>
               
-              <!-- 📌 ปุ่ม "ล้างข้อมูล" -->
               <div class="flex items-center gap-3">
                 <div class="relative flex-1">
                   <input type="text" id="srSearchName" list="dl-all-users" onchange="handleSelfReportUserSelect()" placeholder="พิมพ์ชื่อเพื่อค้นหาประวัติการอบรม..." class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-blue-500 block p-3.5 outline-none shadow-sm transition">
@@ -436,7 +432,7 @@
       </div>
     </div>
 
-    <!-- PAGE 4: Import Data & Settings (Admin Only) -->
+    <!-- 📌 PAGE 4: Import Data & Settings (อัปเกรด Phase 1 - เพิ่มการตั้งรหัสผ่าน) -->
     <div id="page-import" class="page-section hidden">
       <div class="max-w-5xl mx-auto mt-8">
         
@@ -494,13 +490,28 @@
 
           <div id="importModeSettings" class="hidden">
             <h2 class="text-lg font-bold text-slate-800 mb-4 border-l-4 border-blue-600 pl-3">ตั้งค่าระบบ (System Settings)</h2>
-            <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200 max-w-md">
-              <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase">ปีที่เปิดรับรายงานปฏิบัติหน้าที่ (เช่น 2569)</label>
-              <div class="flex gap-3">
-                 <input type="number" id="adminActiveYear" class="w-full text-sm border-slate-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 font-bold text-blue-700" placeholder="ระบุปี ค.ศ. หรือ พ.ศ.">
-                 <button id="btnSaveSetting" onclick="saveAdminSettings()" class="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 px-6 rounded-lg shadow-md transition">บันทึก</button>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              
+              <!-- กล่องที่ 1: ตั้งค่าปีประเมินผล -->
+              <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase">ปีที่เปิดรับรายงานปฏิบัติหน้าที่</label>
+                <div class="flex gap-3">
+                   <input type="number" id="adminActiveYear" class="w-full text-sm border-slate-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 font-bold text-blue-700" placeholder="เช่น 2569">
+                   <button id="btnSaveSetting" onclick="saveAdminSettings()" class="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 px-6 rounded-lg shadow-md transition">บันทึก</button>
+                </div>
+                <p class="text-xs text-slate-400 mt-3">ระบบจะล็อกปีในหน้าต่างรายงานฝั่งผู้ใช้ให้ตรงกับช่องนี้ เพื่อป้องกันสถิติเพี้ยน</p>
               </div>
-              <p class="text-xs text-slate-400 mt-3">ระบบจะทำการล็อกปีในหน้าต่างรายงานปฏิบัติหน้าที่ (ฝั่งผู้ใช้) ให้ตรงกับปีที่คุณระบุในช่องนี้อัตโนมัติ เพื่อป้องกันสถิติการประเมินผลผิดเพี้ยน</p>
+
+              <!-- กล่องที่ 2: ตั้งรหัสผ่าน Admin -->
+              <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase">รหัสผ่านสำหรับผู้ดูแลระบบ (Admin PIN)</label>
+                <div class="flex gap-3">
+                   <input type="password" id="adminPinSetting" maxlength="6" class="w-full text-sm border-slate-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 font-bold text-blue-700 tracking-[0.5em] text-center" placeholder="******">
+                   <button id="btnSavePinSetting" onclick="saveAdminPin()" class="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 px-6 rounded-lg shadow-md transition">เปลี่ยนรหัส</button>
+                </div>
+                <p class="text-xs text-slate-400 mt-3">กรอกตัวเลข 6 หลักเพื่อใช้เข้าสู่ระบบ (ค่าเริ่มต้นคือ 336699)</p>
+              </div>
+
             </div>
           </div>
           
@@ -599,13 +610,11 @@
           </div>
         </div>
         
-        <!-- 📌 อัปเกรด: Container ปรับ Padding ให้เหมาะกับขนาดหน้าต่างและ A4 -->
         <div class="p-6 md:p-10 space-y-8 text-slate-800 mx-auto bg-white print:p-0 print:space-y-6">
           <div class="text-center space-y-3 border-b-2 border-slate-800 pb-8">
             <h1 class="text-2xl md:text-3xl font-extrabold uppercase tracking-tight text-slate-900 print:text-2xl">รายงานผลสัมฤทธิ์โครงการ (IMPACT ASSESSMENT)</h1>
             <p class="text-slate-600 font-medium print:text-sm">ประกอบการพิจารณาประเมินผลโครงการ / กองทุนพัฒนาการกีฬาแห่งชาติ (NSDF)</p>
             
-            <!-- 📌 อัปเกรด: กล่องชื่อหลักสูตรให้ขยายและปัดบรรทัดได้อัตโนมัติ -->
             <div class="mt-6 bg-blue-50/50 text-slate-800 border border-blue-100 p-5 rounded-2xl flex flex-col items-center justify-center gap-4 w-full mx-auto shadow-sm print:border-none print:bg-slate-50 break-inside-avoid">
                <div class="flex flex-col items-center text-center w-full">
                  <span class="text-sm font-bold text-slate-500 mb-1">หลักสูตรที่ประเมิน</span>
@@ -642,7 +651,7 @@
             <div id="reportImplementation"></div>
           </div>
           
-          <!-- 📌 อัปเกรด: บังคับตัดหน้าใหม่เสมอเวลา Print (Page Break) -->
+          <!-- 📌 บังคับตัดหน้าใหม่เสมอเวลา Print -->
           <div class="print-page-break pt-8 print:pt-0">
             <h3 class="text-lg font-bold border-l-4 border-blue-600 pl-3 mb-5" id="titleExecSec">4. บทสรุปผู้บริหารและการวิเคราะห์ภาพรวม (Executive Summary)</h3>
             <div id="reportExecutiveSummary"></div>
