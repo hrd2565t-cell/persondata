@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupDragAndDrop();
   setupOTPInputs();
   populateProvinces();
-  switchPage('report');
+  switchPage('report'); // 📌 ล็อกให้เปิดมาเจอหน้า รายงานปฏิบัติหน้าที่ เสมอ
   
   let delayTimer;
   const triggerSearch = () => { 
@@ -139,6 +139,9 @@ window.loadProjectData = function(course) {
   }
   
   form.classList.remove('hidden');
+  
+  // 📌 เคลียร์ข้อมูลฟอร์ม
+  document.getElementById('pdFullCourseName').value = ''; 
   document.getElementById('pdRationale').value = ''; 
   document.getElementById('pdObjectives').value = ''; 
   document.getElementById('pdTargetDesc').value = ''; 
@@ -161,8 +164,10 @@ window.loadProjectData = function(course) {
       }
   });
 
+  // 📌 ดึงข้อมูลเก่ามาใส่ (ถ้ามี)
   if(cachedProjectDetails && cachedProjectDetails[course]) {
     const d = cachedProjectDetails[course];
+    document.getElementById('pdFullCourseName').value = d.fullCourseName || ''; 
     document.getElementById('pdRationale').value = d.rationale || ''; 
     document.getElementById('pdObjectives').value = d.objectives || ''; 
     document.getElementById('pdTargetDesc').value = d.targetDesc || ''; 
@@ -197,6 +202,7 @@ window.loadProjectData = function(course) {
 
 window.submitProjectDetails = async function() {
   const course = document.getElementById('pdCourse').value;
+  const fullCourseName = document.getElementById('pdFullCourseName').value.trim(); // 📌 รับค่าชื่อเต็ม
   const rationale = document.getElementById('pdRationale').value.trim();
   const objectives = document.getElementById('pdObjectives').value.trim();
   const targetDesc = document.getElementById('pdTargetDesc').value.trim();
@@ -230,6 +236,7 @@ window.submitProjectDetails = async function() {
     const payload = { 
       action: 'saveProjectDetails', 
       course: course, 
+      fullCourseName: fullCourseName, // 📌 ส่งข้อมูลชื่อเต็ม
       rationale: rationale, 
       objectives: objectives, 
       targetDesc: targetDesc,
@@ -244,6 +251,7 @@ window.submitProjectDetails = async function() {
       skillImpact: skillImpact,
       targets: targetString 
     };
+    
     const response = await fetch(API_URL, { 
       method: 'POST', 
       body: JSON.stringify(payload), 
@@ -1029,7 +1037,14 @@ window.renderReportData = function() {
     courseUsers = courseUsers.filter(u => u.trainings.some(t => t.course === courseName && String(t.year) === selectedYear)); 
   }
 
-  document.getElementById('reportCourseName').textContent = courseName + (selectedYear === 'all' ? ' (ภาพรวมทั้งหมด)' : ` (รุ่นปี ${selectedYear})`);
+  // 📌 ตรวจสอบและดึงข้อมูลชื่อเต็มหลักสูตร
+  let displayCourseName = courseName;
+  if(cachedProjectDetails && cachedProjectDetails[courseName] && cachedProjectDetails[courseName].fullCourseName) {
+    displayCourseName = cachedProjectDetails[courseName].fullCourseName;
+  }
+
+  // แสดงผลชื่อหลักสูตร (ใช้ชื่อเต็มถ้ามี)
+  document.getElementById('reportCourseName').textContent = displayCourseName + (selectedYear === 'all' ? ' (ภาพรวมทั้งหมด)' : ` (รุ่นปี ${selectedYear})`);
 
   let projectTargets = {};
   let totalTargetCount = 0;
@@ -1163,7 +1178,8 @@ window.renderReportData = function() {
     expectedText = `โครงการตั้งเป้าหมายผลลัพธ์ไว้ที่ <u>"${cachedProjectDetails[courseName].expected}"</u> ซึ่ง`; 
   }
 
-  let summaryText = `จากข้อมูลในระบบทะเบียนบุคลากรกีฬาพบว่า ผู้ผ่านการอบรมหลักสูตร <span class="font-bold text-blue-600">${courseName}</span> `;
+  // 📌 เปลี่ยนการอ้างอิงชื่อให้ตรงกัน (ถ้ามีชื่อเต็ม ให้ใช้ชื่อเต็มอธิบาย)
+  let summaryText = `จากข้อมูลในระบบทะเบียนบุคลากรกีฬาพบว่า ผู้ผ่านการอบรมหลักสูตร <span class="font-bold text-blue-600">${displayCourseName}</span> `;
   if(selectedYear !== 'all') {
     summaryText += `(เฉพาะผู้ที่อบรมในปี <span class="font-bold text-blue-600">${selectedYear}</span>) `;
   }
