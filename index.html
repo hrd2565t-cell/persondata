@@ -205,6 +205,13 @@
           <div class="bg-white border border-blue-200 rounded-2xl p-6 md:p-8 shadow-sm">
             <h3 class="text-md font-bold text-blue-800 mb-5 border-l-4 border-blue-600 pl-3">📌 หมวดที่ 1: ข้อมูลพื้นฐานโครงการ</h3>
             <div class="space-y-5">
+              
+              <!-- 📌 ช่องใหม่: ชื่อหลักสูตรเต็ม -->
+              <div>
+                <label class="block text-sm font-bold text-slate-700 mb-2">ชื่อหลักสูตร (ฉบับเต็มสำหรับออกรายงาน)</label>
+                <input type="text" id="pdFullCourseName" placeholder="เช่น โครงการพัฒนาบุคลากรกีฬาระดับชาติ ประจำปี..." class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-4 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm">
+              </div>
+
               <div>
                 <label class="block text-sm font-bold text-slate-700 mb-2">1. หลักการและเหตุผล</label>
                 <textarea id="pdRationale" rows="3" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-4 outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
@@ -536,7 +543,7 @@
     </div>
   </div>
 
-  <!-- 🟢 Modal: Impact Assessment Report Builder (ซ่อน Rationale & Objectives) -->
+  <!-- 🟢 Modal: Impact Assessment Report Builder -->
   <div id="proposalModal" class="fixed inset-0 z-[100] hidden bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
     <div class="min-h-screen flex items-center justify-center p-4">
       <div class="bg-white w-full max-w-4xl rounded-sm shadow-2xl relative overflow-hidden print-shadow-none">
@@ -556,8 +563,9 @@
             <h1 class="text-2xl md:text-3xl font-extrabold uppercase tracking-tight text-slate-900">รายงานผลสัมฤทธิ์โครงการ (Impact Assessment)</h1>
             <p class="text-slate-600 font-medium">ประกอบการพิจารณาประเมินผลโครงการ / กองทุนพัฒนาการกีฬาแห่งชาติ (NSDF)</p>
             
-            <div class="inline-block mt-4 bg-slate-100 text-slate-800 border border-slate-300 px-6 py-2.5 rounded-lg font-bold text-lg flex items-center justify-center gap-3 w-max mx-auto shadow-sm">
-               <span>หลักสูตร: <span id="reportCourseName">---</span></span>
+            <div class="inline-block mt-4 bg-slate-100 text-slate-800 border border-slate-300 px-6 py-2.5 rounded-lg font-bold flex items-center justify-center gap-3 w-max mx-auto shadow-sm">
+               <!-- 📌 ส่วนนี้จะแสดงชื่อเต็มของหลักสูตร -->
+               <span>หลักสูตร: <span id="reportCourseName" class="text-xl text-blue-700">---</span></span>
                <select id="reportYearFilter" onchange="renderReportData()" class="text-sm border border-slate-300 rounded-md py-1 px-2 outline-none focus:ring-2 focus:ring-blue-500 bg-white text-blue-700 cursor-pointer print-hide font-semibold shadow-sm ml-2">
                   <option value="all">รวมทุกปี</option>
                </select>
@@ -667,7 +675,7 @@
       </div>
     </div>
   </div>
-
+  
   <script src="./main.js"></script>
 </body>
 </html>
