@@ -77,6 +77,7 @@
 
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
     
+    <!-- PAGE 1: Dashboard -->
     <div id="page-dashboard" class="page-section hidden space-y-6">
       <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-2">
         <div>
@@ -129,6 +130,7 @@
       </div>
     </div>
 
+    <!-- PAGE 2: Search & Table -->
     <div id="page-search" class="page-section hidden space-y-6">
       <div class="w-full mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 font-sans overflow-hidden p-6 md:p-8">
         <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 mb-6">
@@ -178,6 +180,7 @@
       </div>
     </div>
 
+    <!-- 📌 PAGE NEW: ข้อมูลโครงการ (Project Details) สำหรับ Admin เท่านั้น -->
     <div id="page-project" class="page-section hidden space-y-6">
       <div class="max-w-4xl mx-auto mt-4 mb-10">
         <div class="bg-white border border-slate-200 rounded-3xl shadow-lg overflow-hidden p-8 md:p-10 space-y-8">
@@ -187,7 +190,7 @@
               <svg class="w-7 h-7 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
               จัดการข้อมูลโครงการ (Project Details)
             </h2>
-            <p class="text-sm text-slate-500 mt-2">เพิ่มข้อมูลหลักการ วัตถุประสงค์ และเป้าหมาย เพื่อใช้ในการออกรายงานผลสัมฤทธิ์อัตโนมัติ</p>
+            <p class="text-sm text-slate-500 mt-2">เพิ่มข้อมูลเป้าหมาย เพื่อใช้ในการออกรายงานผลสัมฤทธิ์อัตโนมัติ</p>
           </div>
 
           <div class="space-y-6">
@@ -200,12 +203,12 @@
 
             <div id="pdFormContainer" class="hidden space-y-6 animate-[fadeIn_0.5s_ease-in-out]">
               <div>
-                <label class="block text-sm font-bold text-slate-700 mb-2">2. หลักการและเหตุผล</label>
+                <label class="block text-sm font-bold text-slate-700 mb-2">2. หลักการและเหตุผล (เก็บไว้เป็นข้อมูลหลังบ้าน)</label>
                 <textarea id="pdRationale" rows="4" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-4 outline-none focus:ring-2 focus:ring-blue-500 resize-none leading-relaxed" placeholder="บรรยายหลักการและเหตุผลของโครงการ..."></textarea>
               </div>
 
               <div>
-                <label class="block text-sm font-bold text-slate-700 mb-2">3. วัตถุประสงค์โครงการ</label>
+                <label class="block text-sm font-bold text-slate-700 mb-2">3. วัตถุประสงค์โครงการ (เก็บไว้เป็นข้อมูลหลังบ้าน)</label>
                 <textarea id="pdObjectives" rows="3" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-4 outline-none focus:ring-2 focus:ring-blue-500 resize-none leading-relaxed" placeholder="1. เพื่อ...\n2. เพื่อ..."></textarea>
               </div>
 
@@ -257,6 +260,7 @@
       </div>
     </div>
 
+    <!-- PAGE NEW: แบบฟอร์มรายงานการปฏิบัติหน้าที่ (Public Home) -->
     <div id="page-report" class="page-section block space-y-6">
       <div class="max-w-4xl mx-auto mt-4 mb-10">
         
@@ -270,6 +274,7 @@
             <div class="space-y-3">
               <label class="block text-sm font-bold text-slate-700">1. ค้นหาชื่อ-นามสกุลของท่าน <span class="text-red-500">*</span></label>
               
+              <!-- 📌 ปุ่มล้างข้อมูล -->
               <div class="flex items-center gap-3">
                 <div class="relative flex-1">
                   <input type="text" id="srSearchName" list="dl-all-users" onchange="handleSelfReportUserSelect()" placeholder="พิมพ์ชื่อเพื่อค้นหาประวัติการอบรม..." class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-blue-500 block p-3.5 outline-none shadow-sm transition">
@@ -318,6 +323,7 @@
       </div>
     </div>
 
+    <!-- PAGE 3: Timeline -->
     <div id="page-timeline" class="page-section hidden space-y-6">
       <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
@@ -334,6 +340,7 @@
       </div>
     </div>
 
+    <!-- PAGE 4: Import Data & Settings (Admin Only) -->
     <div id="page-import" class="page-section hidden">
       <div class="max-w-5xl mx-auto mt-8">
         
@@ -443,6 +450,7 @@
     </div>
   </main>
 
+  <!-- 🟢 Modal: Impact Assessment Report Builder (ซ่อน Rationale & Objectives) -->
   <div id="proposalModal" class="fixed inset-0 z-[100] hidden bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
     <div class="min-h-screen flex items-center justify-center p-4">
       <div class="bg-white w-full max-w-4xl rounded-sm shadow-2xl relative overflow-hidden print-shadow-none">
@@ -497,6 +505,12 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- 🟢 Toast Notification สำหรับบันทึกสถานะ -->
+  <div id="toastNotification" class="fixed bottom-5 right-5 z-[150] transform transition-all duration-300 translate-y-20 opacity-0 bg-slate-800 text-white px-5 py-3.5 rounded-xl shadow-2xl flex items-center gap-3">
+    <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+    <span id="toastMessage" class="text-sm font-bold tracking-wide">บันทึกสำเร็จ</span>
   </div>
 
   <script src="./main.js"></script>
