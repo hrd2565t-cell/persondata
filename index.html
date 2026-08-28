@@ -77,7 +77,6 @@
 
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
     
-    <!-- PAGE 1: Dashboard -->
     <div id="page-dashboard" class="page-section hidden space-y-6">
       <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-2">
         <div>
@@ -130,7 +129,6 @@
       </div>
     </div>
 
-    <!-- PAGE 2: Search & Table -->
     <div id="page-search" class="page-section hidden space-y-6">
       <div class="w-full mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 font-sans overflow-hidden p-6 md:p-8">
         <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 mb-6">
@@ -180,7 +178,6 @@
       </div>
     </div>
 
-    <!-- 📌 PAGE NEW: ข้อมูลโครงการ (Project Details) สำหรับ Admin เท่านั้น -->
     <div id="page-project" class="page-section hidden space-y-6">
       <div class="max-w-4xl mx-auto mt-4 mb-10">
         <div class="bg-white border border-slate-200 rounded-3xl shadow-lg overflow-hidden p-8 md:p-10 space-y-8">
@@ -190,67 +187,124 @@
               <svg class="w-7 h-7 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
               จัดการข้อมูลโครงการ (Project Details)
             </h2>
-            <p class="text-sm text-slate-500 mt-2">เพิ่มข้อมูลหลักการ วัตถุประสงค์ และเป้าหมาย เพื่อใช้ในการออกรายงานผลสัมฤทธิ์อัตโนมัติ</p>
+            <p class="text-sm text-slate-500 mt-2">จัดการรายละเอียดโครงการเพื่อสอดคล้องกับแบบฟอร์มเสนอขอรับงบประมาณ กองทุนพัฒนาการกีฬาแห่งชาติ (NSDF)</p>
           </div>
 
           <div class="space-y-6">
             <div>
-              <label class="block text-sm font-bold text-slate-700 mb-2">1. เลือกหลักสูตร <span class="text-red-500">*</span></label>
+              <label class="block text-sm font-bold text-slate-700 mb-2">เลือกหลักสูตรที่ต้องการจัดการข้อมูล <span class="text-red-500">*</span></label>
               <select id="pdCourse" onchange="loadProjectData(this.value)" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-blue-500 p-3.5 outline-none shadow-sm cursor-pointer">
                 <option value="">-- กรุณาเลือกหลักสูตรเพื่อจัดการข้อมูล --</option>
               </select>
             </div>
 
-            <div id="pdFormContainer" class="hidden space-y-6 animate-[fadeIn_0.5s_ease-in-out]">
-              <div>
-                <label class="block text-sm font-bold text-slate-700 mb-2">2. หลักการและเหตุผล</label>
-                <textarea id="pdRationale" rows="4" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-4 outline-none focus:ring-2 focus:ring-blue-500 resize-none leading-relaxed" placeholder="บรรยายหลักการและเหตุผลของโครงการ..."></textarea>
+            <div id="pdFormContainer" class="hidden space-y-8 animate-[fadeIn_0.5s_ease-in-out]">
+              
+              <div class="bg-slate-50/70 p-6 rounded-2xl border border-slate-200 space-y-5">
+                <h3 class="text-base font-bold text-blue-800 border-b border-slate-200 pb-2 flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span> หมวดที่ 1: ข้อมูลพื้นฐานโครงการ
+                </h3>
+
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 mb-1.5 uppercase">1. หลักการและเหตุผล</label>
+                  <textarea id="pdRationale" rows="3" class="w-full text-sm bg-white border border-slate-300 rounded-xl p-3.5 outline-none focus:ring-2 focus:ring-blue-500 resize-none leading-relaxed" placeholder="ระบุหลักการและเหตุผลของโครงการ..."></textarea>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 mb-1.5 uppercase">2. วัตถุประสงค์โครงการ</label>
+                  <textarea id="pdObjectives" rows="3" class="w-full text-sm bg-white border border-slate-300 rounded-xl p-3.5 outline-none focus:ring-2 focus:ring-blue-500 resize-none leading-relaxed" placeholder="1. เพื่อ...\n2. เพื่อ..."></textarea>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 mb-1.5 uppercase">3. เป้าหมายของโครงการ (เชิงพรรณนา)</label>
+                  <textarea id="pdGoalsText" rows="2" class="w-full text-sm bg-white border border-slate-300 rounded-xl p-3.5 outline-none focus:ring-2 focus:ring-blue-500 resize-none leading-relaxed" placeholder="ระบุเป้าหมายของโครงการเชิงพรรณนา..."></textarea>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 mb-2 uppercase">กลุ่มเป้าหมายโครงการ (เลือกและระบุจำนวนที่คาดหวัง)</label>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-white p-4 rounded-xl border border-slate-200">
+                    <label class="flex items-center justify-between p-2 hover:bg-slate-50 rounded cursor-pointer transition border border-transparent hover:border-slate-200">
+                      <div class="flex items-center gap-2"><input type="checkbox" value="สมาคมกีฬาแห่งประเทศไทย" onchange="this.parentElement.nextElementSibling.classList.toggle('hidden', !this.checked)" class="pd-target-cb w-4 h-4 text-blue-600 rounded cursor-pointer"><span class="text-xs font-medium select-none">สมาคมกีฬาแห่งประเทศไทย</span></div>
+                      <input type="number" class="pd-target-num w-20 text-xs border border-slate-300 rounded p-1.5 outline-none focus:ring-1 focus:ring-blue-500 hidden" placeholder="จำนวนคน" min="1">
+                    </label>
+                    <label class="flex items-center justify-between p-2 hover:bg-slate-50 rounded cursor-pointer transition border border-transparent hover:border-slate-200">
+                      <div class="flex items-center gap-2"><input type="checkbox" value="สมาคมกีฬาแห่งจังหวัด" onchange="this.parentElement.nextElementSibling.classList.toggle('hidden', !this.checked)" class="pd-target-cb w-4 h-4 text-blue-600 rounded cursor-pointer"><span class="text-xs font-medium select-none">สมาคมกีฬาแห่งจังหวัด</span></div>
+                      <input type="number" class="pd-target-num w-20 text-xs border border-slate-300 rounded p-1.5 outline-none focus:ring-1 focus:ring-blue-500 hidden" placeholder="จำนวนคน" min="1">
+                    </label>
+                    <label class="flex items-center justify-between p-2 hover:bg-slate-50 rounded cursor-pointer transition border border-transparent hover:border-slate-200">
+                      <div class="flex items-center gap-2"><input type="checkbox" value="การกีฬาแห่งประเทศไทย" onchange="this.parentElement.nextElementSibling.classList.toggle('hidden', !this.checked)" class="pd-target-cb w-4 h-4 text-blue-600 rounded cursor-pointer"><span class="text-xs font-medium select-none">การกีฬาแห่งประเทศไทย</span></div>
+                      <input type="number" class="pd-target-num w-20 text-xs border border-slate-300 rounded p-1.5 outline-none focus:ring-1 focus:ring-blue-500 hidden" placeholder="จำนวนคน" min="1">
+                    </label>
+                    <label class="flex items-center justify-between p-2 hover:bg-slate-50 rounded cursor-pointer transition border border-transparent hover:border-slate-200">
+                      <div class="flex items-center gap-2"><input type="checkbox" value="กองทุนพัฒนาการกีฬาแห่งชาติ" onchange="this.parentElement.nextElementSibling.classList.toggle('hidden', !this.checked)" class="pd-target-cb w-4 h-4 text-blue-600 rounded cursor-pointer"><span class="text-xs font-medium select-none">กองทุนพัฒนาการกีฬาแห่งชาติ</span></div>
+                      <input type="number" class="pd-target-num w-20 text-xs border border-slate-300 rounded p-1.5 outline-none focus:ring-1 focus:ring-blue-500 hidden" placeholder="จำนวนคน" min="1">
+                    </label>
+                    <label class="flex items-center justify-between p-2 hover:bg-slate-50 rounded cursor-pointer transition border border-transparent hover:border-slate-200">
+                      <div class="flex items-center gap-2"><input type="checkbox" value="หน่วยงานภายนอก" onchange="this.parentElement.nextElementSibling.classList.toggle('hidden', !this.checked)" class="pd-target-cb w-4 h-4 text-blue-600 rounded cursor-pointer"><span class="text-xs font-medium select-none">หน่วยงานภายนอก</span></div>
+                      <input type="number" class="pd-target-num w-20 text-xs border border-slate-300 rounded p-1.5 outline-none focus:ring-1 focus:ring-blue-500 hidden" placeholder="จำนวนคน" min="1">
+                    </label>
+                    <label class="flex items-center justify-between p-2 hover:bg-slate-50 rounded cursor-pointer transition border border-transparent hover:border-slate-200">
+                      <div class="flex items-center gap-2"><input type="checkbox" value="ไม่ระบุ" onchange="this.parentElement.nextElementSibling.classList.toggle('hidden', !this.checked)" class="pd-target-cb w-4 h-4 text-blue-600 rounded cursor-pointer"><span class="text-xs font-medium select-none">อื่นๆ / ไม่ระบุ</span></div>
+                      <input type="number" class="pd-target-num w-20 text-xs border border-slate-300 rounded p-1.5 outline-none focus:ring-1 focus:ring-blue-500 hidden" placeholder="จำนวนคน" min="1">
+                    </label>
+                  </div>
+                </div>
               </div>
 
-              <div>
-                <label class="block text-sm font-bold text-slate-700 mb-2">3. วัตถุประสงค์โครงการ</label>
-                <textarea id="pdObjectives" rows="3" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-4 outline-none focus:ring-2 focus:ring-blue-500 resize-none leading-relaxed" placeholder="1. เพื่อ...\n2. เพื่อ..."></textarea>
+              <div class="bg-indigo-50/50 p-6 rounded-2xl border border-indigo-100 space-y-5">
+                <h3 class="text-base font-bold text-indigo-900 border-b border-indigo-200 pb-2 flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-indigo-600"></span> หมวดที่ 2: ความสอดคล้องเชิงนโยบายและกฎหมาย
+                </h3>
+
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 mb-1.5 uppercase">4. วัตถุประสงค์ตามมาตรา 42 แห่ง พ.ร.บ. การกีฬาแห่งประเทศไทย พ.ศ. 2558</label>
+                  <textarea id="pdSection42" rows="2" class="w-full text-sm bg-white border border-slate-300 rounded-xl p-3.5 outline-none focus:ring-2 focus:ring-blue-500 resize-none leading-relaxed" placeholder="ระบุวัตถุประสงค์ตามมาตรา 42..."></textarea>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 mb-1.5 uppercase">5. ความสอดคล้องและเชื่อมโยงต่อนโยบายรัฐบาล 2568</label>
+                  <textarea id="pdGovPolicy" rows="2" class="w-full text-sm bg-white border border-slate-300 rounded-xl p-3.5 outline-none focus:ring-2 focus:ring-blue-500 resize-none leading-relaxed" placeholder="ระบุความสอดคล้องต่อนโยบายรัฐบาล..."></textarea>
+                </div>
               </div>
 
-              <div>
-                <label class="block text-sm font-bold text-slate-700 mb-2">4. ผลที่คาดว่าจะได้รับ (Expected Outcomes) <span class="text-red-500">*</span></label>
-                <p class="text-xs text-slate-500 mb-2">ข้อความนี้จะถูกนำไปใช้วิเคราะห์ร่วมกับสถิติการคงอยู่ในกล่อง Executive Summary ของหน้ารายงาน</p>
-                <textarea id="pdExpected" rows="3" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-4 outline-none focus:ring-2 focus:ring-blue-500 resize-none leading-relaxed" placeholder="เช่น ผู้ผ่านการอบรมสามารถนำความรู้ไปประยุกต์ใช้ในการตัดสินกีฬาได้อย่างมีมาตรฐานสากล..."></textarea>
-              </div>
+              <div class="bg-emerald-50/50 p-6 rounded-2xl border border-emerald-100 space-y-5">
+                <h3 class="text-base font-bold text-emerald-900 border-b border-emerald-200 pb-2 flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-emerald-600"></span> หมวดที่ 3: ผลประโยชน์และผลกระทบโครงการ (Outcomes & Impacts)
+                </h3>
 
-              <div>
-                <label class="block text-sm font-bold text-slate-700 mb-3">5. กลุ่มเป้าหมายโครงการ (เลือกและระบุจำนวนที่คาดหวัง)</label>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-5 rounded-xl border border-slate-200">
-                  <label class="flex items-center justify-between p-2 hover:bg-slate-100 rounded cursor-pointer transition border border-transparent hover:border-slate-200">
-                    <div class="flex items-center gap-2"><input type="checkbox" value="สมาคมกีฬาแห่งประเทศไทย" onchange="this.parentElement.nextElementSibling.classList.toggle('hidden', !this.checked)" class="pd-target-cb w-4 h-4 text-blue-600 rounded cursor-pointer"><span class="text-sm select-none">สมาคมกีฬาแห่งประเทศไทย</span></div>
-                    <input type="number" class="pd-target-num w-20 text-xs border border-slate-300 rounded p-1.5 outline-none focus:ring-1 focus:ring-blue-500 hidden" placeholder="จำนวนคน" min="1">
-                  </label>
-                  <label class="flex items-center justify-between p-2 hover:bg-slate-100 rounded cursor-pointer transition border border-transparent hover:border-slate-200">
-                    <div class="flex items-center gap-2"><input type="checkbox" value="สมาคมกีฬาแห่งจังหวัด" onchange="this.parentElement.nextElementSibling.classList.toggle('hidden', !this.checked)" class="pd-target-cb w-4 h-4 text-blue-600 rounded cursor-pointer"><span class="text-sm select-none">สมาคมกีฬาแห่งจังหวัด</span></div>
-                    <input type="number" class="pd-target-num w-20 text-xs border border-slate-300 rounded p-1.5 outline-none focus:ring-1 focus:ring-blue-500 hidden" placeholder="จำนวนคน" min="1">
-                  </label>
-                  <label class="flex items-center justify-between p-2 hover:bg-slate-100 rounded cursor-pointer transition border border-transparent hover:border-slate-200">
-                    <div class="flex items-center gap-2"><input type="checkbox" value="การกีฬาแห่งประเทศไทย" onchange="this.parentElement.nextElementSibling.classList.toggle('hidden', !this.checked)" class="pd-target-cb w-4 h-4 text-blue-600 rounded cursor-pointer"><span class="text-sm select-none">การกีฬาแห่งประเทศไทย</span></div>
-                    <input type="number" class="pd-target-num w-20 text-xs border border-slate-300 rounded p-1.5 outline-none focus:ring-1 focus:ring-blue-500 hidden" placeholder="จำนวนคน" min="1">
-                  </label>
-                  <label class="flex items-center justify-between p-2 hover:bg-slate-100 rounded cursor-pointer transition border border-transparent hover:border-slate-200">
-                    <div class="flex items-center gap-2"><input type="checkbox" value="กองทุนพัฒนาการกีฬาแห่งชาติ" onchange="this.parentElement.nextElementSibling.classList.toggle('hidden', !this.checked)" class="pd-target-cb w-4 h-4 text-blue-600 rounded cursor-pointer"><span class="text-sm select-none">กองทุนพัฒนาการกีฬาแห่งชาติ</span></div>
-                    <input type="number" class="pd-target-num w-20 text-xs border border-slate-300 rounded p-1.5 outline-none focus:ring-1 focus:ring-blue-500 hidden" placeholder="จำนวนคน" min="1">
-                  </label>
-                  <label class="flex items-center justify-between p-2 hover:bg-slate-100 rounded cursor-pointer transition border border-transparent hover:border-slate-200">
-                    <div class="flex items-center gap-2"><input type="checkbox" value="หน่วยงานภายนอก" onchange="this.parentElement.nextElementSibling.classList.toggle('hidden', !this.checked)" class="pd-target-cb w-4 h-4 text-blue-600 rounded cursor-pointer"><span class="text-sm select-none">หน่วยงานภายนอก</span></div>
-                    <input type="number" class="pd-target-num w-20 text-xs border border-slate-300 rounded p-1.5 outline-none focus:ring-1 focus:ring-blue-500 hidden" placeholder="จำนวนคน" min="1">
-                  </label>
-                  <label class="flex items-center justify-between p-2 hover:bg-slate-100 rounded cursor-pointer transition border border-transparent hover:border-slate-200">
-                    <div class="flex items-center gap-2"><input type="checkbox" value="ไม่ระบุ" onchange="this.parentElement.nextElementSibling.classList.toggle('hidden', !this.checked)" class="pd-target-cb w-4 h-4 text-blue-600 rounded cursor-pointer"><span class="text-sm select-none">อื่นๆ / ไม่ระบุ</span></div>
-                    <input type="number" class="pd-target-num w-20 text-xs border border-slate-300 rounded p-1.5 outline-none focus:ring-1 focus:ring-blue-500 hidden" placeholder="จำนวนคน" min="1">
-                  </label>
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 mb-1.5 uppercase">6. เป้าหมายระยะสั้น (ผลประโยชน์ที่คาดว่าจะเกิดขึ้นระหว่างการดำเนินโครงการ)</label>
+                  <textarea id="pdShortTerm" rows="2" class="w-full text-sm bg-white border border-slate-300 rounded-xl p-3.5 outline-none focus:ring-2 focus:ring-blue-500 resize-none leading-relaxed" placeholder="ระบุผลประโยชน์ระยะสั้น..."></textarea>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 mb-1.5 uppercase">7. เป้าหมายระยะยาว (ผลประโยชน์ที่คาดว่าจะเกิดขึ้นหลังสิ้นสุดโครงการ 1-2 ปี) <span class="text-red-500">*</span></label>
+                  <textarea id="pdExpected" rows="2" class="w-full text-sm bg-white border border-slate-300 rounded-xl p-3.5 outline-none focus:ring-2 focus:ring-blue-500 resize-none leading-relaxed" placeholder="ระบุผลประโยชน์ระยะยาว (ใช้ในการประเมิน Impact Report)..."></textarea>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1.5 uppercase">8. ผลกระทบต่อสังคมและชุมชน</label>
+                    <textarea id="pdSocialImpact" rows="2" class="w-full text-sm bg-white border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500 resize-none leading-relaxed" placeholder="ระบุผลกระทบต่อสังคม..."></textarea>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1.5 uppercase">9. ผลกระทบด้านสิ่งแวดล้อม</label>
+                    <textarea id="pdEnvImpact" rows="2" class="w-full text-sm bg-white border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500 resize-none leading-relaxed" placeholder="ระบุผลกระทบด้านสิ่งแวดล้อม..."></textarea>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1.5 uppercase">10. ผลกระทบต่อสุขภาพและคุณภาพชีวิต</label>
+                    <textarea id="pdHealthImpact" rows="2" class="w-full text-sm bg-white border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500 resize-none leading-relaxed" placeholder="ระบุผลกระทบต่อสุขภาพ..."></textarea>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1.5 uppercase">11. ผลกระทบต่อการพัฒนาบุคคลและทักษะของนักกีฬา</label>
+                    <textarea id="pdAthleteImpact" rows="2" class="w-full text-sm bg-white border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500 resize-none leading-relaxed" placeholder="ระบุผลกระทบต่อการพัฒนาทักษะ..."></textarea>
+                  </div>
                 </div>
               </div>
 
               <div class="pt-4 flex justify-end border-t border-slate-200">
-                <button id="btnSaveProjectDetails" onclick="submitProjectDetails()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-xl shadow-md transition flex items-center gap-2">
-                  บันทึกข้อมูลโครงการ
+                <button id="btnSaveProjectDetails" onclick="submitProjectDetails()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-8 rounded-xl shadow-md transition flex items-center gap-2">
+                  บันทึกข้อมูลโครงการทั้งหมด
                 </button>
               </div>
 
@@ -260,7 +314,6 @@
       </div>
     </div>
 
-    <!-- PAGE NEW: แบบฟอร์มรายงานการปฏิบัติหน้าที่ (Public Home) -->
     <div id="page-report" class="page-section block space-y-6">
       <div class="max-w-4xl mx-auto mt-4 mb-10">
         
@@ -274,7 +327,6 @@
             <div class="space-y-3">
               <label class="block text-sm font-bold text-slate-700">1. ค้นหาชื่อ-นามสกุลของท่าน <span class="text-red-500">*</span></label>
               
-              <!-- 📌 อัปเกรด: เพิ่มปุ่ม "ล้างข้อมูล" ควบคู่กับช่องค้นหา -->
               <div class="flex items-center gap-3">
                 <div class="relative flex-1">
                   <input type="text" id="srSearchName" list="dl-all-users" onchange="handleSelfReportUserSelect()" placeholder="พิมพ์ชื่อเพื่อค้นหาประวัติการอบรม..." class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-blue-500 block p-3.5 outline-none shadow-sm transition">
@@ -323,7 +375,6 @@
       </div>
     </div>
 
-    <!-- PAGE 3: Timeline -->
     <div id="page-timeline" class="page-section hidden space-y-6">
       <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
@@ -340,7 +391,6 @@
       </div>
     </div>
 
-    <!-- PAGE 4: Import Data & Settings (Admin Only) -->
     <div id="page-import" class="page-section hidden">
       <div class="max-w-5xl mx-auto mt-8">
         
@@ -450,7 +500,6 @@
     </div>
   </main>
 
-  <!-- 🟢 Modal: Impact Assessment Report Builder (ซ่อน Rationale & Objectives) -->
   <div id="proposalModal" class="fixed inset-0 z-[100] hidden bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
     <div class="min-h-screen flex items-center justify-center p-4">
       <div class="bg-white w-full max-w-4xl rounded-sm shadow-2xl relative overflow-hidden print-shadow-none">
@@ -507,7 +556,6 @@
     </div>
   </div>
 
-  <!-- 🟢 Modal: Login OTP (Security) -->
   <div id="loginModal" class="fixed inset-0 z-[110] hidden bg-slate-900/80 backdrop-blur-sm overflow-y-auto">
     <div class="min-h-screen flex items-center justify-center p-4">
       <div class="bg-white rounded-3xl shadow-2xl p-8 md:p-12 w-full max-w-md text-center relative transform transition-all scale-100">
@@ -530,13 +578,11 @@
     </div>
   </div>
 
-  <!-- 🟢 Toast Notification สำหรับบันทึกสถานะ -->
   <div id="toastNotification" class="fixed bottom-5 right-5 z-[150] transform transition-all duration-300 translate-y-20 opacity-0 bg-slate-800 text-white px-5 py-3.5 rounded-xl shadow-2xl flex items-center gap-3">
     <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
     <span id="toastMessage" class="text-sm font-bold tracking-wide">บันทึกสำเร็จ</span>
   </div>
 
-  <!-- 🟢 Slide-over Panel (ประวัติบุคคล) -->
   <div id="slideOver" class="fixed inset-0 z-[60] hidden" aria-labelledby="slide-over-title" role="dialog" aria-modal="true">
     <div id="slideOverBackdrop" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity opacity-0" onclick="closeProfile()"></div>
     <div class="fixed inset-y-0 right-0 z-[60] flex max-w-full pl-10">
