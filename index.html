@@ -323,7 +323,6 @@
             <div class="space-y-3">
               <label class="block text-sm font-bold text-slate-700">1. ค้นหาชื่อ-นามสกุลของท่าน <span class="text-red-500">*</span></label>
               
-              <!-- 📌 ปุ่ม "ล้างข้อมูล" -->
               <div class="flex items-center gap-3">
                 <div class="relative flex-1">
                   <input type="text" id="srSearchName" list="dl-all-users" onchange="handleSelfReportUserSelect()" placeholder="พิมพ์ชื่อเพื่อค้นหาประวัติการอบรม..." class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-blue-500 block p-3.5 outline-none shadow-sm transition">
@@ -499,6 +498,44 @@
     </div>
   </main>
 
+  <!-- 🟢 Modal: Matrix Report -->
+  <div id="matrixModal" class="fixed inset-0 z-[100] hidden bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
+    <div class="min-h-screen flex items-center justify-center p-4">
+      <div class="bg-white w-full max-w-6xl rounded-2xl shadow-2xl relative overflow-hidden print-shadow-none">
+        <div class="bg-slate-50 border-b border-slate-200 px-6 py-4 flex justify-between items-center print-hide sticky top-0 z-10">
+          <h2 class="text-slate-800 font-bold text-lg flex items-center gap-2">
+            <svg class="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+            รายงานตารางสรุปไขว้ (Matrix Report)
+          </h2>
+          <div class="flex gap-3">
+            <button onclick="closeMatrixReport()" class="px-4 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100 transition">ปิด</button>
+            <button onclick="exportMatrixToExcel()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 rounded-lg text-sm font-semibold text-white shadow-sm transition flex items-center gap-2">ส่งออก Excel</button>
+            <button onclick="printMatrixReport()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-sm font-semibold text-white shadow-sm transition flex items-center gap-2">พิมพ์รายงาน</button>
+          </div>
+        </div>
+        <div class="p-6 md:p-8 space-y-6">
+          <div class="print-hide bg-indigo-50 border border-indigo-100 p-4 rounded-xl flex flex-wrap items-center gap-4">
+            <span class="text-sm font-bold text-indigo-800">ตัวกรองช่วงปี:</span>
+            <button onclick="applyMatrixFilter('5')" class="px-3 py-1.5 bg-white border border-indigo-200 text-indigo-700 text-xs font-semibold rounded-lg hover:bg-indigo-100 transition">5 ปีล่าสุด</button>
+            <button onclick="applyMatrixFilter('10')" class="px-3 py-1.5 bg-white border border-indigo-200 text-indigo-700 text-xs font-semibold rounded-lg hover:bg-indigo-100 transition">10 ปีล่าสุด</button>
+            <button onclick="applyMatrixFilter('all')" class="px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg shadow-sm hover:bg-indigo-700 transition">ทั้งหมด</button>
+            <div class="flex items-center gap-2 ml-auto">
+              <select id="matrixStartYear" class="text-sm border border-slate-300 rounded-lg p-1.5 outline-none focus:ring-2 focus:ring-indigo-500"></select>
+              <span class="text-slate-500">-</span>
+              <select id="matrixEndYear" class="text-sm border border-slate-300 rounded-lg p-1.5 outline-none focus:ring-2 focus:ring-indigo-500"></select>
+              <button onclick="applyMatrixFilter('custom')" class="px-3 py-1.5 bg-slate-800 text-white text-xs font-semibold rounded-lg hover:bg-slate-900 transition">ค้นหา</button>
+            </div>
+          </div>
+          <div class="text-center print:mt-4">
+            <h3 class="text-xl font-bold text-slate-800">ตารางวิเคราะห์สถิติผู้ผ่านการอบรมจำแนกตามหลักสูตรและปีการศึกษา</h3>
+            <p class="text-sm text-slate-500 mt-1" id="matrixYearRangeText">(ทุกปีการศึกษา)</p>
+          </div>
+          <div id="matrixTableContainer" class="overflow-x-auto w-full"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- 🟢 Modal: Impact Assessment Report Builder (ซ่อน Rationale & Objectives) -->
   <div id="proposalModal" class="fixed inset-0 z-[100] hidden bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
     <div class="min-h-screen flex items-center justify-center p-4">
@@ -630,7 +667,7 @@
       </div>
     </div>
   </div>
-  
+
   <script src="./main.js"></script>
 </body>
 </html>
