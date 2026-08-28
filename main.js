@@ -84,6 +84,7 @@ function populateProvinces() {
   select.innerHTML = '<option value="">-- เลือกจังหวัด --</option>' + provinces.map(p => `<option value="${p}">${p}</option>`).join('');
 }
 
+// 📌 ฟังก์ชันเดิม Admin Panel ยังโหลดวัตถุประสงค์ขึ้นมาเพื่อแก้ไขได้
 window.loadProjectData = function(course) {
   const form = document.getElementById('pdFormContainer');
   if(!course) { form.classList.add('hidden'); return; }
@@ -166,7 +167,6 @@ function updateSelfReportDatalist() {
   if(dl) { dl.innerHTML = cachedPersonnelData.map(p => `<option value="${p.fullName} (${p.uid})">`).join(''); }
 }
 
-// 📌 ฟังก์ชันสลับแสดง/ซ่อนช่องพิมพ์ "อื่นๆ"
 window.toggleOtherInput = function(selectEl, otherId) {
   const otherInput = document.getElementById(otherId);
   if(selectEl.value === 'อื่นๆ') {
@@ -229,7 +229,6 @@ window.copyFormData = function(idx) {
   if (isChecked) {
     const prev = idx - 1;
     
-    // 📌 ดึงค่าช่องระบุอื่นๆ ด้วยเพื่อมาเช็ค
     const copyOtherEvent = document.getElementById(`srEventTypeOther_${prev}`).value;
     const copyOtherRole = document.getElementById(`srRoleOther_${prev}`).value;
 
@@ -268,7 +267,6 @@ window.submitSelfReport = async function() {
     const location = document.getElementById(`srLocation_${i}`).value.trim(); 
     const knowledge = document.getElementById(`srKnowledge_${i}`).value.trim();
     
-    // 📌 ตรวจสอบกรณีเลือก "อื่นๆ" ว่าพิมพ์คำอธิบายหรือยัง
     if (eventType === 'อื่นๆ') {
       const otherVal = document.getElementById(`srEventTypeOther_${i}`).value.trim();
       if(!otherVal) return alert(`⚠️ กรุณาระบุรูปแบบงาน/ระดับการแข่งขัน (ช่องอื่นๆ) ในหลักสูตรที่ ${i+1} ให้ครบถ้วน`);
@@ -479,8 +477,6 @@ window.renderReportData = function() {
      pdOverview.classList.remove('hidden');
      const d = cachedProjectDetails[courseName];
      
-     document.getElementById('reportObjectives').textContent = d.objectives || '-';
-     
      if(d.targets) {
         let targetList = d.targets.includes('||') ? d.targets.split('||') : d.targets.split(',').map(t=>t.trim()+'|0');
         document.getElementById('reportTargetGroups').innerHTML = targetList.map(t => {
@@ -574,7 +570,7 @@ function renderTablePage() {
     let statusBadge = '';
     if (isAdmin) {
       statusBadge = `<select onchange="updatePersonnelStatus('${item.uid}', this.value, this)" class="text-xs font-bold bg-white border ${isResigned ? 'border-slate-300 text-slate-500' : 'border-amber-300 text-amber-600'} rounded-full px-2 py-1.5 outline-none cursor-pointer shadow-sm text-center w-[110px] mx-auto block transition-colors">
-        <option value="ปฏิบัติงาน" ${!isResigned ? 'selected' : ''}>🟢 ปฏิบัติงาน</option>
+        <option value="ปฏิบัติงาน" ${!isResigned ? 'selected' : ''}>🟢 ปฏิงาน</option>
         <option value="พ้นสภาพ" ${isResigned ? 'selected' : ''}>⚪ พ้นสภาพ</option>
       </select>`;
     } else {
