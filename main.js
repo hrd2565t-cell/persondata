@@ -84,7 +84,6 @@ function populateProvinces() {
   select.innerHTML = '<option value="">-- เลือกจังหวัด --</option>' + provinces.map(p => `<option value="${p}">${p}</option>`).join('');
 }
 
-// 📌 ฟังก์ชันเดิม Admin Panel ยังโหลดวัตถุประสงค์ขึ้นมาเพื่อแก้ไขได้
 window.loadProjectData = function(course) {
   const form = document.getElementById('pdFormContainer');
   if(!course) { form.classList.add('hidden'); return; }
@@ -176,6 +175,16 @@ window.toggleOtherInput = function(selectEl, otherId) {
     otherInput.classList.add('hidden');
     otherInput.value = '';
   }
+}
+
+// 📌 ฟังก์ชันล้างข้อมูลในช่องค้นหาฟอร์มรายงาน
+window.clearSelfReportSearch = function() {
+  document.getElementById('srSearchName').value = '';
+  document.getElementById('srFormContainer').classList.add('hidden');
+  document.getElementById('srUserWarn').classList.add('hidden');
+  document.getElementById('srDynamicForms').innerHTML = '';
+  srSelectedUser = null;
+  document.getElementById('srSearchName').focus(); // โฟกัสเตรียมพิมพ์ใหม่
 }
 
 window.handleSelfReportUserSelect = function() {
@@ -570,7 +579,7 @@ function renderTablePage() {
     let statusBadge = '';
     if (isAdmin) {
       statusBadge = `<select onchange="updatePersonnelStatus('${item.uid}', this.value, this)" class="text-xs font-bold bg-white border ${isResigned ? 'border-slate-300 text-slate-500' : 'border-amber-300 text-amber-600'} rounded-full px-2 py-1.5 outline-none cursor-pointer shadow-sm text-center w-[110px] mx-auto block transition-colors">
-        <option value="ปฏิบัติงาน" ${!isResigned ? 'selected' : ''}>🟢 ปฏิงาน</option>
+        <option value="ปฏิบัติงาน" ${!isResigned ? 'selected' : ''}>🟢 ปฏิบัติงาน</option>
         <option value="พ้นสภาพ" ${isResigned ? 'selected' : ''}>⚪ พ้นสภาพ</option>
       </select>`;
     } else {
