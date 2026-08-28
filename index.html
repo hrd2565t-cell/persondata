@@ -273,9 +273,16 @@
           <div class="p-8 md:p-10 space-y-8">
             <div class="space-y-3">
               <label class="block text-sm font-bold text-slate-700">1. ค้นหาชื่อ-นามสกุลของท่าน <span class="text-red-500">*</span></label>
-              <div class="relative">
-                <input type="text" id="srSearchName" list="dl-all-users" onchange="handleSelfReportUserSelect()" placeholder="พิมพ์ชื่อเพื่อค้นหาประวัติการอบรม..." class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-blue-500 block p-3.5 outline-none shadow-sm transition">
-                <datalist id="dl-all-users"></datalist>
+              
+              <!-- 📌 อัปเกรด: เพิ่มปุ่ม "ล้างข้อมูล" ควบคู่กับช่องค้นหา -->
+              <div class="flex items-center gap-3">
+                <div class="relative flex-1">
+                  <input type="text" id="srSearchName" list="dl-all-users" onchange="handleSelfReportUserSelect()" placeholder="พิมพ์ชื่อเพื่อค้นหาประวัติการอบรม..." class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-blue-500 block p-3.5 outline-none shadow-sm transition">
+                  <datalist id="dl-all-users"></datalist>
+                </div>
+                <button type="button" onclick="clearSelfReportSearch()" class="shrink-0 bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-600 border border-slate-300 hover:border-red-300 font-semibold py-3.5 px-4 rounded-xl shadow-sm transition flex items-center gap-2" title="ล้างข้อมูลการค้นหา">
+                  <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> ล้าง
+                </button>
               </div>
               <div id="srUserWarn" class="hidden px-4 py-3 bg-amber-50 border border-amber-200 text-amber-700 text-sm font-medium rounded-xl">⚠️ ไม่พบประวัติการอบรมของชื่อนี้ กรุณาตรวจสอบการสะกดคำ</div>
             </div>
@@ -293,7 +300,6 @@
                 </div>
               </div>
 
-              <!-- 📌 คอนเทนเนอร์สำหรับ Dynamic Forms -->
               <div id="srDynamicForms" class="space-y-8"></div>
 
               <div class="pt-6 flex justify-end border-t border-slate-200">
@@ -475,7 +481,6 @@
           <div id="reportProjectOverview" class="hidden space-y-4">
              <h3 class="text-lg font-bold border-l-4 border-blue-600 pl-3 mb-3">1. ข้อมูลพื้นฐานโครงการ (Project Overview)</h3>
              <div class="bg-slate-50 p-5 rounded-xl border border-slate-200 text-sm space-y-4">
-                <!-- 📌 นำกล่อง 'วัตถุประสงค์' และ 'หลักการและเหตุผล' ออกจากหน้ารายงาน เพื่อเน้น Impact เชิงตัวเลข -->
                 <div><h4 class="font-bold text-slate-800 mb-1">กลุ่มเป้าหมายโครงการ (ตามแผน):</h4><div id="reportTargetGroups" class="flex flex-wrap gap-2 mt-2"></div></div>
              </div>
           </div>
