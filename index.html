@@ -25,31 +25,55 @@
     body.is-admin .admin-only { display: flex; } 
     body.is-admin .admin-only-block { display: block; } 
     
-    /* 📌 อัปเกรด CSS สำหรับการพิมพ์ PDF (A4) */
+    /* 📌 อัปเกรดขั้นสุด: ระบบ Print CSS สำหรับขนาด A4 */
     @media print {
-      @page { size: A4; margin: 15mm; }
-      body * { visibility: hidden; }
+      @page { size: A4; margin: 12mm; }
+      body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; background: white !important; }
       
-      .print-modal-active { 
-        visibility: visible !important; 
-        position: absolute; 
-        left: 0; 
-        top: 0; 
-        width: 100%; 
-        background: white; 
-        padding: 0; 
-        margin: 0; 
-        box-shadow: none; 
-        z-index: 9999; 
+      /* ซ่อนโครงสร้างเว็บทั้งหมด ยกเว้น Modal ที่กำลังเปิดอยู่ */
+      body > * { display: none !important; }
+      
+      /* นำ Modal ขึ้นมาแสดงแทน Body ดั้งเดิม เพื่อป้องกันข้อจำกัดหน้ากระดาษ */
+      body > .print-modal-active { 
+        display: block !important; 
+        position: static !important; /* สำคัญมาก: ลบ fixed ออกเพื่อให้ขึ้นหน้าใหม่ได้ */
+        background-color: white !important;
       }
       
-      .print-modal-active * { visibility: visible; }
-      .print-hide { display: none !important; }
-      .print-shadow-none { border: none !important; box-shadow: none !important; }
-      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      /* ลบ Padding/Margin ที่เป็นสาเหตุของกรอบสีเทารอบๆ */
+      .print-modal-active .min-h-screen {
+        min-height: auto !important;
+        display: block !important;
+        padding: 0 !important;
+        justify-content: flex-start !important;
+        align-items: flex-start !important;
+        background: transparent !important;
+      }
       
-      /* คำสั่งสำหรับตัดหน้ากระดาษ (Page Break) */
-      .print-page-break { page-break-before: always !important; break-before: page !important; }
+      /* บังคับกระดาษ A4 100% ลบเงาและกรอบโค้งออกทั้งหมด */
+      .print-modal-active .bg-white.w-full {
+        max-width: 100% !important;
+        width: 100% !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      
+      /* ป้องกันส่วนของข้อมูลถูกตัดขาดครึ่งกลางหน้ากระดาษ */
+      table, img, .break-inside-avoid { 
+        break-inside: avoid !important; 
+        page-break-inside: avoid !important; 
+      }
+      
+      .print-hide { display: none !important; }
+      
+      /* บังคับตัดขึ้นหน้าใหม่ (สำหรับข้อ 4) */
+      .print-page-break { 
+        page-break-before: always !important; 
+        break-before: page !important; 
+        margin-top: 20px !important; 
+      }
     }
   </style>
 </head>
@@ -102,7 +126,7 @@
           <p class="text-sm text-slate-500 mt-1">ติดตามเป้าหมาย อัตราการคงอยู่ (Retention) และประเมินผลสัมฤทธิ์โครงการ</p>
         </div>
         <button onclick="openMatrixReport()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-md transition-colors flex items-center gap-2">
-          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 01-1.125-1.125M3.375 19.5h7.5c.621 0 1.125-.504 1.125-1.125m-9.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-7.5A1.125 1.125 0 0112 18.375m9.75-12.75c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125m19.5 0v1.5c0 .621-.504 1.125-1.125 1.125M2.25 5.625v1.5c0 .621.504 1.125 1.125 1.125m0 0h17.25m-17.25 0h7.5c.621 0 1.125.504 1.125 1.125M3.375 8.25c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m17.25-3.75h-7.5c-.621 0-1.125.504-1.125 1.125m8.625-1.125c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125M12 10.875v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 10.875c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125M13.125 12h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125M20.625 12c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125M12 15.375v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 15.375c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125m0 1.5v-1.5m0 0c0-.621.504-1.125 1.125-1.125m0 0h7.5" /></svg>
           พิมพ์ตารางสรุปไขว้ (Matrix Report)
         </button>
       </div>
@@ -346,6 +370,7 @@
             <div class="space-y-3">
               <label class="block text-sm font-bold text-slate-700">1. ค้นหาชื่อ-นามสกุลของท่าน <span class="text-red-500">*</span></label>
               
+              <!-- 📌 ปุ่ม "ล้างข้อมูล" -->
               <div class="flex items-center gap-3">
                 <div class="relative flex-1">
                   <input type="text" id="srSearchName" list="dl-all-users" onchange="handleSelfReportUserSelect()" placeholder="พิมพ์ชื่อเพื่อค้นหาประวัติการอบรม..." class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-blue-500 block p-3.5 outline-none shadow-sm transition">
@@ -522,9 +547,9 @@
   </main>
 
   <!-- 🟢 Modal: Matrix Report -->
-  <div id="matrixModal" class="fixed inset-0 z-[100] hidden bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
-    <div class="min-h-screen flex items-center justify-center p-4">
-      <div class="bg-white w-full max-w-6xl rounded-2xl shadow-2xl relative overflow-hidden print-shadow-none">
+  <div id="matrixModal" class="fixed inset-0 z-[100] hidden bg-slate-900/60 backdrop-blur-sm overflow-y-auto print:bg-white print:!absolute print:!inset-0 print-modal-active-target">
+    <div class="min-h-screen flex items-center justify-center p-4 print:p-0 print:block print:min-h-0">
+      <div class="bg-white w-full max-w-6xl rounded-2xl shadow-2xl relative print:shadow-none print:w-full print:max-w-none">
         <div class="bg-slate-50 border-b border-slate-200 px-6 py-4 flex justify-between items-center print-hide sticky top-0 z-10">
           <h2 class="text-slate-800 font-bold text-lg flex items-center gap-2">
             <svg class="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
@@ -560,9 +585,9 @@
   </div>
 
   <!-- 🟢 Modal: Impact Assessment Report Builder -->
-  <div id="proposalModal" class="fixed inset-0 z-[100] hidden bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
-    <div class="min-h-screen flex items-center justify-center p-4">
-      <div class="bg-white w-full max-w-4xl rounded-sm shadow-2xl relative overflow-hidden print-shadow-none">
+  <div id="proposalModal" class="fixed inset-0 z-[100] hidden bg-slate-900/60 backdrop-blur-sm overflow-y-auto print:bg-white print:!absolute print:!inset-0 print-modal-active-target">
+    <div class="min-h-screen flex items-center justify-center p-4 print:p-0 print:block print:min-h-0">
+      <div class="bg-white w-full max-w-4xl rounded-sm shadow-2xl relative print:shadow-none print:w-full print:max-w-none">
         
         <div class="bg-slate-50 border-b border-slate-200 px-6 py-4 flex justify-between items-center print-hide sticky top-0 z-10">
           <h2 class="text-slate-700 font-bold text-sm">Impact Assessment Report Builder</h2>
@@ -577,14 +602,14 @@
         <!-- 📌 อัปเกรด: Container ปรับ Padding ให้เหมาะกับขนาดหน้าต่างและ A4 -->
         <div class="p-6 md:p-10 space-y-8 text-slate-800 mx-auto bg-white print:p-0 print:space-y-6">
           <div class="text-center space-y-3 border-b-2 border-slate-800 pb-8">
-            <h1 class="text-2xl md:text-3xl font-extrabold uppercase tracking-tight text-slate-900">รายงานผลสัมฤทธิ์โครงการ (Impact Assessment)</h1>
-            <p class="text-slate-600 font-medium">ประกอบการพิจารณาประเมินผลโครงการ / กองทุนพัฒนาการกีฬาแห่งชาติ (NSDF)</p>
+            <h1 class="text-2xl md:text-3xl font-extrabold uppercase tracking-tight text-slate-900 print:text-2xl">รายงานผลสัมฤทธิ์โครงการ (IMPACT ASSESSMENT)</h1>
+            <p class="text-slate-600 font-medium print:text-sm">ประกอบการพิจารณาประเมินผลโครงการ / กองทุนพัฒนาการกีฬาแห่งชาติ (NSDF)</p>
             
             <!-- 📌 อัปเกรด: กล่องชื่อหลักสูตรให้ขยายและปัดบรรทัดได้อัตโนมัติ -->
-            <div class="mt-6 bg-blue-50/50 text-slate-800 border border-blue-100 p-5 rounded-2xl flex flex-col items-center justify-center gap-4 w-full mx-auto shadow-sm">
+            <div class="mt-6 bg-blue-50/50 text-slate-800 border border-blue-100 p-5 rounded-2xl flex flex-col items-center justify-center gap-4 w-full mx-auto shadow-sm print:border-none print:bg-slate-50 break-inside-avoid">
                <div class="flex flex-col items-center text-center w-full">
                  <span class="text-sm font-bold text-slate-500 mb-1">หลักสูตรที่ประเมิน</span>
-                 <span id="reportCourseName" class="text-lg md:text-xl font-bold text-blue-700 leading-snug break-words max-w-full">---</span>
+                 <span id="reportCourseName" class="text-lg md:text-xl font-bold text-blue-700 leading-snug break-words whitespace-normal print:text-lg">---</span>
                </div>
                <select id="reportYearFilter" onchange="renderReportData()" class="text-sm border border-blue-200 rounded-lg py-1.5 px-4 outline-none focus:ring-2 focus:ring-blue-500 bg-white text-blue-700 cursor-pointer print-hide font-bold shadow-sm">
                   <option value="all">รวมทุกปี</option>
@@ -592,19 +617,19 @@
             </div>
           </div>
 
-          <div id="reportProjectOverview" class="hidden space-y-4">
+          <div id="reportProjectOverview" class="hidden space-y-4 break-inside-avoid">
              <h3 class="text-lg font-bold border-l-4 border-blue-600 pl-3 mb-3">1. ข้อมูลพื้นฐานโครงการ (Project Overview)</h3>
              <div class="bg-slate-50 p-5 rounded-xl border border-slate-200 text-sm space-y-4">
                 <div><h4 class="font-bold text-slate-800 mb-1">กลุ่มเป้าหมายโครงการ (ตามแผน):</h4><div id="reportTargetGroups" class="flex flex-wrap gap-2 mt-2"></div></div>
              </div>
           </div>
 
-          <div>
+          <div class="break-inside-avoid">
             <h3 class="text-lg font-bold border-l-4 border-blue-600 pl-3 mb-5" id="titleStatSec">2. ข้อมูลสถิติและกลุ่มเป้าหมาย (Target Group Breakdown)</h3>
-            <div class="grid grid-cols-3 gap-6 text-center mb-6">
-              <div class="bg-slate-50 border border-slate-200 p-5 rounded-xl"><p class="text-sm text-slate-500 font-semibold mb-1">ยอดผู้ผ่านการอบรมรวม</p><p class="text-4xl font-extrabold text-blue-600" id="reportTotal">0</p><span class="text-xs text-slate-400">ราย</span></div>
-              <div class="bg-slate-50 border border-slate-200 p-5 rounded-xl"><p class="text-sm text-slate-500 font-semibold mb-1">ปฏิบัติหน้าที่คงอยู่ในระบบ</p><p class="text-4xl font-extrabold text-emerald-500" id="reportActive">0</p><span class="text-xs text-slate-400">ราย</span></div>
-              <div class="bg-slate-800 border border-slate-700 p-5 rounded-xl text-white shadow-md"><p class="text-sm text-slate-300 font-semibold mb-1">อัตราความสำเร็จ (Retention)</p><p class="text-4xl font-extrabold text-white" id="reportRetention">0%</p><span class="text-xs text-slate-400">ประสิทธิภาพ</span></div>
+            <div class="grid grid-cols-3 gap-4 md:gap-6 text-center mb-6">
+              <div class="bg-slate-50 border border-slate-200 p-4 md:p-5 rounded-xl"><p class="text-sm text-slate-500 font-semibold mb-1">ยอดผู้ผ่านการอบรมรวม</p><p class="text-3xl md:text-4xl font-extrabold text-blue-600" id="reportTotal">0</p><span class="text-xs text-slate-400">ราย</span></div>
+              <div class="bg-slate-50 border border-slate-200 p-4 md:p-5 rounded-xl"><p class="text-sm text-slate-500 font-semibold mb-1">ปฏิบัติหน้าที่คงอยู่ในระบบ</p><p class="text-3xl md:text-4xl font-extrabold text-emerald-500" id="reportActive">0</p><span class="text-xs text-slate-400">ราย</span></div>
+              <div class="bg-slate-800 border border-slate-700 p-4 md:p-5 rounded-xl text-white shadow-md"><p class="text-sm text-slate-300 font-semibold mb-1">อัตราความสำเร็จ (Retention)</p><p class="text-3xl md:text-4xl font-extrabold text-white" id="reportRetention">0%</p><span class="text-[10px] md:text-xs text-slate-400">ประสิทธิภาพ</span></div>
             </div>
             <div class="bg-white border border-slate-200 rounded-xl overflow-hidden">
                <div class="bg-slate-50 px-5 py-3 border-b border-slate-200"><h4 class="font-bold text-slate-700 text-sm">การกระจายตัวของกลุ่มบุคลากรเทียบกับเป้าหมาย</h4></div>
@@ -612,7 +637,7 @@
             </div>
           </div>
           
-          <div>
+          <div class="break-inside-avoid">
             <h3 class="text-lg font-bold border-l-4 border-blue-600 pl-3 mb-5" id="titleImpSec">3. การติดตามการนำความรู้ไปปฏิบัติหน้าที่ (Implementation Tracking)</h3>
             <div id="reportImplementation"></div>
           </div>
@@ -621,11 +646,12 @@
           <div class="print-page-break pt-8 print:pt-0">
             <h3 class="text-lg font-bold border-l-4 border-blue-600 pl-3 mb-5" id="titleExecSec">4. บทสรุปผู้บริหารและการวิเคราะห์ภาพรวม (Executive Summary)</h3>
             <div id="reportExecutiveSummary"></div>
+            
+            <div class="pt-16 mt-16 border-t border-slate-200 flex justify-end break-inside-avoid">
+              <div class="text-center w-64 space-y-4"><div class="border-b border-slate-400 w-full h-8"></div><p class="text-sm font-semibold text-slate-800">ผู้รายงานผลโครงการ</p><p class="text-xs text-slate-500">สร้างจากระบบฐานข้อมูลอัตโนมัติ</p></div>
+            </div>
           </div>
           
-          <div class="pt-16 mt-16 border-t border-slate-200 flex justify-end">
-            <div class="text-center w-64 space-y-4"><div class="border-b border-slate-400 w-full h-8"></div><p class="text-sm font-semibold text-slate-800">ผู้รายงานผลโครงการ</p><p class="text-xs text-slate-500">สร้างจากระบบฐานข้อมูลอัตโนมัติ</p></div>
-          </div>
         </div>
       </div>
     </div>
