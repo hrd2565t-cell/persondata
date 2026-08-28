@@ -18,7 +18,7 @@ let barChartObj = null;
 let donutChartObj = null;
 
 let srSelectedUser = null; 
-let globalSettings = { activeReportYear: '2569' }; 
+let globalSettings = { activeReportYear: '2569', adminPin: '336699' }; 
 const provinces = ["กรุงเทพมหานคร","กระบี่","กาญจนบุรี","กาฬสินธุ์","กำแพงเพชร","ขอนแก่น","จันทบุรี","ฉะเชิงเทรา","ชลบุรี","ชัยนาท","ชัยภูมิ","ชุมพร","เชียงราย","เชียงใหม่","ตรัง","ตราด","ตาก","นครนายก","นครปฐม","นครพนม","นครราชสีมา","นครศรีธรรมราช","นครสวรรค์","นนทบุรี","นราธิวาส","น่าน","บึงกาฬ","บุรีรัมย์","ปทุมธานี","ประจวบคีรีขันธ์","ปราจีนบุรี","ปัตตานี","พระนครศรีอยุธยา","พะเยา","พังงา","พัทลุง","พิจิตร","พิษณุโลก","เพชรบุรี","เพชรบูรณ์","แพร่","ภูเก็ต","มหาสารคาม","มุกดาหาร","แม่ฮ่องสอน","ยโสธร","ยะลา","ร้อยเอ็ด","ระนอง","ระยอง","ราชบุรี","ลพบุรี","ลำปาง","ลำพูน","เลย","ศรีสะเกษ","สกลนคร","สงขลา","สตูล","สมุทรปราการ","สมุทรสงคราม","สมุทรสาคร","สระแก้ว","สระบุรี","สิงห์บุรี","สุโขทัย","สุพรรณบุรี","สุราษฎร์ธานี","สุรินทร์","หนองคาย","หนองบัวลำภู","อ่างทอง","อำนาจเจริญ","อุดรธานี","อุตรดิตถ์","อุทัยธานี","อุบลราชธานี"];
 
 let currentReportCourseBase64 = null; 
@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupDragAndDrop();
   setupOTPInputs();
   populateProvinces();
-  switchPage('report'); // 📌 ล็อกให้เปิดมาเจอหน้า รายงานปฏิบัติหน้าที่ เสมอ
+  switchPage('report');
   
   let delayTimer;
   const triggerSearch = () => { 
@@ -140,7 +140,6 @@ window.loadProjectData = function(course) {
   
   form.classList.remove('hidden');
   
-  // 📌 เคลียร์ข้อมูลฟอร์ม
   document.getElementById('pdFullCourseName').value = ''; 
   document.getElementById('pdRationale').value = ''; 
   document.getElementById('pdObjectives').value = ''; 
@@ -164,7 +163,6 @@ window.loadProjectData = function(course) {
       }
   });
 
-  // 📌 ดึงข้อมูลเก่ามาใส่ (ถ้ามี)
   if(cachedProjectDetails && cachedProjectDetails[course]) {
     const d = cachedProjectDetails[course];
     document.getElementById('pdFullCourseName').value = d.fullCourseName || ''; 
@@ -202,7 +200,7 @@ window.loadProjectData = function(course) {
 
 window.submitProjectDetails = async function() {
   const course = document.getElementById('pdCourse').value;
-  const fullCourseName = document.getElementById('pdFullCourseName').value.trim(); // 📌 รับค่าชื่อเต็ม
+  const fullCourseName = document.getElementById('pdFullCourseName').value.trim(); 
   const rationale = document.getElementById('pdRationale').value.trim();
   const objectives = document.getElementById('pdObjectives').value.trim();
   const targetDesc = document.getElementById('pdTargetDesc').value.trim();
@@ -236,7 +234,7 @@ window.submitProjectDetails = async function() {
     const payload = { 
       action: 'saveProjectDetails', 
       course: course, 
-      fullCourseName: fullCourseName, // 📌 ส่งข้อมูลชื่อเต็ม
+      fullCourseName: fullCourseName, 
       rationale: rationale, 
       objectives: objectives, 
       targetDesc: targetDesc,
@@ -300,6 +298,40 @@ window.saveAdminSettings = async function() {
   }
   
   btn.textContent = 'บันทึก'; 
+  btn.disabled = false;
+};
+
+// 📌 ฟังก์ชันใหม่: เปลี่ยนรหัส PIN สำหรับ Admin
+window.saveAdminPin = async function() {
+  const pinInput = document.getElementById('adminPinSetting').value.trim();
+  if(!pinInput || pinInput.length !== 6 || isNaN(pinInput)) {
+    return alert('⚠️ กรุณาระบุรหัสผ่านเป็นตัวเลข 6 หลัก');
+  }
+  
+  const btn = document.getElementById('btnSavePinSetting');
+  btn.textContent = 'กำลังบันทึก...'; 
+  btn.disabled = true;
+  
+  try {
+    const payload = { action: 'saveSetting', key: 'ADMIN_PIN', value: pinInput };
+    const response = await fetch(API_URL, { 
+      method: 'POST', 
+      body: JSON.stringify(payload), 
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' } 
+    });
+    const result = await response.json();
+    if(result.status === 'success') {
+      alert('✅ เปลี่ยนรหัสผ่านสำหรับผู้ดูแลระบบสำเร็จ');
+      globalSettings.adminPin = pinInput; 
+      document.getElementById('adminPinSetting').value = ''; 
+    } else { 
+      alert('❌ ข้อผิดพลาด: ' + result.message); 
+    }
+  } catch(e) { 
+    alert('❌ การเชื่อมต่อล้มเหลว'); 
+  }
+  
+  btn.textContent = 'เปลี่ยนรหัส'; 
   btn.disabled = false;
 };
 
@@ -588,7 +620,10 @@ window.checkOTP = function() {
   inputs.forEach(input => pin += input.value); 
   
   if(pin.length === 6) { 
-      if(pin === "336699") { 
+      // 📌 เช็คความถูกต้องจาก globalSettings.adminPin ที่ดึงมาจากฐานข้อมูล
+      const correctPin = globalSettings.adminPin || "336699";
+      
+      if(pin === correctPin) { 
           isAdmin = true; 
           document.body.classList.add('is-admin'); 
           
@@ -712,6 +747,7 @@ async function fetchData() {
         globalSettings = result.data.settings; 
         document.getElementById('adminActiveYear').value = globalSettings.activeReportYear; 
         document.getElementById('srActiveYear').value = globalSettings.activeReportYear; 
+        // ไม่ต้องแสดง adminPin ลงใน input เพื่อความปลอดภัย
       }
       if(result.data.projectDetails) { 
         cachedProjectDetails = result.data.projectDetails; 
@@ -1037,13 +1073,11 @@ window.renderReportData = function() {
     courseUsers = courseUsers.filter(u => u.trainings.some(t => t.course === courseName && String(t.year) === selectedYear)); 
   }
 
-  // 📌 ตรวจสอบและดึงข้อมูลชื่อเต็มหลักสูตร
   let displayCourseName = courseName;
   if(cachedProjectDetails && cachedProjectDetails[courseName] && cachedProjectDetails[courseName].fullCourseName) {
     displayCourseName = cachedProjectDetails[courseName].fullCourseName;
   }
 
-  // แสดงผลชื่อหลักสูตร (ใช้ชื่อเต็มถ้ามี)
   document.getElementById('reportCourseName').textContent = displayCourseName + (selectedYear === 'all' ? ' (ภาพรวมทั้งหมด)' : ` (รุ่นปี ${selectedYear})`);
 
   let projectTargets = {};
@@ -1178,7 +1212,6 @@ window.renderReportData = function() {
     expectedText = `โครงการตั้งเป้าหมายผลลัพธ์ไว้ที่ <u>"${cachedProjectDetails[courseName].expected}"</u> ซึ่ง`; 
   }
 
-  // 📌 เปลี่ยนการอ้างอิงชื่อให้ตรงกัน (ถ้ามีชื่อเต็ม ให้ใช้ชื่อเต็มอธิบาย)
   let summaryText = `จากข้อมูลในระบบทะเบียนบุคลากรกีฬาพบว่า ผู้ผ่านการอบรมหลักสูตร <span class="font-bold text-blue-600">${displayCourseName}</span> `;
   if(selectedYear !== 'all') {
     summaryText += `(เฉพาะผู้ที่อบรมในปี <span class="font-bold text-blue-600">${selectedYear}</span>) `;
