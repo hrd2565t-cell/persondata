@@ -25,14 +25,31 @@
     body.is-admin .admin-only { display: flex; } 
     body.is-admin .admin-only-block { display: block; } 
     
+    /* 📌 อัปเกรด CSS สำหรับการพิมพ์ PDF (A4) */
     @media print {
+      @page { size: A4; margin: 15mm; }
       body * { visibility: hidden; }
-      .print-modal-active { visibility: visible !important; position: absolute; left: 0; top: 0; width: 100%; background: white; padding: 10px; box-shadow: none; z-index: 9999; }
+      
+      .print-modal-active { 
+        visibility: visible !important; 
+        position: absolute; 
+        left: 0; 
+        top: 0; 
+        width: 100%; 
+        background: white; 
+        padding: 0; 
+        margin: 0; 
+        box-shadow: none; 
+        z-index: 9999; 
+      }
+      
       .print-modal-active * { visibility: visible; }
       .print-hide { display: none !important; }
       .print-shadow-none { border: none !important; box-shadow: none !important; }
       * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-      .page-break { page-break-before: always; }
+      
+      /* คำสั่งสำหรับตัดหน้ากระดาษ (Page Break) */
+      .print-page-break { page-break-before: always !important; break-before: page !important; }
     }
   </style>
 </head>
@@ -85,7 +102,7 @@
           <p class="text-sm text-slate-500 mt-1">ติดตามเป้าหมาย อัตราการคงอยู่ (Retention) และประเมินผลสัมฤทธิ์โครงการ</p>
         </div>
         <button onclick="openMatrixReport()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-md transition-colors flex items-center gap-2">
-          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 01-1.125-1.125M3.375 19.5h7.5c.621 0 1.125-.504 1.125-1.125m-9.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-7.5A1.125 1.125 0 0112 18.375m9.75-12.75c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125m19.5 0v1.5c0 .621-.504 1.125-1.125 1.125M2.25 5.625v1.5c0 .621.504 1.125 1.125 1.125m0 0h17.25m-17.25 0h7.5c.621 0 1.125.504 1.125 1.125M3.375 8.25c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m17.25-3.75h-7.5c-.621 0-1.125.504-1.125 1.125m8.625-1.125c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125M12 10.875v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 10.875c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125M13.125 12h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125M20.625 12c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125M12 15.375v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 15.375c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125m0 1.5v-1.5m0 0c0-.621.504-1.125 1.125-1.125m0 0h7.5" /></svg>
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
           พิมพ์ตารางสรุปไขว้ (Matrix Report)
         </button>
       </div>
@@ -206,7 +223,6 @@
             <h3 class="text-md font-bold text-blue-800 mb-5 border-l-4 border-blue-600 pl-3">📌 หมวดที่ 1: ข้อมูลพื้นฐานโครงการ</h3>
             <div class="space-y-5">
               
-              <!-- 📌 ช่องใหม่: ชื่อหลักสูตรเต็ม -->
               <div>
                 <label class="block text-sm font-bold text-slate-700 mb-2">ชื่อหลักสูตร (ฉบับเต็มสำหรับออกรายงาน)</label>
                 <input type="text" id="pdFullCourseName" placeholder="เช่น โครงการพัฒนาบุคลากรกีฬาระดับชาติ ประจำปี..." class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-4 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm">
@@ -558,15 +574,19 @@
           </div>
         </div>
         
-        <div class="p-10 md:p-14 space-y-10 text-slate-800 print:w-[210mm] print:min-h-[297mm] mx-auto bg-white">
+        <!-- 📌 อัปเกรด: Container ปรับ Padding ให้เหมาะกับขนาดหน้าต่างและ A4 -->
+        <div class="p-6 md:p-10 space-y-8 text-slate-800 mx-auto bg-white print:p-0 print:space-y-6">
           <div class="text-center space-y-3 border-b-2 border-slate-800 pb-8">
             <h1 class="text-2xl md:text-3xl font-extrabold uppercase tracking-tight text-slate-900">รายงานผลสัมฤทธิ์โครงการ (Impact Assessment)</h1>
             <p class="text-slate-600 font-medium">ประกอบการพิจารณาประเมินผลโครงการ / กองทุนพัฒนาการกีฬาแห่งชาติ (NSDF)</p>
             
-            <div class="inline-block mt-4 bg-slate-100 text-slate-800 border border-slate-300 px-6 py-2.5 rounded-lg font-bold flex items-center justify-center gap-3 w-max mx-auto shadow-sm">
-               <!-- 📌 ส่วนนี้จะแสดงชื่อเต็มของหลักสูตร -->
-               <span>หลักสูตร: <span id="reportCourseName" class="text-xl text-blue-700">---</span></span>
-               <select id="reportYearFilter" onchange="renderReportData()" class="text-sm border border-slate-300 rounded-md py-1 px-2 outline-none focus:ring-2 focus:ring-blue-500 bg-white text-blue-700 cursor-pointer print-hide font-semibold shadow-sm ml-2">
+            <!-- 📌 อัปเกรด: กล่องชื่อหลักสูตรให้ขยายและปัดบรรทัดได้อัตโนมัติ -->
+            <div class="mt-6 bg-blue-50/50 text-slate-800 border border-blue-100 p-5 rounded-2xl flex flex-col items-center justify-center gap-4 w-full mx-auto shadow-sm">
+               <div class="flex flex-col items-center text-center w-full">
+                 <span class="text-sm font-bold text-slate-500 mb-1">หลักสูตรที่ประเมิน</span>
+                 <span id="reportCourseName" class="text-lg md:text-xl font-bold text-blue-700 leading-snug break-words max-w-full">---</span>
+               </div>
+               <select id="reportYearFilter" onchange="renderReportData()" class="text-sm border border-blue-200 rounded-lg py-1.5 px-4 outline-none focus:ring-2 focus:ring-blue-500 bg-white text-blue-700 cursor-pointer print-hide font-bold shadow-sm">
                   <option value="all">รวมทุกปี</option>
                </select>
             </div>
@@ -591,8 +611,18 @@
                <div class="p-5 space-y-2" id="reportGroupBreakdown"></div>
             </div>
           </div>
-          <div><h3 class="text-lg font-bold border-l-4 border-blue-600 pl-3 mb-5" id="titleImpSec">3. การติดตามการนำความรู้ไปปฏิบัติหน้าที่ (Implementation Tracking)</h3><div id="reportImplementation"></div></div>
-          <div><h3 class="text-lg font-bold border-l-4 border-blue-600 pl-3 mb-5" id="titleExecSec">4. บทสรุปผู้บริหารและการวิเคราะห์ภาพรวม (Executive Summary)</h3><div id="reportExecutiveSummary"></div></div>
+          
+          <div>
+            <h3 class="text-lg font-bold border-l-4 border-blue-600 pl-3 mb-5" id="titleImpSec">3. การติดตามการนำความรู้ไปปฏิบัติหน้าที่ (Implementation Tracking)</h3>
+            <div id="reportImplementation"></div>
+          </div>
+          
+          <!-- 📌 อัปเกรด: บังคับตัดหน้าใหม่เสมอเวลา Print (Page Break) -->
+          <div class="print-page-break pt-8 print:pt-0">
+            <h3 class="text-lg font-bold border-l-4 border-blue-600 pl-3 mb-5" id="titleExecSec">4. บทสรุปผู้บริหารและการวิเคราะห์ภาพรวม (Executive Summary)</h3>
+            <div id="reportExecutiveSummary"></div>
+          </div>
+          
           <div class="pt-16 mt-16 border-t border-slate-200 flex justify-end">
             <div class="text-center w-64 space-y-4"><div class="border-b border-slate-400 w-full h-8"></div><p class="text-sm font-semibold text-slate-800">ผู้รายงานผลโครงการ</p><p class="text-xs text-slate-500">สร้างจากระบบฐานข้อมูลอัตโนมัติ</p></div>
           </div>
