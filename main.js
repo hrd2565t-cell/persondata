@@ -117,7 +117,8 @@ window.handleSelfReportUserSelect = function() {
     srSelectedUser = cachedPersonnelData.find(p => p.uid === uid);
     
     if(srSelectedUser) {
-      const filteredCourses = (srSelectedUser.trainings || []).filter(t => String(t.year) === String(activeYear));
+      // ดึงหลักสูตรที่อบรมในปีนั้น
+      const filteredCourses = (srSelectedUser.trainings || []).filter(t => String(t.year).trim() === String(activeYear).trim());
       
       if(filteredCourses.length === 0) { 
         warnText.textContent = `⚠️ ท่านไม่มีประวัติการอบรมในปีงบประมาณ ${activeYear} จึงไม่ต้องรายงานผลในรอบนี้`; 
@@ -127,11 +128,15 @@ window.handleSelfReportUserSelect = function() {
       
       warnText.classList.add('hidden'); 
       formContainer.classList.remove('hidden');
-      
       srFormState = []; 
       
+      // 📌 อัปเกรด: ค้นหาข้อมูลเดิม (Smart Default) ให้ทนทานต่อช่องว่าง (Trim)
       filteredCourses.forEach(c => {
-         const existingDuties = (srSelectedUser.duties || []).filter(d => String(d.year) === String(activeYear) && d.course === c.course);
+         const existingDuties = (srSelectedUser.duties || []).filter(d => 
+            String(d.year).trim() === String(activeYear).trim() && 
+            String(d.course).trim() === String(c.course).trim()
+         );
+         
          if (existingDuties.length > 0) {
             existingDuties.forEach(d => {
                srFormState.push({ course: c.course, data: d, isReported: true, tempData: null });
@@ -151,7 +156,6 @@ window.handleSelfReportUserSelect = function() {
   warnText.classList.remove('hidden'); formContainer.classList.add('hidden');
 };
 
-// 📌 อัปเกรด: เปลี่ยนจาก Optional Chaining เป็นฟังก์ชันดึงค่ามาตรฐาน (แก้บั๊กสคริปต์พัง 100%)
 function syncSrFormState() {
   srFormState.forEach((form, i) => {
     const getVal = function(id) {
@@ -427,7 +431,6 @@ window.openLoginModal = function() {
   const err = document.getElementById('loginErrorMsg');
   if(err) err.classList.add('hidden'); 
   
-  // 📌 อัปเกรดความปลอดภัยและแก้บั๊ก: บังคับเลือกแค่ 6 ช่องแรกเสมอ ป้องกันการคลิกปุ่มไม่ทำงาน
   const inputs = Array.from(document.querySelectorAll('.otp-input')).slice(0, 6); 
   inputs.forEach(input => input.value = ''); 
   setTimeout(() => { if (inputs.length > 0) inputs[0].focus(); }, 100); 
@@ -439,7 +442,6 @@ window.closeLoginModal = function() {
 };
 
 function setupOTPInputs() { 
-  // 📌 บังคับ slice(0,6) ป้องกันปัญหาช่องกรอกซ้ำซ้อน
   const inputs = Array.from(document.querySelectorAll('.otp-input')).slice(0, 6); 
   inputs.forEach((input, index) => { 
       input.addEventListener('input', (e) => { 
@@ -465,7 +467,6 @@ window.checkOTP = function() {
   inputs.forEach(input => pin += input.value); 
   
   if(pin.length === 6) { 
-      // 📌 อัปเกรด: บังคับให้เป็น String เพื่อเปรียบเทียบค่าได้แม่นยำ 100% แก้บั๊ก Login ไม่ติด
       const correctPin = String(globalSettings.adminPin || "336699").trim();
       
       if(pin === correctPin) { 
@@ -906,7 +907,6 @@ window.openProposalReport = function(encodedCourseName, btnId) {
   }, 400); 
 };
 
-// 📌 อัปเกรดความปลอดภัย: เอาการเขียนแบบ ES2020 (?.) ออกทั้งหมด ป้องกันเบราว์เซอร์เก่าค้าง
 window.renderReportData = function() {
   if(!currentReportCourseBase64) return;
   const courseName = base64ToUtf8(currentReportCourseBase64);
@@ -1021,7 +1021,6 @@ window.renderReportData = function() {
   let sortedRoles = Object.entries(roleStats).sort((a,b)=>b[1]-a[1]); 
   let sortedSports = Object.entries(sportStats).sort((a,b)=>b[1]-a[1]); 
   
-  // 📌 ป้องกันบั๊กเบราว์เซอร์เก่า: ตรวจสอบความยาว Array ด้วยวิธีมาตรฐาน
   let topRole = (sortedRoles.length > 0 && sortedRoles[0][0]) ? sortedRoles[0][0] : 'หลายบทบาท'; 
   let topSport = (sortedSports.length > 0 && sortedSports[0][0]) ? sortedSports[0][0] : 'หลายชนิดกีฬา';
   
