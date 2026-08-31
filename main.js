@@ -1,5 +1,4 @@
-// 👇 อัปเดต Web App URL ของคุณเรียบร้อยแล้วครับ
-const API_URL = 'https://script.google.com/macros/s/AKfycbw--515Ocaod1h_wkMMc8dfiUumw4XD7anSkhWcM4coEXQJAVjGSKORwIMGLgq9t6Fi/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbw76H-EVG5a0Z6iyIDAcy9DUj5LjcfcLvGJ9Yxs-3CtuYL4KI50EQzqU_cG8CC3V3rR/exec';
 
 let cachedPersonnelData = [];
 let cachedProjectDetails = {}; 
@@ -563,6 +562,7 @@ window.switchImportMode = function(mode) {
   }
 };
 
+// 📌 อัปเกรด: ฟังก์ชันดึงข้อมูลที่มีระบบจับ Error แบบแม่นยำ (หาสาเหตุที่แท้จริงได้ทันที)
 async function fetchData() {
   const keyword = document.getElementById('searchInput').value.trim(); 
   const year = document.getElementById('filterYear').value; 
@@ -570,8 +570,21 @@ async function fetchData() {
   const group = document.getElementById('filterGroup').value;
   
   try {
-    const res = await fetch(`${API_URL}?action=getData&keyword=${encodeURIComponent(keyword)}&year=${year}&course=${encodeURIComponent(course)}&group=${encodeURIComponent(group)}`);
-    const result = await res.json();
+    const url = `${API_URL}?action=getData&keyword=${encodeURIComponent(keyword)}&year=${year}&course=${encodeURIComponent(course)}&group=${encodeURIComponent(group)}`;
+    const res = await fetch(url);
+    const text = await res.text(); 
+    
+    let result;
+    try {
+      result = JSON.parse(text);
+    } catch (parseError) {
+      console.error("API Response Error:", text);
+      if(text.includes('<html')) {
+         throw new Error("Google บล็อกการเชื่อมต่อ (เช็คสิทธิ์การเข้าถึงว่าตั้งเป็น 'ทุกคน' หรือยัง)");
+      } else {
+         throw new Error("ระบบหลังบ้านส่งข้อมูลมาผิดรูปแบบ");
+      }
+    }
     
     if (result.status === 'success') {
       cachedPersonnelData = result.data.list;
@@ -602,7 +615,7 @@ async function fetchData() {
       showErrorState(result.message); 
     }
   } catch (error) { 
-    showErrorState('การเชื่อมต่อกับฐานข้อมูลขัดข้อง (ตรวจสอบลิงก์ API)'); 
+    showErrorState(error.message || 'การเชื่อมต่อกับฐานข้อมูลขัดข้อง'); 
   }
 }
 
