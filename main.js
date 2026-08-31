@@ -1,3 +1,4 @@
+// 👇 URL ปัจจุบันของคุณ (ไม่ต้องแก้แล้วครับ)
 const API_URL = 'https://script.google.com/macros/s/AKfycbw76H-EVG5a0Z6iyIDAcy9DUj5LjcfcLvGJ9Yxs-3CtuYL4KI50EQzqU_cG8CC3V3rR/exec';
 
 let cachedPersonnelData = [];
@@ -51,7 +52,6 @@ window.showToast = function(message) {
    setTimeout(() => { toast.classList.add('translate-y-20', 'opacity-0'); }, 3000);
 };
 
-// 📌 กลับมาแล้ว! ฟังก์ชันอัปเดตสถานะของ Admin
 window.updatePersonnelStatus = async function(uid, newStatus, selectElement) {
   selectElement.disabled = true; selectElement.classList.add('opacity-50', 'animate-pulse');
   try {
@@ -73,7 +73,7 @@ window.updatePersonnelStatus = async function(uid, newStatus, selectElement) {
   selectElement.disabled = false; selectElement.classList.remove('opacity-50', 'animate-pulse');
 };
 
-// 📌 กลับมาแล้ว! ระบบจัดการหน้าโปรไฟล์ (ปุ่ม "จัดการ") สำหรับแสดงข้อมูลประวัติบุคคล
+// 📌 ฟังก์ชันจัดการหน้าโปรไฟล์ (กลับมาแล้ว!)
 window.viewProfile = function(uid) {
   currentActiveUid = uid; 
   const person = cachedPersonnelData.find(p => p.uid === uid);
@@ -211,14 +211,13 @@ window.submitEval = async function() {
   btn.textContent = 'บันทึกข้อเสนอแนะ'; btn.disabled = false;
 };
 
-// 📌 กลับมาแล้ว! ฟังก์ชันดึงและจัดการข้อมูลโครงการ (หน้าต่าง "ข้อมูลโครงการ")
+// 📌 ฟังก์ชันจัดการโครงการ (กลับมาแล้ว!)
 window.loadProjectData = function(course) {
   const form = document.getElementById('pdFormContainer');
   if(!course) { form.classList.add('hidden'); return; }
   
   form.classList.remove('hidden');
   
-  // ล้างฟอร์ม
   document.getElementById('pdFullCourseName').value = ''; 
   document.getElementById('pdRationale').value = ''; 
   document.getElementById('pdObjectives').value = ''; 
@@ -239,7 +238,6 @@ window.loadProjectData = function(course) {
       if(numInput) { numInput.value = ''; numInput.classList.add('hidden'); }
   });
 
-  // ใส่ข้อมูลเดิมที่แคชไว้
   if(cachedProjectDetails && cachedProjectDetails[course]) {
     const d = cachedProjectDetails[course];
     document.getElementById('pdFullCourseName').value = d.fullCourseName || ''; 
@@ -313,7 +311,7 @@ window.submitProjectDetails = async function() {
   btn.textContent = 'บันทึกข้อมูลโครงการทั้งหมด'; btn.disabled = false;
 };
 
-// 📌 กลับมาแล้ว! ฟังก์ชันตั้งค่า Admin (บันทึกรหัส PIN และรอบปีประเมิน)
+// 📌 ฟังก์ชันตั้งค่า Admin (กลับมาแล้ว!)
 window.saveAdminSettings = async function() {
   const yearInput = document.getElementById('adminActiveYear').value.trim();
   if(!yearInput) return alert('⚠️ กรุณาระบุปี');
@@ -348,7 +346,7 @@ window.saveAdminPin = async function() {
   btn.textContent = 'เปลี่ยนรหัส'; btn.disabled = false;
 };
 
-// 📌 กลับมาแล้ว! ฟังก์ชัน Export ข้อมูล และ โหลด Template Excel
+// 📌 ฟังก์ชัน Export Excel (กลับมาแล้ว!)
 window.exportToExcel = function() {
   const filterYear = document.getElementById('filterYear').value; const filterCourse = document.getElementById('filterCourse').value; let exportData = [];
   currentFilteredData.forEach(user => {
@@ -372,6 +370,10 @@ window.downloadTemplate = function() {
   ws['!cols'] = [{wch:10}, {wch:30}, {wch:20}, {wch:40}, {wch:15}, {wch:20}, {wch:15}]; const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Import_Template"); XLSX.writeFile(wb, "Template_นำเข้าบุคลากร.xlsx");
 };
+
+// ----------------------------------------------------
+// โค้ดส่วนอื่นๆ ที่ทำงานได้ปกติ
+// ----------------------------------------------------
 
 window.openEvidenceModal = function(url) {
   if(!url) return;
@@ -919,7 +921,7 @@ async function fetchData() {
   }
 }
 
-// 📌 กลับมาแล้ว! ฟังก์ชันอัปเดตช่องค้นหารายชื่อหน้าแรก
+// 📌 กลับมาแล้ว!
 function updateSelfReportDatalist() {
   const dl = document.getElementById('dl-all-users');
   if(dl) { 
