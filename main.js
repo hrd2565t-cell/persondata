@@ -1,5 +1,4 @@
-// 👇 อัปเดต Web App URL เป็นตัวที่คุณกำหนดเรียบร้อยแล้วครับ
-const API_URL = 'https://script.google.com/macros/s/AKfycbw--515Ocaod1h_wkMMc8dfiUumw4XD7anSkhWcM4coEXQJAVjGSKORwIMGLgq9t6Fi/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbw76H-EVG5a0Z6iyIDAcy9DUj5LjcfcLvGJ9Yxs-3CtuYL4KI50EQzqU_cG8CC3V3rR/exec';
 
 let cachedPersonnelData = [];
 let cachedProjectDetails = {}; 
@@ -52,6 +51,7 @@ window.showToast = function(message) {
    setTimeout(() => { toast.classList.add('translate-y-20', 'opacity-0'); }, 3000);
 };
 
+// 📌 กลับมาแล้ว! ฟังก์ชันอัปเดตสถานะของ Admin
 window.updatePersonnelStatus = async function(uid, newStatus, selectElement) {
   selectElement.disabled = true; selectElement.classList.add('opacity-50', 'animate-pulse');
   try {
@@ -71,6 +71,306 @@ window.updatePersonnelStatus = async function(uid, newStatus, selectElement) {
     } else { alert('❌ ' + result.message); }
   } catch(err) { alert('❌ การเชื่อมต่อล้มเหลว'); }
   selectElement.disabled = false; selectElement.classList.remove('opacity-50', 'animate-pulse');
+};
+
+// 📌 กลับมาแล้ว! ระบบจัดการหน้าโปรไฟล์ (ปุ่ม "จัดการ") สำหรับแสดงข้อมูลประวัติบุคคล
+window.viewProfile = function(uid) {
+  currentActiveUid = uid; 
+  const person = cachedPersonnelData.find(p => p.uid === uid);
+  if (!person) { alert("❌ ไม่พบข้อมูลบุคลากร"); return; }
+  
+  document.getElementById('profileName').textContent = person.fullName; 
+  document.getElementById('profileUid').textContent = `รหัสอ้างอิง: ${person.uid}`; 
+  document.getElementById('profileAgency').textContent = `${person.agency} (${person.status})`; 
+  document.getElementById('profileGroup').textContent = person.group || 'ไม่ระบุกลุ่ม'; 
+
+  const timelineEl = document.getElementById('profileTrainings');
+  if (person.trainings && person.trainings.length > 0) { 
+    const sortedTrainings = person.trainings.sort((a, b) => b.year - a.year); 
+    timelineEl.innerHTML = sortedTrainings.map(t => `
+      <li class="relative pl-6 pb-4 border-l-2 border-slate-200 last:border-0 last:pb-0">
+        <div class="absolute w-3 h-3 bg-blue-500 rounded-full -left-[7px] top-1.5 ring-4 ring-white shadow-sm"></div>
+        <p class="text-sm font-bold text-slate-800">${t.course}</p>
+        <p class="text-xs text-slate-500 mt-0.5">ปีการศึกษา: ${t.year}</p>
+      </li>`).join(''); 
+  } else { 
+    timelineEl.innerHTML = `<li class="text-sm text-slate-500 pl-4">ยังไม่มีประวัติการอบรม</li>`; 
+  }
+  
+  const dutyEl = document.getElementById('profileDuties');
+  if (person.duties && person.duties.length > 0) {
+    dutyEl.innerHTML = person.duties.map(d => {
+      let evidenceHtml = '';
+      if (d.images) {
+        const links = d.images.split(',').map(l => l.trim()).filter(l => l);
+        if (links.length > 0) {
+          evidenceHtml = `<div class="mt-3 flex flex-wrap gap-2 pt-3 border-t border-slate-100">`;
+          links.forEach((link, idx) => {
+            evidenceHtml += `
+            <button onclick="openEvidenceModal('${link}')" class="text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold py-1.5 px-3 rounded-lg border border-blue-200 transition-colors flex items-center gap-1.5 shadow-sm">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg> 
+              หลักฐานชิ้นที่ ${idx + 1}
+            </button>`;
+          });
+          evidenceHtml += `</div>`;
+        }
+      }
+      return `
+      <li class="bg-white p-3.5 rounded-xl border border-slate-200 flex flex-col gap-1 shadow-sm">
+        <div class="flex justify-between items-start">
+          <span class="text-sm font-bold text-slate-800">${d.sport}</span>
+          <span class="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded">ปี ${d.year || '-'}</span>
+        </div>
+        <span class="text-xs text-blue-600 font-semibold">${d.role}</span>
+        <span class="text-xs text-slate-500 flex items-center gap-1 mt-1">
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg> 
+          ${d.event || 'ไม่ระบุชื่องาน'}
+        </span>
+        ${evidenceHtml}
+      </li>`;
+    }).join('');
+  } else { 
+    dutyEl.innerHTML = `<div class="text-sm text-slate-500">ยังไม่มีประวัติลงพื้นที่</div>`; 
+  }
+  
+  const evalEl = document.getElementById('profileEvals');
+  if (person.evals && person.evals.length > 0) { 
+    evalEl.innerHTML = person.evals.map(e => `
+      <div class="bg-white p-3.5 rounded-xl border border-slate-200 text-sm text-slate-700 italic shadow-sm">"${e.feedback}"</div>
+    `).join(''); 
+  } else { 
+    evalEl.innerHTML = `<div class="text-sm text-slate-500">ยังไม่มีข้อเสนอแนะ</div>`; 
+  }
+  
+  const slideOver = document.getElementById('slideOver'); 
+  const backdrop = document.getElementById('slideOverBackdrop'); 
+  const panel = document.getElementById('slideOverPanel');
+  
+  slideOver.classList.remove('hidden'); 
+  setTimeout(() => { 
+    backdrop.classList.remove('opacity-0'); backdrop.classList.add('opacity-100'); 
+    panel.classList.remove('translate-x-full'); panel.classList.add('translate-x-0'); 
+  }, 10);
+  switchTab('general');
+};
+
+window.closeProfile = function() { 
+  currentActiveUid = null; 
+  const backdrop = document.getElementById('slideOverBackdrop'); 
+  const panel = document.getElementById('slideOverPanel'); 
+  backdrop.classList.remove('opacity-100'); backdrop.classList.add('opacity-0'); 
+  panel.classList.remove('translate-x-0'); panel.classList.add('translate-x-full'); 
+  setTimeout(() => { document.getElementById('slideOver').classList.add('hidden'); }, 300); 
+};
+
+window.switchTab = function(tabName) {
+  ['general', 'duty', 'eval'].forEach(t => {
+    const btn = document.getElementById(`tab-btn-${t}`); 
+    const content = document.getElementById(`tab-content-${t}`);
+    if (t === tabName) { 
+      btn.classList.add('border-blue-600', 'text-blue-600', 'font-bold'); btn.classList.remove('border-transparent', 'text-slate-500', 'font-medium'); 
+      content.classList.remove('hidden'); content.classList.add('block'); 
+    } else { 
+      btn.classList.add('border-transparent', 'text-slate-500', 'font-medium'); btn.classList.remove('border-blue-600', 'text-blue-600', 'font-bold'); 
+      content.classList.remove('block'); content.classList.add('hidden'); 
+    }
+  });
+};
+
+window.submitDuty = async function() {
+  if (!currentActiveUid) return; 
+  const sport = document.getElementById('inputDutySport').value.trim(); 
+  const role = document.getElementById('inputDutyRole').value.trim(); 
+  const event = document.getElementById('inputDutyEvent').value.trim(); 
+  const year = document.getElementById('inputDutyYear').value.trim();
+  if (!sport || !role || !event || !year) return alert('⚠️ กรุณากรอกข้อมูล ชนิดกีฬา, ประเภทบุคลากร, ชื่องาน และ ปีที่ปฏิบัติงาน ให้ครบถ้วน');
+  
+  const btn = document.getElementById('btnSaveDuty'); 
+  btn.textContent = 'กำลังบันทึก...'; btn.disabled = true;
+  try {
+    const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveDuty', uid: currentActiveUid, sport: sport, role: role, event: event, year: year }), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
+    const result = await response.json();
+    if(result.status === 'success') { 
+      alert('✅ บันทึกสำเร็จ'); document.getElementById('inputDutySport').value = ''; document.getElementById('inputDutyRole').value = ''; document.getElementById('inputDutyEvent').value = ''; document.getElementById('inputDutyYear').value = ''; fetchData(); 
+    } else { alert(`❌ ข้อผิดพลาด: ${result.message}`); }
+  } catch(e) { alert('❌ การเชื่อมต่อล้มเหลว'); }
+  btn.textContent = 'บันทึกข้อมูล'; btn.disabled = false;
+};
+
+window.submitEval = async function() {
+  if (!currentActiveUid) return; 
+  const feedback = document.getElementById('inputEvalFeedback').value.trim();
+  if (!feedback) return alert('⚠️ กรุณากรอกข้อเสนอแนะ');
+  const btn = document.getElementById('btnSaveEval'); 
+  btn.textContent = 'กำลังบันทึก...'; btn.disabled = true;
+  try {
+    const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveEval', uid: currentActiveUid, feedback: feedback }), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
+    const result = await response.json();
+    if(result.status === 'success') { alert('✅ บันทึกสำเร็จ'); document.getElementById('inputEvalFeedback').value = ''; fetchData(); } else { alert(`❌ ข้อผิดพลาด: ${result.message}`); }
+  } catch(e) { alert('❌ การเชื่อมต่อล้มเหลว'); }
+  btn.textContent = 'บันทึกข้อเสนอแนะ'; btn.disabled = false;
+};
+
+// 📌 กลับมาแล้ว! ฟังก์ชันดึงและจัดการข้อมูลโครงการ (หน้าต่าง "ข้อมูลโครงการ")
+window.loadProjectData = function(course) {
+  const form = document.getElementById('pdFormContainer');
+  if(!course) { form.classList.add('hidden'); return; }
+  
+  form.classList.remove('hidden');
+  
+  // ล้างฟอร์ม
+  document.getElementById('pdFullCourseName').value = ''; 
+  document.getElementById('pdRationale').value = ''; 
+  document.getElementById('pdObjectives').value = ''; 
+  document.getElementById('pdTargetDesc').value = ''; 
+  document.getElementById('pdSec42').value = ''; 
+  document.getElementById('pdGovPolicy').value = ''; 
+  document.getElementById('pdExpected').value = '';
+  document.getElementById('pdShortTerm').value = ''; 
+  document.getElementById('pdLongTerm').value = ''; 
+  document.getElementById('pdSocialImpact').value = ''; 
+  document.getElementById('pdEnvImpact').value = ''; 
+  document.getElementById('pdHealthImpact').value = ''; 
+  document.getElementById('pdSkillImpact').value = ''; 
+  
+  document.querySelectorAll('.pd-target-cb').forEach(cb => {
+      cb.checked = false;
+      let numInput = cb.parentElement.nextElementSibling;
+      if(numInput) { numInput.value = ''; numInput.classList.add('hidden'); }
+  });
+
+  // ใส่ข้อมูลเดิมที่แคชไว้
+  if(cachedProjectDetails && cachedProjectDetails[course]) {
+    const d = cachedProjectDetails[course];
+    document.getElementById('pdFullCourseName').value = d.fullCourseName || ''; 
+    document.getElementById('pdRationale').value = d.rationale || ''; 
+    document.getElementById('pdObjectives').value = d.objectives || ''; 
+    document.getElementById('pdTargetDesc').value = d.targetDesc || ''; 
+    document.getElementById('pdSec42').value = d.sec42 || ''; 
+    document.getElementById('pdGovPolicy').value = d.govPolicy || ''; 
+    document.getElementById('pdExpected').value = d.expected || '';
+    document.getElementById('pdShortTerm').value = d.shortTerm || ''; 
+    document.getElementById('pdLongTerm').value = d.longTerm || ''; 
+    document.getElementById('pdSocialImpact').value = d.socialImpact || ''; 
+    document.getElementById('pdEnvImpact').value = d.envImpact || ''; 
+    document.getElementById('pdHealthImpact').value = d.healthImpact || ''; 
+    document.getElementById('pdSkillImpact').value = d.skillImpact || ''; 
+    
+    if(d.targets) {
+      const targets = d.targets.includes('||') ? d.targets.split('||') : d.targets.split(',').map(t => t.trim() + '|0');
+      targets.forEach(t => {
+        let [tName, tCount] = t.split('|');
+        document.querySelectorAll('.pd-target-cb').forEach(cb => {
+          if(cb.value === tName) {
+            cb.checked = true;
+            let numInput = cb.parentElement.nextElementSibling;
+            if(numInput) { numInput.value = parseInt(tCount) > 0 ? tCount : ''; numInput.classList.remove('hidden'); }
+          }
+        });
+      });
+    }
+  }
+};
+
+window.submitProjectDetails = async function() {
+  const course = document.getElementById('pdCourse').value;
+  if(!course || !document.getElementById('pdExpected').value.trim()) {
+    return alert('⚠️ กรุณาเลือกหลักสูตรและระบุผลที่คาดว่าจะได้รับ (ช่องดอกจันสีแดง)');
+  }
+  
+  let targets = [];
+  document.querySelectorAll('.pd-target-cb:checked').forEach(cb => {
+    let numInput = cb.parentElement.nextElementSibling;
+    let count = numInput && numInput.value ? parseInt(numInput.value) : 0;
+    targets.push(`${cb.value}|${count}`);
+  });
+  
+  const payload = { 
+    action: 'saveProjectDetails', course: course, 
+    fullCourseName: document.getElementById('pdFullCourseName').value.trim(), 
+    rationale: document.getElementById('pdRationale').value.trim(), 
+    objectives: document.getElementById('pdObjectives').value.trim(), 
+    targetDesc: document.getElementById('pdTargetDesc').value.trim(),
+    sec42: document.getElementById('pdSec42').value.trim(),
+    govPolicy: document.getElementById('pdGovPolicy').value.trim(),
+    expected: document.getElementById('pdExpected').value.trim(), 
+    shortTerm: document.getElementById('pdShortTerm').value.trim(),
+    longTerm: document.getElementById('pdLongTerm').value.trim(),
+    socialImpact: document.getElementById('pdSocialImpact').value.trim(),
+    envImpact: document.getElementById('pdEnvImpact').value.trim(),
+    healthImpact: document.getElementById('pdHealthImpact').value.trim(),
+    skillImpact: document.getElementById('pdSkillImpact').value.trim(),
+    targets: targets.join('||') 
+  };
+  
+  const btn = document.getElementById('btnSaveProjectDetails');
+  btn.textContent = 'กำลังบันทึก...'; btn.disabled = true;
+  try {
+    const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
+    const result = await response.json();
+    if(result.status === 'success') { alert('✅ บันทึกสำเร็จ'); fetchData(); } else { alert('❌ ' + result.message); }
+  } catch(e) { alert('❌ การเชื่อมต่อล้มเหลว'); }
+  btn.textContent = 'บันทึกข้อมูลโครงการทั้งหมด'; btn.disabled = false;
+};
+
+// 📌 กลับมาแล้ว! ฟังก์ชันตั้งค่า Admin (บันทึกรหัส PIN และรอบปีประเมิน)
+window.saveAdminSettings = async function() {
+  const yearInput = document.getElementById('adminActiveYear').value.trim();
+  if(!yearInput) return alert('⚠️ กรุณาระบุปี');
+  const btn = document.getElementById('btnSaveSetting');
+  btn.textContent = 'กำลังบันทึก...'; btn.disabled = true;
+  try {
+    const payload = { action: 'saveSetting', key: 'ACTIVE_REPORT_YEAR', value: yearInput };
+    const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
+    const result = await response.json();
+    if(result.status === 'success') {
+      alert('✅ บันทึกสำเร็จ');
+      globalSettings.activeReportYear = yearInput; 
+      document.getElementById('srActiveYear').value = yearInput; 
+    } else { alert('❌ ข้อผิดพลาด: ' + result.message); }
+  } catch(e) { alert('❌ การเชื่อมต่อล้มเหลว'); }
+  btn.textContent = 'บันทึก'; btn.disabled = false;
+};
+
+window.saveAdminPin = async function() {
+  const pinInput = document.getElementById('adminPinSetting').value.trim();
+  if(!pinInput || pinInput.length !== 6 || isNaN(pinInput)) return alert('⚠️ รหัสต้องเป็นตัวเลข 6 หลัก');
+  const btn = document.getElementById('btnSavePinSetting');
+  btn.textContent = 'กำลังบันทึก...'; btn.disabled = true;
+  try {
+    const payload = { action: 'saveSetting', key: 'ADMIN_PIN', value: pinInput };
+    const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
+    const result = await response.json();
+    if(result.status === 'success') {
+      alert('✅ เปลี่ยนรหัสสำเร็จ'); globalSettings.adminPin = pinInput; document.getElementById('adminPinSetting').value = ''; 
+    } else { alert('❌ ข้อผิดพลาด: ' + result.message); }
+  } catch(e) { alert('❌ การเชื่อมต่อล้มเหลว'); }
+  btn.textContent = 'เปลี่ยนรหัส'; btn.disabled = false;
+};
+
+// 📌 กลับมาแล้ว! ฟังก์ชัน Export ข้อมูล และ โหลด Template Excel
+window.exportToExcel = function() {
+  const filterYear = document.getElementById('filterYear').value; const filterCourse = document.getElementById('filterCourse').value; let exportData = [];
+  currentFilteredData.forEach(user => {
+    let matchedTrainings = (user.trainings || []).filter(t => (filterYear === '' || String(t.year) === String(filterYear)) && (filterCourse === '' || String(t.course) === String(filterCourse)));
+    if (matchedTrainings.length > 0) { 
+      matchedTrainings.forEach(t => { exportData.push({ 'รหัส UID': user.uid, 'ชื่อ-นามสกุล': user.fullName, 'กลุ่มหน่วยงาน': user.group || '-', 'หน่วยงาน': user.agency, 'สถานะ': user.status, 'ชื่อหลักสูตร': t.course, 'ปีที่อบรม': parseInt(t.year) || t.year }); }); 
+    } else if (filterYear === '' && filterCourse === '') { 
+      exportData.push({ 'รหัส UID': user.uid, 'ชื่อ-นามสกุล': user.fullName, 'กลุ่มหน่วยงาน': user.group || '-', 'หน่วยงาน': user.agency, 'สถานะ': user.status, 'ชื่อหลักสูตร': '-', 'ปีที่อบรม': '-' }); 
+    }
+  });
+  exportData.sort((a, b) => (parseInt(a['ปีที่อบรม']) || 9999) - (parseInt(b['ปีที่อบรม']) || 9999));
+  if (exportData.length === 0) { alert('⚠️ ไม่พบข้อมูลประวัติการอบรมสำหรับเงื่อนไขนี้'); return; }
+  const ws = XLSX.utils.json_to_sheet(exportData); ws['!cols'] = [{ wch: 15 }, { wch: 30 }, { wch: 25 }, { wch: 40 }, { wch: 15 }, { wch: 40 }, { wch: 15 }]; 
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Personnel_Training_Log");
+  let filename = "ข้อมูลบุคลากรกีฬา"; if (filterCourse) filename += "_" + filterCourse.replace(/\s+/g, ""); if (filterYear) filename += "_ปี" + filterYear; filename += ".xlsx"; 
+  XLSX.writeFile(wb, filename);
+};
+
+window.downloadTemplate = function() {
+  const ws = XLSX.utils.aoa_to_sheet([["คำนำหน้า", "ชื่อ-นามสกุล", "กลุ่มหน่วยงาน", "หน่วยงาน", "สถานะ", "ชื่อหลักสูตร", "ปีที่อบรม"], ["นาย", "ทดสอบ ตัวอย่างการกรอก", "สมาคมกีฬา", "สมาคมกีฬาแห่งจังหวัดกรุงเทพมหานคร", "ปฏิบัติงาน", "TSLP", "2569"]]); 
+  ws['!cols'] = [{wch:10}, {wch:30}, {wch:20}, {wch:40}, {wch:15}, {wch:20}, {wch:15}]; const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Import_Template"); XLSX.writeFile(wb, "Template_นำเข้าบุคลากร.xlsx");
 };
 
 window.openEvidenceModal = function(url) {
@@ -619,7 +919,7 @@ async function fetchData() {
   }
 }
 
-// 📌 ฟังก์ชันเดิม กลับมาครบถ้วนสมบูรณ์ 100%
+// 📌 กลับมาแล้ว! ฟังก์ชันอัปเดตช่องค้นหารายชื่อหน้าแรก
 function updateSelfReportDatalist() {
   const dl = document.getElementById('dl-all-users');
   if(dl) { 
