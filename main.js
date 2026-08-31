@@ -552,6 +552,25 @@ window.toggleOtherInput = function(selectEl, otherId) {
   }
 };
 
+// 📌 เพิ่มฟังก์ชัน Preview Image โดยไม่ต้องรออัปโหลด
+window.previewImage = function(input, imgId) {
+  const imgEl = document.getElementById(imgId);
+  const containerEl = document.getElementById(imgId + '_container');
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      imgEl.src = e.target.result;
+      imgEl.classList.remove('hidden');
+      if(containerEl) containerEl.classList.remove('hidden');
+    }
+    reader.readAsDataURL(input.files[0]);
+  } else {
+    imgEl.src = '';
+    imgEl.classList.add('hidden');
+    if(containerEl) containerEl.classList.add('hidden');
+  }
+};
+
 window.renderSrForms = function() {
   const dynamicForms = document.getElementById('srDynamicForms');
   let html = '';
@@ -589,7 +608,7 @@ window.renderSrForms = function() {
       let valEvent = d.eventType || '';
       let valEventOther = d.eventTypeOther || '';
       if(valEvent && valEvent.startsWith('อื่นๆ: ')) { valEventOther = valEvent.substring(7).trim(); valEvent = 'อื่นๆ'; }
-      else if(valEvent && !['รายการแข่งขันระดับจังหวัด','รายการแข่งขันระดับชาติ','รายการแข่งขันระดับนานาชาติ','รายการอบรมสัมมนา','ปฏิบัติงานบริหารจัดการทั่วไป','อื่นๆ'].includes(valEvent)) { valEventOther = valEvent; valEvent = 'อื่นๆ'; }
+      else if(valEvent && !['รายการแข่งขันระดับจังหวัด','รายการแข่งขันระดับชาติ','รายการแข่งขันระดับนานาชาติ','รายการอบรมสัมมนา','ปฏิบัติงานบริหารจัดการไม่ระบุ','อื่นๆ'].includes(valEvent)) { valEventOther = valEvent; valEvent = 'อื่นๆ'; }
 
       let valRole = d.role || '';
       let valRoleOther = d.roleOther || '';
@@ -622,7 +641,7 @@ window.renderSrForms = function() {
         <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
           <div><label class="block text-xs font-bold text-slate-500 mb-1.5">รูปแบบงาน / ระดับการแข่งขัน <span class="text-red-500">*</span></label>
             <select id="srEventType_${i}" onchange="toggleOtherInput(this, 'srEventTypeOther_${i}')" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
-              <option value="">-- เลือกรูปแบบงาน --</option><option value="รายการแข่งขันระดับจังหวัด" ${valEvent==='รายการแข่งขันระดับจังหวัด'?'selected':''}>รายการแข่งขันระดับจังหวัด</option><option value="รายการแข่งขันระดับชาติ" ${valEvent==='รายการแข่งขันระดับชาติ'?'selected':''}>รายการแข่งขันระดับชาติ</option><option value="รายการแข่งขันระดับนานาชาติ" ${valEvent==='รายการแข่งขันระดับนานาชาติ'?'selected':''}>รายการแข่งขันระดับนานาชาติ</option><option value="รายการอบรมสัมมนา" ${valEvent==='รายการอบรมสัมมนา'?'selected':''}>รายการอบรมสัมมนา</option><option value="ปฏิบัติงานบริหารจัดการทั่วไป" ${valEvent==='ปฏิบัติงานบริหารจัดการทั่วไป'?'selected':''}>ปฏิบัติงานบริหารจัดการทั่วไป</option><option value="อื่นๆ" ${valEvent==='อื่นๆ'?'selected':''}>อื่นๆ</option>
+              <option value="">-- เลือกรูปแบบงาน --</option><option value="รายการแข่งขันระดับจังหวัด" ${valEvent==='รายการแข่งขันระดับจังหวัด'?'selected':''}>รายการแข่งขันระดับจังหวัด</option><option value="รายการแข่งขันระดับชาติ" ${valEvent==='รายการแข่งขันระดับชาติ'?'selected':''}>รายการแข่งขันระดับชาติ</option><option value="รายการแข่งขันระดับนานาชาติ" ${valEvent==='รายการแข่งขันระดับนานาชาติ'?'selected':''}>รายการแข่งขันระดับนานาชาติ</option><option value="รายการอบรมสัมมนา" ${valEvent==='รายการอบรมสัมมนา'?'selected':''}>รายการอบรมสัมมนา</option><option value="ปฏิบัติงานบริหารจัดการไม่ระบุ" ${valEvent==='ปฏิบัติงานบริหารจัดการไม่ระบุ'?'selected':''}>ปฏิบัติงานบริหารจัดการไม่ระบุ</option><option value="อื่นๆ" ${valEvent==='อื่นๆ'?'selected':''}>อื่นๆ</option>
             </select>
             <input type="text" id="srEventTypeOther_${i}" value="${valEventOther}" placeholder="โปรดระบุรูปแบบงาน..." class="${valEvent==='อื่นๆ'?'':'hidden'} w-full mt-2 text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm">
           </div>
@@ -658,8 +677,18 @@ window.renderSrForms = function() {
           <div class="bg-blue-50/50 border border-blue-100 p-4 rounded-xl">
             <label class="block text-xs font-bold text-slate-700 mb-2">แนบรูปภาพหลักฐานประกอบ (ถ้ามี / ไม่เกิน 5MB ต่อภาพ)</label>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div><input type="file" id="srFile1_${i}" accept="image/jpeg, image/png, image/jpg" class="w-full text-xs text-slate-500 file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 bg-white border border-slate-200 rounded p-1 cursor-pointer"></div>
-              <div><input type="file" id="srFile2_${i}" accept="image/jpeg, image/png, image/jpg" class="w-full text-xs text-slate-500 file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 bg-white border border-slate-200 rounded p-1 cursor-pointer"></div>
+              <div class="flex flex-col">
+                 <input type="file" id="srFile1_${i}" accept="image/jpeg, image/png, image/jpg" onchange="previewImage(this, 'preview1_${i}')" class="w-full text-xs text-slate-500 file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 bg-white border border-slate-200 rounded p-1 cursor-pointer">
+                 <div id="preview1_${i}_container" class="hidden mt-2 bg-white rounded-lg border border-slate-200 p-2 flex justify-center items-center overflow-hidden h-32 shadow-sm">
+                     <img id="preview1_${i}" src="" class="hidden max-h-full max-w-full object-contain rounded">
+                 </div>
+              </div>
+              <div class="flex flex-col">
+                 <input type="file" id="srFile2_${i}" accept="image/jpeg, image/png, image/jpg" onchange="previewImage(this, 'preview2_${i}')" class="w-full text-xs text-slate-500 file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 bg-white border border-slate-200 rounded p-1 cursor-pointer">
+                 <div id="preview2_${i}_container" class="hidden mt-2 bg-white rounded-lg border border-slate-200 p-2 flex justify-center items-center overflow-hidden h-32 shadow-sm">
+                     <img id="preview2_${i}" src="" class="hidden max-h-full max-w-full object-contain rounded">
+                 </div>
+              </div>
             </div>
             ${imageAlert}
           </div>
@@ -672,7 +701,6 @@ window.renderSrForms = function() {
   dynamicForms.innerHTML = html; 
 };
 
-// 📌 ฟังก์ชันบีบอัดรูปภาพด้วย Canvas (แก้ไขปัญหา Google Apps Script ขีดจำกัด Payload)
 function getBase64(file) { 
   return new Promise((resolve, reject) => { 
     if(file.size > 10 * 1024 * 1024) { reject(new Error('ขนาดไฟล์ต้องไม่เกิน 10MB')); return; } 
@@ -706,7 +734,6 @@ function getBase64(file) {
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, width, height);
         
-        // ย่อคุณภาพให้เหลือ 75% เป็น JPEG เพื่อส่งเข้า Google Drive ได้ลื่นไหล
         const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
         resolve(dataUrl.split(',')[1]);
       };
