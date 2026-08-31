@@ -72,6 +72,7 @@ window.updatePersonnelStatus = async function(uid, newStatus, selectElement) {
   selectElement.disabled = false; selectElement.classList.remove('opacity-50', 'animate-pulse');
 };
 
+// 📌 ฟังก์ชันจัดการเปิดหน้าต่างโปรไฟล์บุคลากร (สมบูรณ์ 100%)
 window.viewProfile = function(uid) {
   currentActiveUid = uid; 
   const person = cachedPersonnelData.find(p => p.uid === uid);
@@ -81,6 +82,20 @@ window.viewProfile = function(uid) {
   document.getElementById('profileUid').textContent = `รหัสอ้างอิง: ${person.uid}`; 
   document.getElementById('profileAgency').textContent = `${person.agency} (${person.status})`; 
   document.getElementById('profileGroup').textContent = person.group || 'ไม่ระบุกลุ่ม'; 
+
+  // Smart Default: ดึงข้อมูลปฏิบัติหน้าที่ล่าสุดมาใส่รอไว้ในฟอร์มเพิ่มข้อมูลใหม่
+  if (person.duties && person.duties.length > 0) {
+    const lastDuty = person.duties[person.duties.length - 1];
+    const spInput = document.getElementById('inputDutySport');
+    const rlInput = document.getElementById('inputDutyRole');
+    const yrInput = document.getElementById('inputDutyYear');
+    if(spInput && !spInput.value) spInput.value = lastDuty.sport || '';
+    if(rlInput && !rlInput.value) rlInput.value = lastDuty.role || '';
+    if(yrInput && !yrInput.value) yrInput.value = lastDuty.year || globalSettings.activeReportYear;
+  } else {
+    const yrInput = document.getElementById('inputDutyYear');
+    if(yrInput) yrInput.value = globalSettings.activeReportYear;
+  }
 
   const timelineEl = document.getElementById('profileTrainings');
   if (person.trainings && person.trainings.length > 0) { 
@@ -113,9 +128,17 @@ window.viewProfile = function(uid) {
           evidenceHtml += `</div>`;
         }
       }
+      
+      // ปุ่มแก้ไขประวัติ (Edit History)
+      let editBtnHtml = `
+        <button onclick="editDutyRecord('${d.rowIndex}', '${d.sport}', '${d.role}', '${d.event}', '${d.year}')" class="text-[11px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-md transition flex items-center gap-1">
+          ✏️ แก้ไข
+        </button>`;
+
       return `
-      <li class="bg-white p-3.5 rounded-xl border border-slate-200 flex flex-col gap-1 shadow-sm">
-        <div class="flex justify-between items-start">
+      <li class="bg-white p-3.5 rounded-xl border border-slate-200 flex flex-col gap-1 shadow-sm relative">
+        <div class="absolute top-3 right-3">${editBtnHtml}</div>
+        <div class="flex justify-between items-start pr-16">
           <span class="text-sm font-bold text-slate-800">${d.sport}</span>
           <span class="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded">ปี ${d.year || '-'}</span>
         </div>
@@ -152,6 +175,34 @@ window.viewProfile = function(uid) {
   switchTab('general');
 };
 
+// 📌 ฟังก์ชันดึงข้อมูลเก่ามาใส่ฟอร์มเพื่อแก้ไข (Edit History)
+window.editDutyRecord = function(rowIndex, sport, role, event, year) {
+  document.getElementById('inputDutySport').value = sport !== 'undefined' ? sport : '';
+  document.getElementById('inputDutyRole').value = role !== 'undefined' ? role : '';
+  document.getElementById('inputDutyEvent').value = event !== 'undefined' ? event : '';
+  document.getElementById('inputDutyYear').value = year !== 'undefined' ? year : '';
+  
+  // สร้าง hidden input สำหรับเก็บ rowIndex เพื่อบอกหลังบ้านว่าเป็นการอัปเดตแถวเดิม
+  let rowInput = document.getElementById('inputDutyRowIndex');
+  if(!rowInput) {
+    rowInput = document.createElement('input');
+    rowInput.type = 'hidden';
+    rowInput.id = 'inputDutyRowIndex';
+    document.getElementById('btnSaveDuty').parentElement.appendChild(rowInput);
+  }
+  rowInput.value = rowIndex;
+  
+  // เปลี่ยนปุ่มเป็นโหมดแก้ไข
+  const btn = document.getElementById('btnSaveDuty');
+  btn.textContent = '💾 บันทึกการแก้ไข (Update)';
+  btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+  btn.classList.add('bg-amber-600', 'hover:bg-amber-700');
+  
+  // สลับไปแท็บปฏิบัติหน้าที่อัตโนมัติ
+  switchTab('duty');
+  window.showToast('กำลังอยู่ในโหมดแก้ไขข้อมูลเดิม');
+};
+
 window.closeProfile = function() { 
   currentActiveUid = null; 
   const backdrop = document.getElementById('slideOverBackdrop'); 
@@ -181,15 +232,28 @@ window.submitDuty = async function() {
   const role = document.getElementById('inputDutyRole').value.trim(); 
   const event = document.getElementById('inputDutyEvent').value.trim(); 
   const year = document.getElementById('inputDutyYear').value.trim();
+  const rowInput = document.getElementById('inputDutyRowIndex');
+  const rowIndex = rowInput ? rowInput.value : '';
+
   if (!sport || !role || !event || !year) return alert('⚠️ กรุณากรอกข้อมูล ชนิดกีฬา, ประเภทบุคลากร, ชื่องาน และ ปีที่ปฏิบัติงาน ให้ครบถ้วน');
   
   const btn = document.getElementById('btnSaveDuty'); 
   btn.textContent = 'กำลังบันทึก...'; btn.disabled = true;
   try {
-    const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveDuty', uid: currentActiveUid, sport: sport, role: role, event: event, year: year }), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
+    const payload = { action: 'saveDuty', uid: currentActiveUid, sport: sport, role: role, event: event, year: year, rowIndex: rowIndex };
+    const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
     const result = await response.json();
     if(result.status === 'success') { 
-      alert('✅ บันทึกสำเร็จ'); document.getElementById('inputDutySport').value = ''; document.getElementById('inputDutyRole').value = ''; document.getElementById('inputDutyEvent').value = ''; document.getElementById('inputDutyYear').value = ''; fetchData(); 
+      alert('✅ ' + result.message); 
+      document.getElementById('inputDutySport.value') = ''; document.getElementById('inputDutyRole').value = ''; document.getElementById('inputDutyEvent').value = ''; document.getElementById('inputDutyYear').value = ''; 
+      if(rowInput) rowInput.value = '';
+      
+      // คืนค่าปุ่มกลับเป็นโหมดปกติ
+      btn.textContent = 'บันทึกข้อมูล';
+      btn.classList.remove('bg-amber-600', 'hover:bg-amber-700');
+      btn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+      
+      fetchData(); 
     } else { alert(`❌ ข้อผิดพลาด: ${result.message}`); }
   } catch(e) { alert('❌ การเชื่อมต่อล้มเหลว'); }
   btn.textContent = 'บันทึกข้อมูล'; btn.disabled = false;
