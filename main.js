@@ -1,3 +1,4 @@
+// 👇 นำ Web App URL ชุดใหม่ล่าสุดมาใส่ตรงนี้
 const API_URL = 'https://script.google.com/macros/s/AKfycbw--515Ocaod1h_wkMMc8dfiUumw4XD7anSkhWcM4coEXQJAVjGSKORwIMGLgq9t6Fi/exec';
 
 let cachedPersonnelData = [];
@@ -117,7 +118,6 @@ window.handleSelfReportUserSelect = function() {
     srSelectedUser = cachedPersonnelData.find(p => p.uid === uid);
     
     if(srSelectedUser) {
-      // ดึงหลักสูตรที่อบรมในปีนั้น
       const filteredCourses = (srSelectedUser.trainings || []).filter(t => String(t.year).trim() === String(activeYear).trim());
       
       if(filteredCourses.length === 0) { 
@@ -130,7 +130,6 @@ window.handleSelfReportUserSelect = function() {
       formContainer.classList.remove('hidden');
       srFormState = []; 
       
-      // 📌 อัปเกรด: ค้นหาข้อมูลเดิม (Smart Default) ให้ทนทานต่อช่องว่าง (Trim)
       filteredCourses.forEach(c => {
          const existingDuties = (srSelectedUser.duties || []).filter(d => 
             String(d.year).trim() === String(activeYear).trim() && 
@@ -645,27 +644,33 @@ function drawCharts(allYears, allGroups) {
     return count; 
   });
   
-  const ctxBar = document.getElementById('barChart').getContext('2d'); 
-  if(barChartObj) barChartObj.destroy();
-  barChartObj = new Chart(ctxBar, { 
-    type: 'bar', 
-    data: { 
-      labels: last5Years.map(y => 'ปี '+y), 
-      datasets: [{ label: 'ผู้ผ่านการอบรม', data: yearData, backgroundColor: '#3b82f6', borderRadius: 6 }] 
-    }, 
-    options: { 
-      responsive: true, 
-      maintainAspectRatio: false, 
-      plugins: { 
-        legend: { display: false }, 
-        datalabels: { color: '#334155', anchor: 'end', align: 'top', font: { weight: 'bold' } } 
+  // 📌 อัปเกรด: แก้บั๊ก Infinity (ป้องกันเบราว์เซอร์ค้างหากยังไม่มีข้อมูล)
+  let maxVal = Math.max(...yearData);
+  if (!isFinite(maxVal) || maxVal === 0) maxVal = 10;
+  
+  const ctxBar = document.getElementById('barChart');
+  if(ctxBar) {
+    if(barChartObj) barChartObj.destroy();
+    barChartObj = new Chart(ctxBar.getContext('2d'), { 
+      type: 'bar', 
+      data: { 
+        labels: last5Years.map(y => 'ปี '+y), 
+        datasets: [{ label: 'ผู้ผ่านการอบรม', data: yearData, backgroundColor: '#3b82f6', borderRadius: 6 }] 
       }, 
-      scales: { 
-        y: { beginAtZero: true, suggestedMax: Math.max(...yearData) * 1.2, grid: { display: false } }, 
-        x: { grid: { display: false } } 
+      options: { 
+        responsive: true, 
+        maintainAspectRatio: false, 
+        plugins: { 
+          legend: { display: false }, 
+          datalabels: { color: '#334155', anchor: 'end', align: 'top', font: { weight: 'bold' } } 
+        }, 
+        scales: { 
+          y: { beginAtZero: true, suggestedMax: maxVal * 1.2, grid: { display: false } }, 
+          x: { grid: { display: false } } 
+        } 
       } 
-    } 
-  });
+    });
+  }
 
   let groupCounts = {}; 
   cachedPersonnelData.forEach(p => { 
@@ -677,38 +682,44 @@ function drawCharts(allYears, allGroups) {
   let otherCount = Object.entries(groupCounts).sort((a,b)=>b[1]-a[1]).slice(4).reduce((sum, val) => sum + val[1], 0); 
   if(otherCount > 0) topGroups.push(['อื่นๆ', otherCount]);
   
-  const ctxDonut = document.getElementById('donutChart').getContext('2d'); 
-  if(donutChartObj) donutChartObj.destroy();
-  donutChartObj = new Chart(ctxDonut, { 
-    type: 'doughnut', 
-    data: { 
-      labels: topGroups.map(g => g[0]), 
-      datasets: [{ data: topGroups.map(g => g[1]), backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#94a3b8'], hoverOffset: 4, borderWidth: 2 }] 
-    }, 
-    options: { 
-      responsive: true, 
-      maintainAspectRatio: false, 
-      cutout: '65%', 
-      plugins: { 
-        legend: { position: 'right', labels: { boxWidth: 12, usePointStyle: true, font: { size: 11, family: "'Plus Jakarta Sans', sans-serif" } } }, 
-        datalabels: { 
-          color: '#ffffff', 
-          font: { weight: 'bold', size: 10 }, 
-          formatter: (value, ctx) => { 
-            let sum = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0); 
-            let percentage = (value * 100 / sum).toFixed(1) + "%"; 
-            return percentage; 
+  const ctxDonut = document.getElementById('donutChart');
+  if(ctxDonut) {
+    if(donutChartObj) donutChartObj.destroy();
+    donutChartObj = new Chart(ctxDonut.getContext('2d'), { 
+      type: 'doughnut', 
+      data: { 
+        labels: topGroups.map(g => g[0]), 
+        datasets: [{ data: topGroups.map(g => g[1]), backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#94a3b8'], hoverOffset: 4, borderWidth: 2 }] 
+      }, 
+      options: { 
+        responsive: true, 
+        maintainAspectRatio: false, 
+        cutout: '65%', 
+        plugins: { 
+          legend: { position: 'right', labels: { boxWidth: 12, usePointStyle: true, font: { size: 11, family: "'Plus Jakarta Sans', sans-serif" } } }, 
+          datalabels: { 
+            color: '#ffffff', 
+            font: { weight: 'bold', size: 10 }, 
+            formatter: (value, ctx) => { 
+              let sum = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0); 
+              let percentage = (value * 100 / sum).toFixed(1) + "%"; 
+              return percentage; 
+            } 
           } 
         } 
       } 
-    } 
-  });
+    });
+  }
 }
 
 function renderDashboard(stats) {
-  document.getElementById('stat-total').textContent = stats.totalPersonnel; 
-  document.getElementById('stat-top-year').textContent = stats.topYear; 
-  document.getElementById('stat-top-course').textContent = stats.topCourse;
+  const elTotal = document.getElementById('stat-total');
+  const elYear = document.getElementById('stat-top-year');
+  const elCourse = document.getElementById('stat-top-course');
+  
+  if(elTotal) elTotal.textContent = stats.totalPersonnel; 
+  if(elYear) elYear.textContent = stats.topYear; 
+  if(elCourse) elCourse.textContent = stats.topCourse;
   
   const tbody = document.getElementById('courseSummaryBody'); 
   if (!tbody) return;
@@ -1285,7 +1296,7 @@ function formatThaiName(rawPrefix, rawName) {
   
   if (prefix === "น.ส.") prefix = "นางสาว"; 
   name = name.split(/\s+/).join(' ');
-  return { prefix: prefix, fullName: name };
+  return { prefix: prefix, name: name, fullName: name };
 }
 
 function isSmartMatch(importName, existingName) {
@@ -1618,4 +1629,12 @@ function showLoadingState() {
 function showErrorState(message) { 
   const tbody = document.getElementById('tableBody'); 
   if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-16 text-center text-red-400 font-medium">❌ ${message}</td></tr>`; 
+  
+  const elTotal = document.getElementById('stat-total');
+  const elYear = document.getElementById('stat-top-year');
+  const elCourse = document.getElementById('stat-top-course');
+  
+  if(elTotal) elTotal.textContent = 'Err';
+  if(elYear) elYear.textContent = 'Err';
+  if(elCourse) elCourse.textContent = message;
 }
