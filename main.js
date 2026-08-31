@@ -1,5 +1,4 @@
-// 👇 ฝัง URL เว็บแอปของคุณเรียบร้อยแล้วครับ
-const API_URL = 'https://script.google.com/macros/s/AKfycbw--515Ocaod1h_wkMMc8dfiUumw4XD7anSkhWcM4coEXQJAVjGSKORwIMGLgq9t6Fi/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbw76H-EVG5a0Z6iyIDAcy9DUj5LjcfcLvGJ9Yxs-3CtuYL4KI50EQzqU_cG8CC3V3rR/exec';
 
 let cachedPersonnelData = [];
 let cachedProjectDetails = {}; 
@@ -563,7 +562,6 @@ window.switchImportMode = function(mode) {
   }
 };
 
-// 📌 ฟังก์ชัน fetchData ถูกออกแบบให้รับมือกับปัญหา CORS ได้อย่างปลอดภัย
 async function fetchData() {
   const keyword = document.getElementById('searchInput').value.trim(); 
   const year = document.getElementById('filterYear').value; 
@@ -618,6 +616,57 @@ async function fetchData() {
   } catch (error) { 
     showErrorState(error.message || 'การเชื่อมต่อกับฐานข้อมูลขัดข้อง'); 
   }
+}
+
+// 📌 ฟังก์ชันจัดการ Dropdown ที่หายไป กลับมาแล้วครับ!
+function handleCascadingFilter(changedType) {
+  if (!globalFiltersMaster) return;
+  const yearSelect = document.getElementById('filterYear'); 
+  const courseSelect = document.getElementById('filterCourse'); 
+  const selectedYear = yearSelect.value; 
+  const selectedCourse = courseSelect.value; 
+  const relations = globalFiltersMaster.relations;
+  
+  if (changedType === 'course' && selectedCourse) { 
+    const validYears = Object.keys(relations.courseToYears[selectedCourse] || {}); 
+    if (selectedYear && !validYears.includes(selectedYear)) yearSelect.value = ''; 
+  } else if (changedType === 'year' && selectedYear) { 
+    const validCourses = Object.keys(relations.yearToCourses[selectedYear] || {}); 
+    if (selectedCourse && !validCourses.includes(selectedCourse)) courseSelect.value = ''; 
+  }
+  updateDropdownUI(); 
+}
+
+function updateDropdownUI() {
+  if (!globalFiltersMaster) return;
+  const selectedYear = document.getElementById('filterYear').value; 
+  const selectedCourse = document.getElementById('filterCourse').value; 
+  const selectedGroup = document.getElementById('filterGroup').value;
+  
+  const relations = globalFiltersMaster.relations; 
+  let availableYears = globalFiltersMaster.years; 
+  let availableCourses = globalFiltersMaster.courses; 
+  let availableGroups = globalFiltersMaster.groups;
+  
+  if (selectedCourse) availableYears = Object.keys(relations.courseToYears[selectedCourse] || {}).sort((a,b) => b-a);
+  if (selectedYear) availableCourses = Object.keys(relations.yearToCourses[selectedYear] || {}).sort();
+  
+  populateDropdown('filterYear', availableYears, selectedYear, 'ทุกปีการศึกษา'); 
+  populateDropdown('filterCourse', availableCourses, selectedCourse, 'ทุกหลักสูตร'); 
+  populateDropdown('filterGroup', availableGroups, selectedGroup, 'ทุกกลุ่มบุคลากร');
+}
+
+function populateDropdown(elementId, items, currentValue, defaultLabel) {
+  const select = document.getElementById(elementId); 
+  if(!select) return;
+  select.innerHTML = `<option value="">${defaultLabel}</option>`;
+  items.forEach(item => { 
+    const option = document.createElement('option'); 
+    option.value = item; 
+    option.textContent = item; 
+    select.appendChild(option); 
+  }); 
+  select.value = currentValue;
 }
 
 function updateDatalists() {
