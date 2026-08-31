@@ -1,4 +1,5 @@
-const API_URL = 'https://script.google.com/macros/s/AKfycbw--515Ocaod1h_wkMMc8dfiUumw4XD7anSkhWcM4coEXQJAVjGSKORwIMGLgq9t6Fi/exec';
+// 👇 อัปเดต Web App URL ของคุณเรียบร้อยแล้วครับ
+const API_URL = 'https://script.google.com/macros/s/AKfycbw76H-EVG5a0Z6iyIDAcy9DUj5LjcfcLvGJ9Yxs-3CtuYL4KI50EQzqU_cG8CC3V3rR/exec';
 
 let cachedPersonnelData = [];
 let cachedProjectDetails = {}; 
@@ -18,338 +19,81 @@ let barChartObj = null;
 let donutChartObj = null;
 
 let srSelectedUser = null; 
+let srFormState = []; 
 let globalSettings = { activeReportYear: '2569', adminPin: '336699' }; 
-const provinces = ["กรุงเทพมหานคร","กระบี่","กาญจนบุรี","กาฬสินธุ์","กำแพงเพชร","ขอนแก่น","จันทบุรี","ฉะเชิงเทรา","ชลบุรี","ชัยนาท","ชัยภูมิ","ชุมพร","เชียงราย","เชียงใหม่","ตรัง","ตราด","ตาก","นครนายก","นครปฐม","นครพนม","นครราชสีมา","นครศรีธรรมราช","นครสวรรค์","นนทบุรี","นราธิวาส","น่าน","บึงกาฬ","บุรีรัมย์","ปทุมธานี","ประจวบคีรีขันธ์","ปราจีนบุรี","ปัตตานี","พระนครศรีอยุธยา","พะเยา","พังงา","พัทลุง","พิจิตร","พิษณุโลก","เพชรบุรี","เพชรบูรณ์","แพร่","ภูเก็ต","มหาสารคาม","มุกดาหาร","แม่ฮ่องสอน","ยโสธร","ยะลา","ร้อยเอ็ด","ระนอง","ระยอง","ราชบุรี","ลพบุรี","ลำปาง","ลำพูน","เลย","ศรีสะเกษ","สกลนคร","สงขลา","สตูล","สมุทรปราการ","สมุทรสงคราม","สมุทรสาคร","สระแก้ว","สระบุรี","สิงห์บุรี","สุโขทัย","สุพรรณบุรี","สุราษฎร์ธานี","สุรินทร์","หนองคาย","หนองบัวลำภู","อ่างทอง","อำนาจเจริญ","อุดรธานี","อุตรดิตถ์","อุทัยธานี","อุบลราชธานี"];
+
+const provinces = ["ต่างประเทศ","กรุงเทพมหานคร","กระบี่","กาญจนบุรี","กาฬสินธุ์","กำแพงเพชร","ขอนแก่น","จันทบุรี","ฉะเชิงเทรา","ชลบุรี","ชัยนาท","ชัยภูมิ","ชุมพร","เชียงราย","เชียงใหม่","ตรัง","ตราด","ตาก","นครนายก","นครปฐม","นครพนม","นครราชสีมา","นครศรีธรรมราช","นครสวรรค์","นนทบุรี","นราธิวาส","น่าน","บึงกาฬ","บุรีรัมย์","ปทุมธานี","ประจวบคีรีขันธ์","ปราจีนบุรี","ปัตตานี","พระนครศรีอยุธยา","พะเยา","พังงา","พัทลุง","พิจิตร","พิษณุโลก","เพชรบุรี","เพชรบูรณ์","แพร่","ภูเก็ต","มหาสารคาม","มุกดาหาร","แม่ฮ่องสอน","ยโสธร","ยะลา","ร้อยเอ็ด","ระนอง","ระยอง","ราชบุรี","ลพบุรี","ลำปาง","ลำพูน","เลย","ศรีสะเกษ","สกลนคร","สงขลา","สตูล","สมุทรปราการ","สมุทรสงคราม","สมุทรสาคร","สระแก้ว","สระบุรี","สิงห์บุรี","สุโขทัย","สุพรรณบุรี","สุราษฎร์ธานี","สุรินทร์","หนองคาย","หนองบัวลำภู","อ่างทอง","อำนาจเจริญ","อุดรธานี","อุตรดิตถ์","อุทัยธานี","อุบลราชธานี"];
 
 let currentReportCourseBase64 = null; 
 
-function utf8ToBase64(str) { 
-  return btoa(unescape(encodeURIComponent(str))); 
-}
-
-function base64ToUtf8(str) { 
-  return decodeURIComponent(escape(atob(str))); 
-}
+function utf8ToBase64(str) { return btoa(unescape(encodeURIComponent(str))); }
+function base64ToUtf8(str) { return decodeURIComponent(escape(atob(str))); }
 
 document.addEventListener('DOMContentLoaded', () => {
   fetchData();
   setupDragAndDrop();
   setupOTPInputs();
-  populateProvinces();
   switchPage('report');
   
   let delayTimer;
-  const triggerSearch = () => { 
-    clearTimeout(delayTimer); 
-    showLoadingState(); 
-    delayTimer = setTimeout(fetchData, 500); 
-  };
-
+  const triggerSearch = () => { clearTimeout(delayTimer); showLoadingState(); delayTimer = setTimeout(fetchData, 500); };
   document.getElementById('searchInput').addEventListener('input', triggerSearch);
-  
-  document.getElementById('filterCourse').addEventListener('change', () => { 
-    handleCascadingFilter('course'); 
-    triggerSearch(); 
-  });
-  
-  document.getElementById('filterYear').addEventListener('change', () => { 
-    handleCascadingFilter('year'); 
-    triggerSearch(); 
-  });
-  
-  document.getElementById('filterGroup').addEventListener('change', () => { 
-    triggerSearch(); 
-  });
-  
-  document.getElementById('excelUpload').addEventListener('change', (e) => {
-    processExcelFile(e.target.files[0], e.target);
-  });
-  
-  document.getElementById('singleFullName').addEventListener('blur', function() { 
-    if(this.value) this.value = this.value.trim().replace(/\s+/g, ' '); 
-  });
+  document.getElementById('filterCourse').addEventListener('change', () => { handleCascadingFilter('course'); triggerSearch(); });
+  document.getElementById('filterYear').addEventListener('change', () => { handleCascadingFilter('year'); triggerSearch(); });
+  document.getElementById('filterGroup').addEventListener('change', () => { triggerSearch(); });
+  document.getElementById('excelUpload').addEventListener('change', (e) => { processExcelFile(e.target.files[0], e.target); });
+  document.getElementById('singleFullName').addEventListener('blur', function() { if(this.value) this.value = this.value.trim().replace(/\s+/g, ' '); });
 });
 
 window.showToast = function(message) {
    const toast = document.getElementById('toastNotification');
    document.getElementById('toastMessage').textContent = message;
    toast.classList.remove('translate-y-20', 'opacity-0');
-   setTimeout(() => { 
-     toast.classList.add('translate-y-20', 'opacity-0'); 
-   }, 3000);
+   setTimeout(() => { toast.classList.add('translate-y-20', 'opacity-0'); }, 3000);
 };
 
 window.updatePersonnelStatus = async function(uid, newStatus, selectElement) {
-  selectElement.disabled = true;
-  selectElement.classList.add('opacity-50', 'animate-pulse');
-  
+  selectElement.disabled = true; selectElement.classList.add('opacity-50', 'animate-pulse');
   try {
     const payload = { action: 'updateStatus', uid: uid, status: newStatus };
-    const response = await fetch(API_URL, { 
-      method: 'POST', 
-      body: JSON.stringify(payload), 
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' } 
-    });
+    const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
     const result = await response.json();
-    
     if (result.status === 'success') {
       const userIndex = cachedPersonnelData.findIndex(u => u.uid === uid);
-      if(userIndex > -1) {
-        cachedPersonnelData[userIndex].status = newStatus;
-      }
-      
+      if(userIndex > -1) cachedPersonnelData[userIndex].status = newStatus;
       if(newStatus === 'พ้นสภาพ') {
          selectElement.className = "text-xs font-bold bg-white border border-slate-300 text-slate-500 rounded-full px-2 py-1 outline-none cursor-pointer shadow-sm text-center w-[110px] mx-auto block transition-colors";
       } else {
          selectElement.className = "text-xs font-bold bg-white border border-amber-300 text-amber-600 rounded-full px-2 py-1 outline-none cursor-pointer shadow-sm text-center w-[110px] mx-auto block transition-colors";
       }
       showToast('บันทึกสถานะเรียบร้อยแล้ว');
-      
-      fetch(API_URL + '?action=getData')
-        .then(res => res.json())
-        .then(json => {
-          if (json.status === 'success') { 
-            globalFiltersMaster = json.data.filters; 
-            renderDashboard(json.data.stats); 
-            drawCharts(json.data.filters.years, json.data.filters.groups); 
-          }
-        });
-    } else { 
-      alert('❌ ' + result.message); 
-    }
-  } catch(err) { 
-    alert('❌ การเชื่อมต่อล้มเหลว'); 
-  }
-  
-  selectElement.disabled = false; 
-  selectElement.classList.remove('opacity-50', 'animate-pulse');
-};
-
-function populateProvinces() {
-  const select = document.getElementById('srProvince');
-  if(!select) return;
-  select.innerHTML = '<option value="">-- เลือกจังหวัด --</option>' + provinces.map(p => `<option value="${p}">${p}</option>`).join('');
-}
-
-window.loadProjectData = function(course) {
-  const form = document.getElementById('pdFormContainer');
-  if(!course) { 
-    form.classList.add('hidden'); 
-    return; 
-  }
-  
-  form.classList.remove('hidden');
-  
-  document.getElementById('pdFullCourseName').value = ''; 
-  document.getElementById('pdRationale').value = ''; 
-  document.getElementById('pdObjectives').value = ''; 
-  document.getElementById('pdTargetDesc').value = ''; 
-  document.getElementById('pdSec42').value = ''; 
-  document.getElementById('pdGovPolicy').value = ''; 
-  document.getElementById('pdExpected').value = '';
-  document.getElementById('pdShortTerm').value = ''; 
-  document.getElementById('pdLongTerm').value = ''; 
-  document.getElementById('pdSocialImpact').value = ''; 
-  document.getElementById('pdEnvImpact').value = ''; 
-  document.getElementById('pdHealthImpact').value = ''; 
-  document.getElementById('pdSkillImpact').value = ''; 
-  
-  document.querySelectorAll('.pd-target-cb').forEach(cb => {
-      cb.checked = false;
-      let numInput = cb.parentElement.nextElementSibling;
-      if(numInput) { 
-        numInput.value = ''; 
-        numInput.classList.add('hidden'); 
-      }
-  });
-
-  if(cachedProjectDetails && cachedProjectDetails[course]) {
-    const d = cachedProjectDetails[course];
-    document.getElementById('pdFullCourseName').value = d.fullCourseName || ''; 
-    document.getElementById('pdRationale').value = d.rationale || ''; 
-    document.getElementById('pdObjectives').value = d.objectives || ''; 
-    document.getElementById('pdTargetDesc').value = d.targetDesc || ''; 
-    document.getElementById('pdSec42').value = d.sec42 || ''; 
-    document.getElementById('pdGovPolicy').value = d.govPolicy || ''; 
-    document.getElementById('pdExpected').value = d.expected || '';
-    document.getElementById('pdShortTerm').value = d.shortTerm || ''; 
-    document.getElementById('pdLongTerm').value = d.longTerm || ''; 
-    document.getElementById('pdSocialImpact').value = d.socialImpact || ''; 
-    document.getElementById('pdEnvImpact').value = d.envImpact || ''; 
-    document.getElementById('pdHealthImpact').value = d.healthImpact || ''; 
-    document.getElementById('pdSkillImpact').value = d.skillImpact || ''; 
-    
-    if(d.targets) {
-      const targets = d.targets.includes('||') ? d.targets.split('||') : d.targets.split(',').map(t => t.trim() + '|0');
-      targets.forEach(t => {
-        let [tName, tCount] = t.split('|');
-        document.querySelectorAll('.pd-target-cb').forEach(cb => {
-          if(cb.value === tName) {
-            cb.checked = true;
-            let numInput = cb.parentElement.nextElementSibling;
-            if(numInput) { 
-              numInput.value = parseInt(tCount) > 0 ? tCount : ''; 
-              numInput.classList.remove('hidden'); 
-            }
-          }
-        });
-      });
-    }
-  }
-};
-
-window.submitProjectDetails = async function() {
-  const course = document.getElementById('pdCourse').value;
-  const fullCourseName = document.getElementById('pdFullCourseName').value.trim(); 
-  const rationale = document.getElementById('pdRationale').value.trim();
-  const objectives = document.getElementById('pdObjectives').value.trim();
-  const targetDesc = document.getElementById('pdTargetDesc').value.trim();
-  const sec42 = document.getElementById('pdSec42').value.trim();
-  const govPolicy = document.getElementById('pdGovPolicy').value.trim();
-  const expected = document.getElementById('pdExpected').value.trim();
-  const shortTerm = document.getElementById('pdShortTerm').value.trim();
-  const longTerm = document.getElementById('pdLongTerm').value.trim();
-  const socialImpact = document.getElementById('pdSocialImpact').value.trim();
-  const envImpact = document.getElementById('pdEnvImpact').value.trim();
-  const healthImpact = document.getElementById('pdHealthImpact').value.trim();
-  const skillImpact = document.getElementById('pdSkillImpact').value.trim();
-  
-  if(!course || !expected) {
-    return alert('⚠️ กรุณาเลือกหลักสูตรและระบุผลที่คาดว่าจะได้รับ (ช่องดอกจันสีแดง)');
-  }
-  
-  let targets = [];
-  document.querySelectorAll('.pd-target-cb:checked').forEach(cb => {
-    let numInput = cb.parentElement.nextElementSibling;
-    let count = numInput && numInput.value ? parseInt(numInput.value) : 0;
-    targets.push(`${cb.value}|${count}`);
-  });
-  
-  const targetString = targets.join('||');
-  const btn = document.getElementById('btnSaveProjectDetails');
-  btn.textContent = 'กำลังบันทึก...'; 
-  btn.disabled = true;
-
-  try {
-    const payload = { 
-      action: 'saveProjectDetails', 
-      course: course, 
-      fullCourseName: fullCourseName, 
-      rationale: rationale, 
-      objectives: objectives, 
-      targetDesc: targetDesc,
-      sec42: sec42,
-      govPolicy: govPolicy,
-      expected: expected, 
-      shortTerm: shortTerm,
-      longTerm: longTerm,
-      socialImpact: socialImpact,
-      envImpact: envImpact,
-      healthImpact: healthImpact,
-      skillImpact: skillImpact,
-      targets: targetString 
-    };
-    
-    const response = await fetch(API_URL, { 
-      method: 'POST', 
-      body: JSON.stringify(payload), 
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' } 
-    });
-    const result = await response.json();
-    if(result.status === 'success') { 
-      alert('✅ ' + result.message); 
       fetchData(); 
-    } else { 
-      alert('❌ ' + result.message); 
-    }
-  } catch(e) { 
-    alert('❌ การเชื่อมต่อล้มเหลว'); 
-  }
-  
-  btn.textContent = 'บันทึกข้อมูลโครงการทั้งหมด'; 
-  btn.disabled = false;
+    } else { alert('❌ ' + result.message); }
+  } catch(err) { alert('❌ การเชื่อมต่อล้มเหลว'); }
+  selectElement.disabled = false; selectElement.classList.remove('opacity-50', 'animate-pulse');
 };
 
-window.saveAdminSettings = async function() {
-  const yearInput = document.getElementById('adminActiveYear').value.trim();
-  if(!yearInput) return alert('⚠️ กรุณาระบุปี');
-  
-  const btn = document.getElementById('btnSaveSetting');
-  btn.textContent = 'กำลังบันทึก...'; 
-  btn.disabled = true;
-  
-  try {
-    const payload = { action: 'saveSetting', key: 'ACTIVE_REPORT_YEAR', value: yearInput };
-    const response = await fetch(API_URL, { 
-      method: 'POST', 
-      body: JSON.stringify(payload), 
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' } 
-    });
-    const result = await response.json();
-    if(result.status === 'success') {
-      alert('✅ ' + result.message);
-      globalSettings.activeReportYear = yearInput; 
-      document.getElementById('srActiveYear').value = yearInput; 
-    } else { 
-      alert('❌ ข้อผิดพลาด: ' + result.message); 
-    }
-  } catch(e) { 
-    alert('❌ การเชื่อมต่อล้มเหลว'); 
+window.openEvidenceModal = function(url) {
+  if(!url) return;
+  let previewUrl = url;
+  if (url.includes('drive.google.com/file/d/')) {
+    const fileIdMatch = url.match(/\/d\/(.*?)\//);
+    if (fileIdMatch && fileIdMatch[1]) previewUrl = `https://drive.google.com/file/d/${fileIdMatch[1]}/preview`;
   }
-  
-  btn.textContent = 'บันทึก'; 
-  btn.disabled = false;
+  const modal = document.getElementById('evidenceModal');
+  const iframe = document.getElementById('evidenceIframe');
+  const loading = document.getElementById('evidenceLoading');
+  if(loading) loading.classList.remove('hidden'); 
+  if(iframe) iframe.classList.add('hidden');
+  if(modal) modal.classList.remove('hidden'); 
+  if(iframe) iframe.src = previewUrl;
 };
 
-window.saveAdminPin = async function() {
-  const pinInput = document.getElementById('adminPinSetting').value.trim();
-  if(!pinInput || pinInput.length !== 6 || isNaN(pinInput)) {
-    return alert('⚠️ กรุณาระบุรหัสผ่านเป็นตัวเลข 6 หลัก');
-  }
-  
-  const btn = document.getElementById('btnSavePinSetting');
-  btn.textContent = 'กำลังบันทึก...'; 
-  btn.disabled = true;
-  
-  try {
-    const payload = { action: 'saveSetting', key: 'ADMIN_PIN', value: pinInput };
-    const response = await fetch(API_URL, { 
-      method: 'POST', 
-      body: JSON.stringify(payload), 
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' } 
-    });
-    const result = await response.json();
-    if(result.status === 'success') {
-      alert('✅ เปลี่ยนรหัสผ่านสำหรับผู้ดูแลระบบสำเร็จ');
-      globalSettings.adminPin = pinInput; 
-      document.getElementById('adminPinSetting').value = ''; 
-    } else { 
-      alert('❌ ข้อผิดพลาด: ' + result.message); 
-    }
-  } catch(e) { 
-    alert('❌ การเชื่อมต่อล้มเหลว'); 
-  }
-  
-  btn.textContent = 'เปลี่ยนรหัส'; 
-  btn.disabled = false;
-};
-
-function updateSelfReportDatalist() {
-  const dl = document.getElementById('dl-all-users');
-  if(dl) { 
-    dl.innerHTML = cachedPersonnelData.map(p => `<option value="${p.fullName} (${p.uid})">`).join(''); 
-  }
-}
-
-window.toggleOtherInput = function(selectEl, otherId) {
-  const otherInput = document.getElementById(otherId);
-  if(selectEl.value === 'อื่นๆ') {
-    otherInput.classList.remove('hidden');
-    otherInput.focus();
-  } else {
-    otherInput.classList.add('hidden');
-    otherInput.value = '';
-  }
+window.closeEvidenceModal = function() {
+  const modal = document.getElementById('evidenceModal');
+  const iframe = document.getElementById('evidenceIframe');
+  if(modal) modal.classList.add('hidden');
+  if(iframe) iframe.src = ''; 
 };
 
 window.clearSelfReportSearch = function() {
@@ -358,6 +102,7 @@ window.clearSelfReportSearch = function() {
   document.getElementById('srUserWarn').classList.add('hidden');
   document.getElementById('srDynamicForms').innerHTML = '';
   srSelectedUser = null;
+  srFormState = []; 
   document.getElementById('srSearchName').focus(); 
 };
 
@@ -365,7 +110,6 @@ window.handleSelfReportUserSelect = function() {
   const inputVal = document.getElementById('srSearchName').value; 
   const warnText = document.getElementById('srUserWarn'); 
   const formContainer = document.getElementById('srFormContainer'); 
-  const dynamicForms = document.getElementById('srDynamicForms'); 
   const activeYear = globalSettings.activeReportYear;
   
   const match = inputVal.match(/\((USR-\d{4}-\d{4})\)/);
@@ -374,126 +118,217 @@ window.handleSelfReportUserSelect = function() {
     srSelectedUser = cachedPersonnelData.find(p => p.uid === uid);
     
     if(srSelectedUser) {
-      const filteredCourses = (srSelectedUser.trainings || []).filter(t => String(t.year) === String(activeYear));
+      const filteredCourses = (srSelectedUser.trainings || []).filter(t => String(t.year).trim() === String(activeYear).trim());
       
       if(filteredCourses.length === 0) { 
         warnText.textContent = `⚠️ ท่านไม่มีประวัติการอบรมในปีงบประมาณ ${activeYear} จึงไม่ต้องรายงานผลในรอบนี้`; 
-        warnText.classList.remove('hidden'); 
-        formContainer.classList.add('hidden'); 
+        warnText.classList.remove('hidden'); formContainer.classList.add('hidden'); 
         return; 
       }
       
       warnText.classList.add('hidden'); 
       formContainer.classList.remove('hidden');
+      srFormState = []; 
       
-      const provOptions = '<option value="">-- เลือกจังหวัด --</option>' + provinces.map(p => `<option value="${p}">${p}</option>`).join('');
-      let html = '';
-      
-      filteredCourses.forEach((c, i) => {
-        let copyBtn = i > 0 ? `<div class="flex items-center gap-2 mb-4 p-3 bg-blue-50 border border-blue-200 rounded-xl"><input type="checkbox" id="copyCheck_${i}" onchange="copyFormData(${i})" class="w-4 h-4 text-blue-600 rounded cursor-pointer"><label for="copyCheck_${i}" class="text-sm font-bold text-blue-800 cursor-pointer">📋 คัดลอกข้อมูลสถานที่และเวลาจากหลักสูตรด้านบน</label></div>` : '';
-        
-        html += `
-        <div class="sr-card-item bg-white border-2 border-slate-100 rounded-2xl p-6 md:p-8 relative shadow-sm">
-          <input type="hidden" id="srCourse_${i}" value="${c.course}">
-          <div class="absolute top-0 right-0 bg-gradient-to-r from-blue-600 to-blue-800 text-white px-4 py-1.5 rounded-bl-2xl rounded-tr-2xl text-xs font-bold shadow-md">หลักสูตรที่ ${i + 1} / ${filteredCourses.length}</div>
-          <h3 class="text-lg font-extrabold text-slate-800 mb-2 border-l-4 border-blue-500 pl-3">หลักสูตร: <span class="text-blue-600">${c.course}</span></h3>
-          <p class="text-xs text-slate-500 mb-6 pl-4">กรุณากรอกรายละเอียดการนำความรู้ไปใช้ประโยชน์</p>${copyBtn}
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
-            <div><label class="block text-xs font-bold text-slate-500 mb-1.5">รูปแบบงาน / ระดับการแข่งขัน <span class="text-red-500">*</span></label>
-              <select id="srEventType_${i}" onchange="toggleOtherInput(this, 'srEventTypeOther_${i}')" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"><option value="">-- เลือกรูปแบบงาน --</option><option value="รายการแข่งขันระดับจังหวัด">รายการแข่งขันระดับจังหวัด</option><option value="รายการแข่งขันระดับชาติ">รายการแข่งขันระดับชาติ</option><option value="รายการแข่งขันระดับนานาชาติ">รายการแข่งขันระดับนานาชาติ</option><option value="รายการอบรมสัมมนา">รายการอบรมสัมมนา</option><option value="ปฏิบัติงานบริหารจัดการทั่วไป">ปฏิบัติงานบริหารจัดการทั่วไป</option><option value="อื่นๆ">อื่นๆ</option></select>
-              <input type="text" id="srEventTypeOther_${i}" placeholder="โปรดระบุรูปแบบงาน..." class="hidden w-full mt-2 text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm">
-            </div>
-            <div><label class="block text-xs font-bold text-slate-500 mb-1.5">ชื่องาน / รายการที่ไปปฏิบัติหน้าที่ <span class="text-red-500">*</span></label>
-              <input type="text" id="srEventName_${i}" placeholder="เช่น กีฬาแห่งชาติ ครั้งที่ 49" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500">
-            </div>
-            <div><label class="block text-xs font-bold text-slate-500 mb-1.5">ตำแหน่งที่ท่านปฏิบัติหน้าที่ <span class="text-red-500">*</span></label>
-              <select id="srRole_${i}" onchange="toggleOtherInput(this, 'srRoleOther_${i}')" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"><option value="">-- เลือกตำแหน่ง --</option><option value="ผู้ตัดสิน">ผู้ตัดสิน</option><option value="ผู้ฝึกสอน">ผู้ฝึกสอน</option><option value="วิทยากร">วิทยากร</option><option value="ประธานจัดการแข่งขัน">ประธานจัดการแข่งขัน</option><option value="ผู้จัดการทีม">ผู้จัดการทีม</option><option value="เจ้าหน้าที่เทคนิค">เจ้าหน้าที่เทคนิค</option><option value="ผู้ดูแลระบบ/ประสานงาน">ผู้ดูแลระบบ/ประสานงาน</option><option value="อื่นๆ">อื่นๆ</option></select>
-              <input type="text" id="srRoleOther_${i}" placeholder="โปรดระบุตำแหน่ง..." class="hidden w-full mt-2 text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm">
-            </div>
-            <div><label class="block text-xs font-bold text-slate-500 mb-1.5">ชนิดกีฬา <span class="text-red-500">*</span></label>
-              <input type="text" id="srSport_${i}" placeholder="เช่น ฟุตบอล, มวยไทย (หากไม่มีให้ใส่ -)" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500">
-            </div>
-            <div><label class="block text-xs font-bold text-slate-500 mb-1.5">วันที่เริ่มต้นปฏิบัติงาน <span class="text-red-500">*</span></label>
-              <input type="date" id="srStartDate_${i}" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
-            </div>
-            <div><label class="block text-xs font-bold text-slate-500 mb-1.5">วันที่สิ้นสุดการปฏิบัติงาน <span class="text-red-500">*</span></label>
-              <input type="date" id="srEndDate_${i}" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
-            </div>
-            <div><label class="block text-xs font-bold text-slate-500 mb-1.5">สถานที่ (จังหวัด) <span class="text-red-500">*</span></label>
-              <select id="srProvince_${i}" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500">${provOptions}</select>
-            </div>
-            <div><label class="block text-xs font-bold text-slate-500 mb-1.5">สถานที่จัดงาน (รายละเอียด) <span class="text-red-500">*</span></label>
-              <input type="text" id="srLocation_${i}" placeholder="เช่น สนามกีฬาจังหวัด..." class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500">
-            </div>
-          </div>
-          <div class="space-y-4">
-            <div><label class="block text-xs font-bold text-slate-500 mb-2">อธิบายความรู้ที่ท่านได้นำไปประยุกต์ใช้ <span class="text-red-500">*</span></label>
-              <textarea id="srKnowledge_${i}" rows="3" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-4 outline-none focus:ring-2 focus:ring-blue-500 resize-none" placeholder="อธิบายสั้นๆ..."></textarea>
-            </div>
-            <div class="bg-blue-50/50 border border-blue-100 p-4 rounded-xl">
-              <label class="block text-xs font-bold text-slate-700 mb-2">แนบรูปภาพหลักฐานประกอบ (ถ้ามี / ไม่เกิน 5MB ต่อภาพ)</label>
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div><input type="file" id="srFile1_${i}" accept="image/jpeg, image/png, image/jpg" class="w-full text-xs text-slate-500 file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 bg-white border border-slate-200 rounded p-1 cursor-pointer"></div>
-                <div><input type="file" id="srFile2_${i}" accept="image/jpeg, image/png, image/jpg" class="w-full text-xs text-slate-500 file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 bg-white border border-slate-200 rounded p-1 cursor-pointer"></div>
-              </div>
-            </div>
-          </div>
-        </div>`;
+      filteredCourses.forEach(c => {
+         const existingDuties = (srSelectedUser.duties || []).filter(d => 
+            String(d.year).trim() === String(activeYear).trim() && 
+            String(d.course).trim() === String(c.course).trim()
+         );
+         
+         if (existingDuties.length > 0) {
+            existingDuties.forEach(d => {
+               srFormState.push({ course: c.course, data: d, isReported: true, tempData: null });
+            });
+         } else {
+            srFormState.push({ course: c.course, data: null, isReported: false, tempData: null });
+         }
       });
-      dynamicForms.innerHTML = html; 
+      
+      renderSrForms();
       return;
     }
   }
   
-  srSelectedUser = null; 
+  srSelectedUser = null; srFormState = [];
   warnText.textContent = '⚠️ ไม่พบประวัติการอบรมของชื่อนี้ กรุณาตรวจสอบการสะกดคำ'; 
-  warnText.classList.remove('hidden'); 
-  formContainer.classList.add('hidden');
+  warnText.classList.remove('hidden'); formContainer.classList.add('hidden');
 };
 
-window.copyFormData = function(idx) {
-  const isChecked = document.getElementById(`copyCheck_${idx}`).checked;
-  if (isChecked) {
-    const prev = idx - 1;
+function syncSrFormState() {
+  srFormState.forEach((form, i) => {
+    const getVal = function(id) {
+      const el = document.getElementById(id);
+      return el ? el.value : '';
+    };
     
-    const copyOtherEvent = document.getElementById(`srEventTypeOther_${prev}`).value;
-    const copyOtherRole = document.getElementById(`srRoleOther_${prev}`).value;
+    form.tempData = {
+      eventType: getVal(`srEventType_${i}`),
+      eventTypeOther: getVal(`srEventTypeOther_${i}`),
+      eventName: getVal(`srEventName_${i}`),
+      role: getVal(`srRole_${i}`),
+      roleOther: getVal(`srRoleOther_${i}`),
+      sport: getVal(`srSport_${i}`),
+      startDate: getVal(`srStartDate_${i}`),
+      endDate: getVal(`srEndDate_${i}`),
+      province: getVal(`srProvince_${i}`),
+      location: getVal(`srLocation_${i}`),
+      knowledge: getVal(`srKnowledge_${i}`)
+    };
+  });
+}
 
-    const currEventType = document.getElementById(`srEventType_${idx}`);
-    currEventType.value = document.getElementById(`srEventType_${prev}`).value;
-    toggleOtherInput(currEventType, `srEventTypeOther_${idx}`);
-    document.getElementById(`srEventTypeOther_${idx}`).value = copyOtherEvent;
+window.addDutyForm = function(courseName) {
+  syncSrFormState(); 
+  srFormState.push({ course: courseName, data: null, isReported: false, tempData: null });
+  renderSrForms();
+};
 
-    const currRole = document.getElementById(`srRole_${idx}`);
-    currRole.value = document.getElementById(`srRole_${prev}`).value;
-    toggleOtherInput(currRole, `srRoleOther_${idx}`);
-    document.getElementById(`srRoleOther_${idx}`).value = copyOtherRole;
-
-    document.getElementById(`srEventName_${idx}`).value = document.getElementById(`srEventName_${prev}`).value;
-    document.getElementById(`srSport_${idx}`).value = document.getElementById(`srSport_${prev}`).value;
-    document.getElementById(`srStartDate_${idx}`).value = document.getElementById(`srStartDate_${prev}`).value;
-    document.getElementById(`srEndDate_${idx}`).value = document.getElementById(`srEndDate_${prev}`).value;
-    document.getElementById(`srProvince_${idx}`).value = document.getElementById(`srProvince_${prev}`).value;
-    document.getElementById(`srLocation_${idx}`).value = document.getElementById(`srLocation_${prev}`).value;
+window.removeDutyForm = function(idx) {
+  if(confirm('คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้?')) {
+    syncSrFormState();
+    srFormState.splice(idx, 1);
+    renderSrForms();
   }
 };
 
-function getBase64(file) { 
-  return new Promise((resolve, reject) => { 
-    if(file.size > 5 * 1024 * 1024) { reject(new Error('ขนาดไฟล์เกิน 5MB')); return; } 
-    const reader = new FileReader(); 
-    reader.readAsDataURL(file); 
-    reader.onload = () => resolve(reader.result.split(',')[1]); 
-    reader.onerror = error => reject(error); 
-  }); 
-}
+window.toggleOtherInput = function(selectEl, otherId) {
+  const otherInput = document.getElementById(otherId);
+  if(otherInput) {
+    if(selectEl.value === 'อื่นๆ') {
+      otherInput.classList.remove('hidden'); otherInput.focus();
+    } else {
+      otherInput.classList.add('hidden'); otherInput.value = '';
+    }
+  }
+};
+
+window.renderSrForms = function() {
+  const dynamicForms = document.getElementById('srDynamicForms');
+  let html = '';
+  
+  const uniqueCourses = [...new Set(srFormState.map(s => s.course))];
+  
+  uniqueCourses.forEach((courseName) => {
+    html += `
+    <div class="mb-8 p-6 md:p-8 bg-blue-50/30 border-2 border-blue-100 rounded-3xl shadow-sm">
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 border-b border-blue-200 pb-4">
+        <div>
+           <h3 class="text-xl font-extrabold text-slate-800 border-l-4 border-blue-600 pl-3">หลักสูตร: <span class="text-blue-700">${courseName}</span></h3>
+           <p class="text-xs text-slate-500 mt-1 pl-4">ระบุรายละเอียดการปฏิบัติหน้าที่ (สามารถเพิ่มได้หลายรายการหากไปหลายงาน)</p>
+        </div>
+        <button onclick="addDutyForm('${courseName}')" class="shrink-0 bg-white border border-blue-300 hover:bg-blue-100 text-blue-700 text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg> 
+          เพิ่มรายการปฏิบัติหน้าที่
+        </button>
+      </div>`;
+    
+    const formsForCourse = srFormState.filter(s => s.course === courseName);
+    
+    if (formsForCourse.length === 0) {
+       html += `<div class="text-center py-6 text-slate-400 text-sm bg-white rounded-2xl border border-dashed border-slate-300">ยังไม่มีรายการปฏิบัติหน้าที่ กรุณากดปุ่มเพิ่มรายการด้านบน</div>`;
+    }
+
+    formsForCourse.forEach((form, relativeIdx) => {
+      const i = srFormState.indexOf(form); 
+      const d = form.tempData || form.data || {};
+      
+      const badgeHTML = form.isReported 
+        ? `<span class="bg-emerald-100 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-bl-xl rounded-tr-2xl text-[11px] font-extrabold flex items-center gap-1 shadow-sm"><svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> รายงานแล้ว (กำลังแก้ไข)</span>` 
+        : `<span class="bg-amber-100 text-amber-700 border border-amber-200 px-3 py-1 rounded-bl-xl rounded-tr-2xl text-[11px] font-extrabold flex items-center gap-1 shadow-sm"><svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> ข้อมูลใหม่ (รอส่ง)</span>`;
+      
+      let valEvent = d.eventType || '';
+      let valEventOther = d.eventTypeOther || '';
+      if(valEvent && valEvent.startsWith('อื่นๆ: ')) { valEventOther = valEvent.substring(7).trim(); valEvent = 'อื่นๆ'; }
+      else if(valEvent && !['รายการแข่งขันระดับจังหวัด','รายการแข่งขันระดับชาติ','รายการแข่งขันระดับนานาชาติ','รายการอบรมสัมมนา','ปฏิบัติงานบริหารจัดการทั่วไป','อื่นๆ'].includes(valEvent)) { valEventOther = valEvent; valEvent = 'อื่นๆ'; }
+
+      let valRole = d.role || '';
+      let valRoleOther = d.roleOther || '';
+      if(valRole && valRole.startsWith('อื่นๆ: ')) { valRoleOther = valRole.substring(7).trim(); valRole = 'อื่นๆ'; }
+      else if(valRole && !['ผู้ตัดสิน','ผู้ฝึกสอน','วิทยากร','ประธานจัดการแข่งขัน','ผู้จัดการทีม','เจ้าหน้าที่เทคนิค','ผู้ดูแลระบบ/ประสานงาน','อื่นๆ'].includes(valRole)) { valRoleOther = valRole; valRole = 'อื่นๆ'; }
+      
+      const sDate = (d.startDate && !isNaN(new Date(d.startDate))) ? new Date(d.startDate).toISOString().split('T')[0] : '';
+      const eDate = (d.endDate && !isNaN(new Date(d.endDate))) ? new Date(d.endDate).toISOString().split('T')[0] : '';
+      
+      const provOptions = '<option value="">-- เลือกจังหวัด / ต่างประเทศ --</option>' + provinces.map(p => `<option value="${p}" ${d.province === p ? 'selected' : ''}>${p}</option>`).join('');
+
+      let imageAlert = '';
+      let keepImagesValue = '';
+      if (form.data && form.data.images) {
+         keepImagesValue = form.data.images;
+         imageAlert = `<div class="mt-2 text-xs font-semibold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">✅ ระบบจำรูปภาพเดิมไว้แล้ว หากไม่ต้องการเปลี่ยน ไม่ต้องเลือกไฟล์ใหม่</div>`;
+      }
+
+      html += `
+      <div class="sr-card-item bg-white border border-slate-200 rounded-2xl p-6 md:p-8 relative shadow-sm mb-5">
+        <input type="hidden" id="srCourse_${i}" value="${courseName}">
+        <input type="hidden" id="keepImages_${i}" value="${keepImagesValue}">
+        
+        <div class="absolute top-0 right-0">${badgeHTML}</div>
+        <div class="flex justify-between items-center mb-5 mt-2">
+           <h4 class="text-sm font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-md">งานที่ ${relativeIdx + 1}</h4>
+           <button type="button" onclick="removeDutyForm(${i})" class="text-xs font-bold text-red-500 hover:text-red-700 bg-red-50 px-3 py-1 rounded-lg transition">ลบงานนี้</button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+          <div><label class="block text-xs font-bold text-slate-500 mb-1.5">รูปแบบงาน / ระดับการแข่งขัน <span class="text-red-500">*</span></label>
+            <select id="srEventType_${i}" onchange="toggleOtherInput(this, 'srEventTypeOther_${i}')" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+              <option value="">-- เลือกรูปแบบงาน --</option><option value="รายการแข่งขันระดับจังหวัด" ${valEvent==='รายการแข่งขันระดับจังหวัด'?'selected':''}>รายการแข่งขันระดับจังหวัด</option><option value="รายการแข่งขันระดับชาติ" ${valEvent==='รายการแข่งขันระดับชาติ'?'selected':''}>รายการแข่งขันระดับชาติ</option><option value="รายการแข่งขันระดับนานาชาติ" ${valEvent==='รายการแข่งขันระดับนานาชาติ'?'selected':''}>รายการแข่งขันระดับนานาชาติ</option><option value="รายการอบรมสัมมนา" ${valEvent==='รายการอบรมสัมมนา'?'selected':''}>รายการอบรมสัมมนา</option><option value="ปฏิบัติงานบริหารจัดการทั่วไป" ${valEvent==='ปฏิบัติงานบริหารจัดการทั่วไป'?'selected':''}>ปฏิบัติงานบริหารจัดการทั่วไป</option><option value="อื่นๆ" ${valEvent==='อื่นๆ'?'selected':''}>อื่นๆ</option>
+            </select>
+            <input type="text" id="srEventTypeOther_${i}" value="${valEventOther}" placeholder="โปรดระบุรูปแบบงาน..." class="${valEvent==='อื่นๆ'?'':'hidden'} w-full mt-2 text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm">
+          </div>
+          <div><label class="block text-xs font-bold text-slate-500 mb-1.5">ชื่องาน / รายการที่ไปปฏิบัติหน้าที่ <span class="text-red-500">*</span></label>
+            <input type="text" id="srEventName_${i}" value="${d.event || d.eventName || ''}" placeholder="เช่น กีฬาแห่งชาติ ครั้งที่ 49" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+          <div><label class="block text-xs font-bold text-slate-500 mb-1.5">ตำแหน่งที่ท่านปฏิบัติหน้าที่ <span class="text-red-500">*</span></label>
+            <select id="srRole_${i}" onchange="toggleOtherInput(this, 'srRoleOther_${i}')" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+              <option value="">-- เลือกตำแหน่ง --</option><option value="ผู้ตัดสิน" ${valRole==='ผู้ตัดสิน'?'selected':''}>ผู้ตัดสิน</option><option value="ผู้ฝึกสอน" ${valRole==='ผู้ฝึกสอน'?'selected':''}>ผู้ฝึกสอน</option><option value="วิทยากร" ${valRole==='วิทยากร'?'selected':''}>วิทยากร</option><option value="ประธานจัดการแข่งขัน" ${valRole==='ประธานจัดการแข่งขัน'?'selected':''}>ประธานจัดการแข่งขัน</option><option value="ผู้จัดการทีม" ${valRole==='ผู้จัดการทีม'?'selected':''}>ผู้จัดการทีม</option><option value="เจ้าหน้าที่เทคนิค" ${valRole==='เจ้าหน้าที่เทคนิค'?'selected':''}>เจ้าหน้าที่เทคนิค</option><option value="ผู้ดูแลระบบ/ประสานงาน" ${valRole==='ผู้ดูแลระบบ/ประสานงาน'?'selected':''}>ผู้ดูแลระบบ/ประสานงาน</option><option value="อื่นๆ" ${valRole==='อื่นๆ'?'selected':''}>อื่นๆ</option>
+            </select>
+            <input type="text" id="srRoleOther_${i}" value="${valRoleOther}" placeholder="โปรดระบุตำแหน่ง..." class="${valRole==='อื่นๆ'?'':'hidden'} w-full mt-2 text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm">
+          </div>
+          <div><label class="block text-xs font-bold text-slate-500 mb-1.5">ชนิดกีฬา <span class="text-red-500">*</span></label>
+            <input type="text" id="srSport_${i}" value="${d.sport || ''}" placeholder="เช่น ฟุตบอล, มวยไทย (หากไม่มีให้ใส่ -)" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+          <div><label class="block text-xs font-bold text-slate-500 mb-1.5">วันที่เริ่มต้นปฏิบัติงาน <span class="text-red-500">*</span></label>
+            <input type="date" id="srStartDate_${i}" value="${sDate}" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+          </div>
+          <div><label class="block text-xs font-bold text-slate-500 mb-1.5">วันที่สิ้นสุดการปฏิบัติงาน <span class="text-red-500">*</span></label>
+            <input type="date" id="srEndDate_${i}" value="${eDate}" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+          </div>
+          <div><label class="block text-xs font-bold text-slate-500 mb-1.5">สถานที่ (จังหวัด / ประเทศ) <span class="text-red-500">*</span></label>
+            <select id="srProvince_${i}" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500">${provOptions}</select>
+          </div>
+          <div><label class="block text-xs font-bold text-slate-500 mb-1.5">สถานที่จัดงาน (รายละเอียด) <span class="text-red-500">*</span></label>
+            <input type="text" id="srLocation_${i}" value="${d.location || ''}" placeholder="ระบุ สนามกีฬา, เมือง, หรือ ประเทศ..." class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+        </div>
+        <div class="space-y-4">
+          <div><label class="block text-xs font-bold text-slate-500 mb-2">อธิบายความรู้ที่ท่านได้นำไปประยุกต์ใช้ <span class="text-red-500">*</span></label>
+            <textarea id="srKnowledge_${i}" rows="3" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-4 outline-none focus:ring-2 focus:ring-blue-500 resize-none" placeholder="อธิบายสั้นๆ...">${d.knowledge || ''}</textarea>
+          </div>
+          <div class="bg-blue-50/50 border border-blue-100 p-4 rounded-xl">
+            <label class="block text-xs font-bold text-slate-700 mb-2">แนบรูปภาพหลักฐานประกอบ (ถ้ามี / ไม่เกิน 5MB ต่อภาพ)</label>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div><input type="file" id="srFile1_${i}" accept="image/jpeg, image/png, image/jpg" class="w-full text-xs text-slate-500 file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 bg-white border border-slate-200 rounded p-1 cursor-pointer"></div>
+              <div><input type="file" id="srFile2_${i}" accept="image/jpeg, image/png, image/jpg" class="w-full text-xs text-slate-500 file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 bg-white border border-slate-200 rounded p-1 cursor-pointer"></div>
+            </div>
+            ${imageAlert}
+          </div>
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  });
+  
+  dynamicForms.innerHTML = html; 
+};
 
 window.submitSelfReport = async function() {
+  syncSrFormState(); 
   const activeYear = document.getElementById('srActiveYear').value; 
-  const cards = document.querySelectorAll('.sr-card-item'); 
   let allReports = [];
   
-  for (let i = 0; i < cards.length; i++) {
+  for (let i = 0; i < srFormState.length; i++) {
     const course = document.getElementById(`srCourse_${i}`).value; 
     let eventType = document.getElementById(`srEventType_${i}`).value; 
     const eventName = document.getElementById(`srEventName_${i}`).value.trim(); 
@@ -504,40 +339,47 @@ window.submitSelfReport = async function() {
     const province = document.getElementById(`srProvince_${i}`).value; 
     const location = document.getElementById(`srLocation_${i}`).value.trim(); 
     const knowledge = document.getElementById(`srKnowledge_${i}`).value.trim();
+    const keepImages = document.getElementById(`keepImages_${i}`).value;
     
     if (eventType === 'อื่นๆ') {
       const otherVal = document.getElementById(`srEventTypeOther_${i}`).value.trim();
-      if(!otherVal) return alert(`⚠️ กรุณาระบุรูปแบบงาน/ระดับการแข่งขัน (ช่องอื่นๆ) ในหลักสูตรที่ ${i+1} ให้ครบถ้วน`);
+      if(!otherVal) return alert(`⚠️ กรุณาระบุรูปแบบงานใน ${course} งานที่ ${i+1}`);
       eventType = 'อื่นๆ: ' + otherVal;
     }
-    
     if (role === 'อื่นๆ') {
       const otherVal = document.getElementById(`srRoleOther_${i}`).value.trim();
-      if(!otherVal) return alert(`⚠️ กรุณาระบุตำแหน่งที่ปฏิบัติหน้าที่ (ช่องอื่นๆ) ในหลักสูตรที่ ${i+1} ให้ครบถ้วน`);
+      if(!otherVal) return alert(`⚠️ กรุณาระบุตำแหน่งใน ${course} งานที่ ${i+1}`);
       role = 'อื่นๆ: ' + otherVal;
     }
 
     if(!eventType || !eventName || !role || !sport || !startDate || !endDate || !province || !location || !knowledge) { 
-      return alert(`⚠️ กรุณากรอกข้อมูลในหลักสูตรที่ ${i+1} ให้ครบถ้วน`); 
+      return alert(`⚠️ กรุณากรอกข้อมูลสำคัญที่มีดอกจันสีแดงให้ครบถ้วนในหลักสูตร ${course}`); 
     }
     
     const file1 = document.getElementById(`srFile1_${i}`).files[0]; 
     const file2 = document.getElementById(`srFile2_${i}`).files[0];
     
-    allReports.push({ course, eventType, eventName, role, sport, startDate, endDate, province, location, knowledge, file1, file2 });
+    allReports.push({ course, eventType, eventName, role, sport, startDate, endDate, province, location, knowledge, keepImages, file1, file2 });
   }
 
   document.getElementById('srLoadingOverlay').classList.remove('hidden');
 
   try {
+    for (let r of allReports) {
+       if(r.file1) { r.file1Data = await getBase64(r.file1); r.file1Name = r.file1.name; r.file1Mime = r.file1.type; }
+       if(r.file2) { r.file2Data = await getBase64(r.file2); r.file2Name = r.file2.name; r.file2Mime = r.file2.type; }
+    }
+
+    document.getElementById('srLoadingTitle').textContent = `กำลังเคลียร์ข้อมูลเดิม...`;
+    await fetch(API_URL, { 
+       method: 'POST', 
+       body: JSON.stringify({ action: 'clearDutyRecords', uid: srSelectedUser.uid, year: activeYear }),
+       headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+    });
+
     for (let i = 0; i < allReports.length; i++) {
-      document.getElementById('srLoadingTitle').textContent = `กำลังอัปโหลดข้อมูลหลักสูตรที่ ${i+1} / ${allReports.length}`;
+      document.getElementById('srLoadingTitle').textContent = `กำลังบันทึกข้อมูลงานที่ ${i+1} / ${allReports.length}`;
       let r = allReports[i]; 
-      let file1Data = null, file1Name = '', file1Mime = ''; 
-      let file2Data = null, file2Name = '', file2Mime = '';
-      
-      if(r.file1) { file1Data = await getBase64(r.file1); file1Name = r.file1.name; file1Mime = r.file1.type; }
-      if(r.file2) { file2Data = await getBase64(r.file2); file2Name = r.file2.name; file2Mime = r.file2.type; }
       
       const payload = { 
         action: 'saveSelfReport', 
@@ -554,12 +396,13 @@ window.submitSelfReport = async function() {
         province: r.province, 
         location: r.location, 
         knowledge: r.knowledge, 
-        file1Data: file1Data, 
-        file1Name: file1Name, 
-        file1Mime: file1Mime, 
-        file2Data: file2Data, 
-        file2Name: file2Name, 
-        file2Mime: file2Mime 
+        keepImages: r.keepImages, 
+        file1Data: r.file1Data || null, 
+        file1Name: r.file1Name || '', 
+        file1Mime: r.file1Mime || '', 
+        file2Data: r.file2Data || null, 
+        file2Name: r.file2Name || '', 
+        file2Mime: r.file2Mime || '' 
       };
       
       const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) }); 
@@ -567,14 +410,15 @@ window.submitSelfReport = async function() {
       if(json.status !== 'success') throw new Error(json.message);
     }
     
-    alert('✅ บันทึกรายงานสำเร็จทั้งหมด'); 
+    alert('✅ บันทึกรายงานสำเร็จทั้งหมด ข้อมูลของคุณได้รับการอัปเดตเรียบร้อยแล้ว'); 
     document.getElementById('srSearchName').value = ''; 
     document.getElementById('srFormContainer').classList.add('hidden'); 
     srSelectedUser = null; 
+    srFormState = [];
     fetchData(); 
   } catch(err) {
     if(err.message === 'ขนาดไฟล์เกิน 5MB') alert('❌ ' + err.message); 
-    else alert('❌ เกิดข้อผิดพลาด: ' + err.message);
+    else alert('❌ เกิดข้อผิดพลาดในการบันทึก: ' + err.message);
   }
   
   document.getElementById('srLoadingOverlay').classList.add('hidden');
@@ -582,22 +426,25 @@ window.submitSelfReport = async function() {
 
 window.openLoginModal = function() { 
   const modal = document.getElementById('loginModal'); 
-  modal.classList.remove('hidden'); 
-  document.getElementById('loginErrorMsg').classList.add('hidden'); 
-  const inputs = document.querySelectorAll('.otp-input'); 
+  if(modal) modal.classList.remove('hidden'); 
+  const err = document.getElementById('loginErrorMsg');
+  if(err) err.classList.add('hidden'); 
+  
+  const inputs = Array.from(document.querySelectorAll('.otp-input')).slice(0, 6); 
   inputs.forEach(input => input.value = ''); 
   setTimeout(() => { if (inputs.length > 0) inputs[0].focus(); }, 100); 
 };
 
 window.closeLoginModal = function() { 
-  document.getElementById('loginModal').classList.add('hidden'); 
+  const modal = document.getElementById('loginModal');
+  if(modal) modal.classList.add('hidden'); 
 };
 
 function setupOTPInputs() { 
-  const inputs = document.querySelectorAll('.otp-input'); 
+  const inputs = Array.from(document.querySelectorAll('.otp-input')).slice(0, 6); 
   inputs.forEach((input, index) => { 
       input.addEventListener('input', (e) => { 
-        if(e.target.value.length === 1 && index < inputs.length - 1) inputs[index + 1].focus(); 
+        if(e.target.value.length === 1 && index < 5) inputs[index + 1].focus(); 
         checkOTP(); 
       }); 
       input.addEventListener('keydown', (e) => { 
@@ -605,7 +452,7 @@ function setupOTPInputs() {
       }); 
       input.addEventListener('paste', (e) => { 
         e.preventDefault(); 
-        const pastedData = e.clipboardData.getData('text').slice(0, 6).split(''); 
+        const pastedData = (e.clipboardData || window.clipboardData).getData('text').slice(0, 6).split(''); 
         inputs.forEach((inp, i) => { if(pastedData[i]) inp.value = pastedData[i]; }); 
         if(pastedData.length > 0) inputs[Math.min(pastedData.length, 5)].focus(); 
         checkOTP(); 
@@ -614,31 +461,31 @@ function setupOTPInputs() {
 }
 
 window.checkOTP = function() { 
-  const inputs = document.querySelectorAll('.otp-input'); 
+  const inputs = Array.from(document.querySelectorAll('.otp-input')).slice(0, 6); 
   let pin = ''; 
   inputs.forEach(input => pin += input.value); 
   
   if(pin.length === 6) { 
-      const correctPin = globalSettings.adminPin || "336699";
+      const correctPin = String(globalSettings.adminPin || "336699").trim();
+      
       if(pin === correctPin) { 
           isAdmin = true; 
           document.body.classList.add('is-admin'); 
           
           const btnLogin = document.getElementById('btnLogin');
-          btnLogin.classList.remove('flex'); 
-          btnLogin.classList.add('hidden'); 
+          if(btnLogin) { btnLogin.classList.remove('flex'); btnLogin.classList.add('hidden'); }
           
           const btnLogout = document.getElementById('btnLogout'); 
-          btnLogout.classList.remove('hidden'); 
-          btnLogout.classList.add('flex'); 
+          if(btnLogout) { btnLogout.classList.remove('hidden'); btnLogout.classList.add('flex'); }
           
           closeLoginModal(); 
           switchPage('dashboard'); 
           renderTablePage(); 
       } else { 
-          document.getElementById('loginErrorMsg').classList.remove('hidden'); 
+          const err = document.getElementById('loginErrorMsg');
+          if(err) err.classList.remove('hidden'); 
           inputs.forEach(input => input.value = ''); 
-          inputs[0].focus(); 
+          if(inputs.length > 0) inputs[0].focus(); 
       } 
   } 
 };
@@ -648,12 +495,10 @@ window.logoutAdmin = function() {
   document.body.classList.remove('is-admin'); 
   
   const btnLogin = document.getElementById('btnLogin');
-  btnLogin.classList.remove('hidden'); 
-  btnLogin.classList.add('flex'); 
+  if(btnLogin) { btnLogin.classList.remove('hidden'); btnLogin.classList.add('flex'); }
   
   const btnLogout = document.getElementById('btnLogout'); 
-  btnLogout.classList.remove('flex'); 
-  btnLogout.classList.add('hidden'); 
+  if(btnLogout) { btnLogout.classList.remove('flex'); btnLogout.classList.add('hidden'); }
   
   switchPage('report'); 
   renderTablePage(); 
@@ -707,20 +552,14 @@ window.switchImportMode = function(mode) {
   });
   
   if(mode === 'bulk') { 
-    btnBulk.classList.add('border-blue-600', 'text-blue-600', 'font-bold'); 
-    btnBulk.classList.remove('border-transparent', 'text-slate-500', 'font-medium'); 
-    secBulk.classList.remove('hidden'); 
-    secBulk.classList.add('block'); 
+    if(btnBulk) { btnBulk.classList.add('border-blue-600', 'text-blue-600', 'font-bold'); btnBulk.classList.remove('border-transparent', 'text-slate-500', 'font-medium'); }
+    if(secBulk) { secBulk.classList.remove('hidden'); secBulk.classList.add('block'); }
   } else if (mode === 'single') { 
-    btnSingle.classList.add('border-blue-600', 'text-blue-600', 'font-bold'); 
-    btnSingle.classList.remove('border-transparent', 'text-slate-500', 'font-medium'); 
-    secSingle.classList.remove('hidden'); 
-    secSingle.classList.add('block'); 
+    if(btnSingle) { btnSingle.classList.add('border-blue-600', 'text-blue-600', 'font-bold'); btnSingle.classList.remove('border-transparent', 'text-slate-500', 'font-medium'); }
+    if(secSingle) { secSingle.classList.remove('hidden'); secSingle.classList.add('block'); }
   } else if (mode === 'settings') { 
-    btnSettings.classList.add('border-blue-600', 'text-blue-600', 'font-bold'); 
-    btnSettings.classList.remove('border-transparent', 'text-slate-500', 'font-medium'); 
-    secSettings.classList.remove('hidden'); 
-    secSettings.classList.add('block'); 
+    if(btnSettings) { btnSettings.classList.add('border-blue-600', 'text-blue-600', 'font-bold'); btnSettings.classList.remove('border-transparent', 'text-slate-500', 'font-medium'); }
+    if(secSettings) { secSettings.classList.remove('hidden'); secSettings.classList.add('block'); }
   }
 };
 
@@ -742,8 +581,10 @@ async function fetchData() {
       }
       if(result.data.settings) { 
         globalSettings = result.data.settings; 
-        document.getElementById('adminActiveYear').value = globalSettings.activeReportYear; 
-        document.getElementById('srActiveYear').value = globalSettings.activeReportYear; 
+        const adminYearInput = document.getElementById('adminActiveYear');
+        if(adminYearInput) adminYearInput.value = globalSettings.activeReportYear; 
+        const srYearInput = document.getElementById('srActiveYear');
+        if(srYearInput) srYearInput.value = globalSettings.activeReportYear; 
       }
       if(result.data.projectDetails) { 
         cachedProjectDetails = result.data.projectDetails; 
@@ -761,7 +602,7 @@ async function fetchData() {
       showErrorState(result.message); 
     }
   } catch (error) { 
-    showErrorState('การเชื่อมต่อกับฐานข้อมูลขัดข้อง'); 
+    showErrorState('การเชื่อมต่อกับฐานข้อมูลขัดข้อง (ตรวจสอบลิงก์ API)'); 
   }
 }
 
@@ -803,27 +644,32 @@ function drawCharts(allYears, allGroups) {
     return count; 
   });
   
-  const ctxBar = document.getElementById('barChart').getContext('2d'); 
-  if(barChartObj) barChartObj.destroy();
-  barChartObj = new Chart(ctxBar, { 
-    type: 'bar', 
-    data: { 
-      labels: last5Years.map(y => 'ปี '+y), 
-      datasets: [{ label: 'ผู้ผ่านการอบรม', data: yearData, backgroundColor: '#3b82f6', borderRadius: 6 }] 
-    }, 
-    options: { 
-      responsive: true, 
-      maintainAspectRatio: false, 
-      plugins: { 
-        legend: { display: false }, 
-        datalabels: { color: '#334155', anchor: 'end', align: 'top', font: { weight: 'bold' } } 
+  let maxVal = Math.max(...yearData);
+  if (!isFinite(maxVal) || maxVal === 0) maxVal = 10;
+  
+  const ctxBar = document.getElementById('barChart');
+  if(ctxBar) {
+    if(barChartObj) barChartObj.destroy();
+    barChartObj = new Chart(ctxBar.getContext('2d'), { 
+      type: 'bar', 
+      data: { 
+        labels: last5Years.map(y => 'ปี '+y), 
+        datasets: [{ label: 'ผู้ผ่านการอบรม', data: yearData, backgroundColor: '#3b82f6', borderRadius: 6 }] 
       }, 
-      scales: { 
-        y: { beginAtZero: true, suggestedMax: Math.max(...yearData) * 1.2, grid: { display: false } }, 
-        x: { grid: { display: false } } 
+      options: { 
+        responsive: true, 
+        maintainAspectRatio: false, 
+        plugins: { 
+          legend: { display: false }, 
+          datalabels: { color: '#334155', anchor: 'end', align: 'top', font: { weight: 'bold' } } 
+        }, 
+        scales: { 
+          y: { beginAtZero: true, suggestedMax: maxVal * 1.2, grid: { display: false } }, 
+          x: { grid: { display: false } } 
+        } 
       } 
-    } 
-  });
+    });
+  }
 
   let groupCounts = {}; 
   cachedPersonnelData.forEach(p => { 
@@ -835,38 +681,44 @@ function drawCharts(allYears, allGroups) {
   let otherCount = Object.entries(groupCounts).sort((a,b)=>b[1]-a[1]).slice(4).reduce((sum, val) => sum + val[1], 0); 
   if(otherCount > 0) topGroups.push(['อื่นๆ', otherCount]);
   
-  const ctxDonut = document.getElementById('donutChart').getContext('2d'); 
-  if(donutChartObj) donutChartObj.destroy();
-  donutChartObj = new Chart(ctxDonut, { 
-    type: 'doughnut', 
-    data: { 
-      labels: topGroups.map(g => g[0]), 
-      datasets: [{ data: topGroups.map(g => g[1]), backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#94a3b8'], hoverOffset: 4, borderWidth: 2 }] 
-    }, 
-    options: { 
-      responsive: true, 
-      maintainAspectRatio: false, 
-      cutout: '65%', 
-      plugins: { 
-        legend: { position: 'right', labels: { boxWidth: 12, usePointStyle: true, font: { size: 11, family: "'Plus Jakarta Sans', sans-serif" } } }, 
-        datalabels: { 
-          color: '#ffffff', 
-          font: { weight: 'bold', size: 10 }, 
-          formatter: (value, ctx) => { 
-            let sum = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0); 
-            let percentage = (value * 100 / sum).toFixed(1) + "%"; 
-            return percentage; 
+  const ctxDonut = document.getElementById('donutChart');
+  if(ctxDonut) {
+    if(donutChartObj) donutChartObj.destroy();
+    donutChartObj = new Chart(ctxDonut.getContext('2d'), { 
+      type: 'doughnut', 
+      data: { 
+        labels: topGroups.map(g => g[0]), 
+        datasets: [{ data: topGroups.map(g => g[1]), backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#94a3b8'], hoverOffset: 4, borderWidth: 2 }] 
+      }, 
+      options: { 
+        responsive: true, 
+        maintainAspectRatio: false, 
+        cutout: '65%', 
+        plugins: { 
+          legend: { position: 'right', labels: { boxWidth: 12, usePointStyle: true, font: { size: 11, family: "'Plus Jakarta Sans', sans-serif" } } }, 
+          datalabels: { 
+            color: '#ffffff', 
+            font: { weight: 'bold', size: 10 }, 
+            formatter: (value, ctx) => { 
+              let sum = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0); 
+              let percentage = (value * 100 / sum).toFixed(1) + "%"; 
+              return percentage; 
+            } 
           } 
         } 
       } 
-    } 
-  });
+    });
+  }
 }
 
 function renderDashboard(stats) {
-  document.getElementById('stat-total').textContent = stats.totalPersonnel; 
-  document.getElementById('stat-top-year').textContent = stats.topYear; 
-  document.getElementById('stat-top-course').textContent = stats.topCourse;
+  const elTotal = document.getElementById('stat-total');
+  const elYear = document.getElementById('stat-top-year');
+  const elCourse = document.getElementById('stat-top-course');
+  
+  if(elTotal) elTotal.textContent = stats.totalPersonnel; 
+  if(elYear) elYear.textContent = stats.topYear; 
+  if(elCourse) elCourse.textContent = stats.topCourse;
   
   const tbody = document.getElementById('courseSummaryBody'); 
   if (!tbody) return;
@@ -912,7 +764,8 @@ window.openMatrixReport = function() {
   const endSelect = document.getElementById('matrixEndYear'); 
   startSelect.innerHTML = matrixAvailableYears.map(y => `<option value="${y}">${y}</option>`).join(''); 
   endSelect.innerHTML = matrixAvailableYears.map(y => `<option value="${y}">${y}</option>`).join(''); 
-  document.getElementById('matrixModal').classList.remove('hidden'); 
+  const modal = document.getElementById('matrixModal');
+  if(modal) modal.classList.remove('hidden'); 
   applyMatrixFilter('all');
 };
 
@@ -939,7 +792,7 @@ window.applyMatrixFilter = function(type) {
 function buildMatrixTable(startYear, endYear) {
   const container = document.getElementById('matrixTableContainer'); 
   const textIndicator = document.getElementById('matrixYearRangeText'); 
-  textIndicator.textContent = `(ระหว่างปี ${startYear} - ${endYear})`;
+  if(textIndicator) textIndicator.textContent = `(ระหว่างปี ${startYear} - ${endYear})`;
   
   const filteredYears = matrixAvailableYears.filter(y => y >= startYear && y <= endYear); 
   const courses = globalFiltersMaster.courses; 
@@ -1003,17 +856,19 @@ function buildMatrixTable(startYear, endYear) {
     </tfoot>
   </table>`;
   
-  container.innerHTML = html;
+  if(container) container.innerHTML = html;
 }
 
 window.closeMatrixReport = function() { 
-  document.getElementById('matrixModal').classList.add('hidden'); 
+  const modal = document.getElementById('matrixModal');
+  if(modal) modal.classList.add('hidden'); 
 };
 
 window.printMatrixReport = function() { 
-  document.getElementById('matrixModal').classList.add('print-modal-active'); 
+  const modal = document.getElementById('matrixModal');
+  if(modal) modal.classList.add('print-modal-active'); 
   window.print(); 
-  document.getElementById('matrixModal').classList.remove('print-modal-active'); 
+  if(modal) modal.classList.remove('print-modal-active'); 
 };
 
 window.exportMatrixToExcel = function() { 
@@ -1045,24 +900,27 @@ window.openProposalReport = function(encodedCourseName, btnId) {
     });
     
     const yearFilter = document.getElementById('reportYearFilter');
-    let optionsHtml = '<option value="all">รวมทุกปี</option>';
-    Array.from(availableYears).sort((a,b)=>b-a).forEach(y => { 
-      optionsHtml += `<option value="${y}">เฉพาะปี ${y}</option>`; 
-    });
-    yearFilter.innerHTML = optionsHtml;
-    yearFilter.value = 'all'; 
+    if(yearFilter) {
+      let optionsHtml = '<option value="all">รวมทุกปี</option>';
+      Array.from(availableYears).sort((a,b)=>b-a).forEach(y => { 
+        optionsHtml += `<option value="${y}">เฉพาะปี ${y}</option>`; 
+      });
+      yearFilter.innerHTML = optionsHtml;
+      yearFilter.value = 'all'; 
+    }
 
     renderReportData(); 
 
     btn.innerHTML = originalBtnHTML; 
-    document.getElementById('proposalModal').classList.remove('hidden');
+    const modal = document.getElementById('proposalModal');
+    if(modal) modal.classList.remove('hidden');
   }, 400); 
 };
 
 window.renderReportData = function() {
   if(!currentReportCourseBase64) return;
   const courseName = base64ToUtf8(currentReportCourseBase64);
-  const selectedYear = document.getElementById('reportYearFilter').value;
+  const selectedYear = document.getElementById('reportYearFilter') ? document.getElementById('reportYearFilter').value : 'all';
 
   let courseUsers = cachedPersonnelData.filter(u => u.trainings && u.trainings.some(t => t.course === courseName));
   if(selectedYear !== 'all') { 
@@ -1074,7 +932,8 @@ window.renderReportData = function() {
     displayCourseName = cachedProjectDetails[courseName].fullCourseName;
   }
 
-  document.getElementById('reportCourseName').textContent = displayCourseName + (selectedYear === 'all' ? ' (ภาพรวมทั้งหมด)' : ` (รุ่นปี ${selectedYear})`);
+  const elCourseName = document.getElementById('reportCourseName');
+  if(elCourseName) elCourseName.textContent = displayCourseName + (selectedYear === 'all' ? ' (ภาพรวมทั้งหมด)' : ` (รุ่นปี ${selectedYear})`);
 
   let projectTargets = {};
   let totalTargetCount = 0;
@@ -1082,41 +941,45 @@ window.renderReportData = function() {
   const pdOverview = document.getElementById('reportProjectOverview');
   
   if(cachedProjectDetails && cachedProjectDetails[courseName]) {
-     pdOverview.classList.remove('hidden');
+     if(pdOverview) pdOverview.classList.remove('hidden');
      const d = cachedProjectDetails[courseName];
      
      if(d.targets) {
         let targetList = d.targets.includes('||') ? d.targets.split('||') : d.targets.split(',').map(t=>t.trim()+'|0');
-        document.getElementById('reportTargetGroups').innerHTML = targetList.map(t => {
-            let [tName, tCount] = t.split('|');
-            let countBadge = parseInt(tCount) > 0 ? `<span class="bg-blue-100 text-blue-800 ml-1 px-1.5 py-0.5 rounded text-[10px]">เป้า: ${tCount} คน</span>` : '';
-            if(parseInt(tCount) > 0) { 
-              projectTargets[tName] = parseInt(tCount); 
-              totalTargetCount += parseInt(tCount); 
-            }
-            return `<span class="bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1 rounded-full text-xs font-semibold flex items-center">${tName} ${countBadge}</span>`;
-        }).join('');
+        const elTargetGroups = document.getElementById('reportTargetGroups');
+        if(elTargetGroups) {
+          elTargetGroups.innerHTML = targetList.map(t => {
+              let [tName, tCount] = t.split('|');
+              let countBadge = parseInt(tCount) > 0 ? `<span class="bg-blue-100 text-blue-800 ml-1 px-1.5 py-0.5 rounded text-[10px]">เป้า: ${tCount} คน</span>` : '';
+              if(parseInt(tCount) > 0) { 
+                projectTargets[tName] = parseInt(tCount); 
+                totalTargetCount += parseInt(tCount); 
+              }
+              return `<span class="bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1 rounded-full text-xs font-semibold flex items-center">${tName} ${countBadge}</span>`;
+          }).join('');
+        }
      } else { 
-        document.getElementById('reportTargetGroups').innerHTML = '-'; 
+        const elTargetGroups = document.getElementById('reportTargetGroups');
+        if(elTargetGroups) elTargetGroups.innerHTML = '-'; 
      }
      
-     document.getElementById('titleStatSec').textContent = "2. ข้อมูลสถิติและกลุ่มเป้าหมาย (Target Group Breakdown)";
-     document.getElementById('titleImpSec').textContent = "3. การติดตามการนำความรู้ไปปฏิบัติหน้าที่ (Implementation Tracking)";
-     document.getElementById('titleExecSec').textContent = "4. บทสรุปผู้บริหารและการวิเคราะห์ภาพรวม (Executive Summary)";
+     if(document.getElementById('titleStatSec')) document.getElementById('titleStatSec').textContent = "2. ข้อมูลสถิติและกลุ่มเป้าหมาย (Target Group Breakdown)";
+     if(document.getElementById('titleImpSec')) document.getElementById('titleImpSec').textContent = "3. การติดตามการนำความรู้ไปปฏิบัติหน้าที่ (Implementation Tracking)";
+     if(document.getElementById('titleExecSec')) document.getElementById('titleExecSec').textContent = "4. บทสรุปผู้บริหารและการวิเคราะห์ภาพรวม (Executive Summary)";
   } else {
-     pdOverview.classList.add('hidden');
-     document.getElementById('titleStatSec').textContent = "1. ข้อมูลสถิติและกลุ่มเป้าหมาย (Target Group Breakdown)";
-     document.getElementById('titleImpSec').textContent = "2. การติดตามการนำความรู้ไปปฏิบัติหน้าที่ (Implementation Tracking)";
-     document.getElementById('titleExecSec').textContent = "3. บทสรุปผู้บริหารและการวิเคราะห์ภาพรวม (Executive Summary)";
+     if(pdOverview) pdOverview.classList.add('hidden');
+     if(document.getElementById('titleStatSec')) document.getElementById('titleStatSec').textContent = "1. ข้อมูลสถิติและกลุ่มเป้าหมาย (Target Group Breakdown)";
+     if(document.getElementById('titleImpSec')) document.getElementById('titleImpSec').textContent = "2. การติดตามการนำความรู้ไปปฏิบัติหน้าที่ (Implementation Tracking)";
+     if(document.getElementById('titleExecSec')) document.getElementById('titleExecSec').textContent = "3. บทสรุปผู้บริหารและการวิเคราะห์ภาพรวม (Executive Summary)";
   }
 
   const totalPeople = courseUsers.length; 
   const activePeople = courseUsers.filter(u => u.status !== 'พ้นสภาพ').length; 
   const retentionPercent = totalPeople > 0 ? Math.round((activePeople/totalPeople)*100) + '%' : '0%';
   
-  document.getElementById('reportTotal').textContent = totalPeople; 
-  document.getElementById('reportActive').textContent = activePeople; 
-  document.getElementById('reportRetention').textContent = retentionPercent;
+  if(document.getElementById('reportTotal')) document.getElementById('reportTotal').textContent = totalPeople; 
+  if(document.getElementById('reportActive')) document.getElementById('reportActive').textContent = activePeople; 
+  if(document.getElementById('reportRetention')) document.getElementById('reportRetention').textContent = retentionPercent;
 
   let groupStats = {}; 
   courseUsers.forEach(u => { 
@@ -1150,7 +1013,7 @@ window.renderReportData = function() {
       </div>`;
   }).join('');
   
-  document.getElementById('reportGroupBreakdown').innerHTML = groupHtml || '<p class="text-sm text-slate-400">ไม่มีข้อมูลกลุ่มเป้าหมาย</p>';
+  if(document.getElementById('reportGroupBreakdown')) document.getElementById('reportGroupBreakdown').innerHTML = groupHtml || '<p class="text-sm text-slate-400">ไม่มีข้อมูลกลุ่มเป้าหมาย</p>';
 
   let roleStats = {}; let sportStats = {}; let recentEvents = [];
   courseUsers.forEach(u => { 
@@ -1167,8 +1030,9 @@ window.renderReportData = function() {
   
   let sortedRoles = Object.entries(roleStats).sort((a,b)=>b[1]-a[1]); 
   let sortedSports = Object.entries(sportStats).sort((a,b)=>b[1]-a[1]); 
-  let topRole = sortedRoles[0]?.[0] || 'หลายบทบาท'; 
-  let topSport = sortedSports[0]?.[0] || 'หลายชนิดกีฬา';
+  
+  let topRole = (sortedRoles.length > 0 && sortedRoles[0][0]) ? sortedRoles[0][0] : 'หลายบทบาท'; 
+  let topSport = (sortedSports.length > 0 && sortedSports[0][0]) ? sortedSports[0][0] : 'หลายชนิดกีฬา';
   
   let implHtml = `
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1197,17 +1061,12 @@ window.renderReportData = function() {
     implHtml += `<div class="mt-4 text-sm text-slate-600"><strong>ตัวอย่างการปฏิบัติงาน:</strong> ${uniqueEvents.join(', ')}</div>`; 
   }
   
-  document.getElementById('reportImplementation').innerHTML = implHtml;
+  if(document.getElementById('reportImplementation')) document.getElementById('reportImplementation').innerHTML = implHtml;
 
   let feedbacks = []; 
   courseUsers.forEach(u => { if (u.evals) u.evals.forEach(e => feedbacks.push(e.feedback)); }); 
   let recentFeedbacks = feedbacks.slice(-3);
   
-  let expectedText = "";
-  if(cachedProjectDetails && cachedProjectDetails[courseName] && cachedProjectDetails[courseName].expected) { 
-    expectedText = `โครงการตั้งเป้าหมายผลลัพธ์ไว้ที่ <u>"${cachedProjectDetails[courseName].expected}"</u> ซึ่ง`; 
-  }
-
   let summaryText = `จากข้อมูลในระบบทะเบียนบุคลากรกีฬาพบว่า ผู้ผ่านการอบรมหลักสูตร <span class="font-bold text-blue-600">${displayCourseName}</span> `;
   if(selectedYear !== 'all') {
     summaryText += `(เฉพาะผู้ที่อบรมในปี <span class="font-bold text-blue-600">${selectedYear}</span>) `;
@@ -1235,18 +1094,20 @@ window.renderReportData = function() {
     summaryHtml += `<div class="mt-4 space-y-3">` + recentFeedbacks.map(f => `<div class="text-sm italic text-slate-600 border-l-4 border-blue-400 bg-slate-50 pl-4 py-2 shadow-sm rounded-r-lg">"${f}"</div>`).join('') + `</div>`; 
   }
   
-  document.getElementById('reportExecutiveSummary').innerHTML = summaryHtml;
+  if(document.getElementById('reportExecutiveSummary')) document.getElementById('reportExecutiveSummary').innerHTML = summaryHtml;
 };
 
 window.closeProposalReport = function() { 
-  document.getElementById('proposalModal').classList.add('hidden'); 
+  const modal = document.getElementById('proposalModal');
+  if(modal) modal.classList.add('hidden'); 
   currentReportCourseBase64 = null; 
 };
 
 window.printProposalReport = function() { 
-  document.getElementById('proposalModal').classList.add('print-modal-active'); 
+  const modal = document.getElementById('proposalModal');
+  if(modal) modal.classList.add('print-modal-active'); 
   window.print(); 
-  document.getElementById('proposalModal').classList.remove('print-modal-active'); 
+  if(modal) modal.classList.remove('print-modal-active'); 
 };
 
 function updateSmartSummary(course, year, totalCount) { 
@@ -1254,20 +1115,21 @@ function updateSmartSummary(course, year, totalCount) {
   const textEl = document.getElementById('smartInsightText'); 
   
   if (!course && !year) { 
-    badge.classList.add('hidden'); 
+    if(badge) badge.classList.add('hidden'); 
     return; 
   } 
   
-  badge.classList.remove('hidden'); 
-  badge.classList.add('flex'); 
+  if(badge) { badge.classList.remove('hidden'); badge.classList.add('flex'); }
   
-  if (course && year) { 
-    textEl.innerHTML = `สรุปข้อมูล: หลักสูตร <span class="font-bold">${course}</span> ประจำปี <span class="font-bold">${year}</span> มีผู้ผ่านการอบรม <span class="font-bold text-lg mx-1">${totalCount}</span> คน`; 
-  } else if (course) { 
-    textEl.innerHTML = `สรุปข้อมูล: หลักสูตร <span class="font-bold">${course}</span> มีผู้ผ่านการอบรมรวม <span class="font-bold text-lg mx-1">${totalCount}</span> คน`; 
-  } else if (year) { 
-    textEl.innerHTML = `สรุปข้อมูล: ภาพรวมปี <span class="font-bold">${year}</span> มีผู้ผ่านการอบรมรวม <span class="font-bold text-lg mx-1">${totalCount}</span> คน`; 
-  } 
+  if(textEl) {
+    if (course && year) { 
+      textEl.innerHTML = `สรุปข้อมูล: หลักสูตร <span class="font-bold">${course}</span> ประจำปี <span class="font-bold">${year}</span> มีผู้ผ่านการอบรม <span class="font-bold text-lg mx-1">${totalCount}</span> คน`; 
+    } else if (course) { 
+      textEl.innerHTML = `สรุปข้อมูล: หลักสูตร <span class="font-bold">${course}</span> มีผู้ผ่านการอบรมรวม <span class="font-bold text-lg mx-1">${totalCount}</span> คน`; 
+    } else if (year) { 
+      textEl.innerHTML = `สรุปข้อมูล: ภาพรวมปี <span class="font-bold">${year}</span> มีผู้ผ่านการอบรมรวม <span class="font-bold text-lg mx-1">${totalCount}</span> คน`; 
+    } 
+  }
 }
 
 function renderTablePage() {
@@ -1275,7 +1137,7 @@ function renderTablePage() {
   const paginationInfo = document.getElementById('tablePaginationInfo');
   
   if (currentFilteredData.length === 0) { 
-    tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-16 text-center text-slate-500 font-medium">ไม่พบข้อมูล</td></tr>`; 
+    if(tbody) tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-16 text-center text-slate-500 font-medium">ไม่พบข้อมูล</td></tr>`; 
     if (paginationInfo) paginationInfo.innerHTML = `ไม่มีรายการแสดงผล`; 
     renderPaginationNav(0); 
     return; 
@@ -1287,45 +1149,47 @@ function renderTablePage() {
   const endIndex = Math.min(startIndex + itemsPerPage, totalItems); 
   const pageData = currentFilteredData.slice(startIndex, endIndex);
 
-  tbody.innerHTML = pageData.map(item => {
-    const initials = item.fullName.substring(0, 2).toUpperCase() || 'U';
-    const isResigned = item.status === 'พ้นสภาพ';
-    
-    let statusBadge = '';
-    if (isAdmin) {
-      statusBadge = `
-      <select onchange="updatePersonnelStatus('${item.uid}', this.value, this)" class="text-xs font-bold bg-white border ${isResigned ? 'border-slate-300 text-slate-500' : 'border-amber-300 text-amber-600'} rounded-full px-2 py-1.5 outline-none cursor-pointer shadow-sm text-center w-[110px] mx-auto block transition-colors">
-        <option value="ปฏิบัติงาน" ${!isResigned ? 'selected' : ''}>🟢 ปฏิบัติงาน</option>
-        <option value="พ้นสภาพ" ${isResigned ? 'selected' : ''}>⚪ พ้นสภาพ</option>
-      </select>`;
-    } else {
-      statusBadge = isResigned ? 
-        `<span class="inline-flex items-center justify-center px-3 py-1.5 rounded-full text-xs font-medium border border-slate-300 text-slate-500 bg-white w-[110px]"><span class="w-1.5 h-1.5 rounded-full mr-2 bg-slate-400"></span>พ้นสภาพ</span>` : 
-        `<span class="inline-flex items-center justify-center px-3 py-1.5 rounded-full text-xs font-medium border border-amber-300 text-amber-600 bg-white w-[110px]"><span class="w-1.5 h-1.5 rounded-full mr-2 bg-amber-500"></span>ปฏิบัติงาน</span>`;
-    }
+  if(tbody) {
+    tbody.innerHTML = pageData.map(item => {
+      const initials = item.fullName.substring(0, 2).toUpperCase() || 'U';
+      const isResigned = item.status === 'พ้นสภาพ';
+      
+      let statusBadge = '';
+      if (isAdmin) {
+        statusBadge = `
+        <select onchange="updatePersonnelStatus('${item.uid}', this.value, this)" class="text-xs font-bold bg-white border ${isResigned ? 'border-slate-300 text-slate-500' : 'border-amber-300 text-amber-600'} rounded-full px-2 py-1.5 outline-none cursor-pointer shadow-sm text-center w-[110px] mx-auto block transition-colors">
+          <option value="ปฏิบัติงาน" ${!isResigned ? 'selected' : ''}>🟢 ปฏิบัติงาน</option>
+          <option value="พ้นสภาพ" ${isResigned ? 'selected' : ''}>⚪ พ้นสภาพ</option>
+        </select>`;
+      } else {
+        statusBadge = isResigned ? 
+          `<span class="inline-flex items-center justify-center px-3 py-1.5 rounded-full text-xs font-medium border border-slate-300 text-slate-500 bg-white w-[110px]"><span class="w-1.5 h-1.5 rounded-full mr-2 bg-slate-400"></span>พ้นสภาพ</span>` : 
+          `<span class="inline-flex items-center justify-center px-3 py-1.5 rounded-full text-xs font-medium border border-amber-300 text-amber-600 bg-white w-[110px]"><span class="w-1.5 h-1.5 rounded-full mr-2 bg-amber-500"></span>ปฏิบัติงาน</span>`;
+      }
 
-    const btnText = isAdmin ? 
-      `<svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg> จัดการ` : 
-      `<svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg> ดูประวัติ`;
+      const btnText = isAdmin ? 
+        `<svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg> จัดการ` : 
+        `<svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg> ดูประวัติ`;
 
-    return `
-      <tr class="hover:bg-slate-50 border-b border-slate-100">
-        <td class="px-6 py-4 text-blue-600 font-medium text-sm">${item.uid}</td>
-        <td class="px-6 py-4">
-          <div class="flex items-center gap-3">
-            <div class="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xs">${initials}</div>
-            <div class="text-slate-700 font-medium text-sm">${item.fullName}</div>
-          </div>
-        </td>
-        <td class="px-6 py-4 text-slate-600 text-sm truncate max-w-[200px]">${item.agency}</td>
-        <td class="px-6 py-4 text-center">${statusBadge}</td>
-        <td class="px-6 py-4 text-center">
-          <button onclick="viewProfile('${item.uid}')" class="${isAdmin?'text-amber-500 hover:bg-amber-50':'text-blue-500 hover:bg-blue-50'} p-2 rounded-lg font-bold text-xs flex items-center justify-center mx-auto transition-colors cursor-pointer">
-            ${btnText}
-          </button>
-        </td>
-      </tr>`;
-  }).join('');
+      return `
+        <tr class="hover:bg-slate-50 border-b border-slate-100">
+          <td class="px-6 py-4 text-blue-600 font-medium text-sm">${item.uid}</td>
+          <td class="px-6 py-4">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xs">${initials}</div>
+              <div class="text-slate-700 font-medium text-sm">${item.fullName}</div>
+            </div>
+          </td>
+          <td class="px-6 py-4 text-slate-600 text-sm truncate max-w-[200px]">${item.agency}</td>
+          <td class="px-6 py-4 text-center">${statusBadge}</td>
+          <td class="px-6 py-4 text-center">
+            <button onclick="viewProfile('${item.uid}')" class="${isAdmin?'text-amber-500 hover:bg-amber-50':'text-blue-500 hover:bg-blue-50'} p-2 rounded-lg font-bold text-xs flex items-center justify-center mx-auto transition-colors cursor-pointer">
+              ${btnText}
+            </button>
+          </td>
+        </tr>`;
+    }).join('');
+  }
   
   if (paginationInfo) paginationInfo.innerHTML = `แสดงรายการที่ <span class="font-bold text-slate-800 mx-1">${startIndex + 1} - ${endIndex}</span> จากทั้งหมด <span class="font-bold text-slate-800 mx-1">${totalItems}</span> รายการ`; 
   
@@ -1640,41 +1504,43 @@ function renderPreviewTablePage() {
   const endIndex = Math.min(startIndex + previewItemsPerPage, totalItems); 
   const pageData = pendingImportData.slice(startIndex, endIndex);
 
-  document.getElementById('previewTotalText').innerHTML = `พบข้อมูลที่รอยืนยัน <span class="font-bold text-blue-600">${totalItems}</span> รายการ`;
+  if(document.getElementById('previewTotalText')) document.getElementById('previewTotalText').innerHTML = `พบข้อมูลที่รอยืนยัน <span class="font-bold text-blue-600">${totalItems}</span> รายการ`;
   
-  tbody.innerHTML = pageData.map((row, idx) => {
-    let badgeHtml = `<span class="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full text-xs font-semibold">✨ บุคคลใหม่</span>`; 
-    let targetUidVal = '';
-    
-    if (row.matchType === 'exact') { 
-      badgeHtml = `<span class="bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-1 rounded-full text-xs font-semibold">🔄 อัปเดตคนเดิม (${row.matchedUser.fullName})</span>`; 
-      targetUidVal = row.matchedUser.uid; 
-    } else if (row.matchType === 'fuzzy') { 
-      badgeHtml = `
-      <div class="space-y-1.5">
-        <span class="inline-block bg-amber-50 text-amber-800 border border-amber-300 px-2.5 py-0.5 rounded text-[11px] font-semibold">⚠️ ชื่อคล้าย: ${row.matchedUser.fullName}</span>
-        <select onchange="updateImportAction(${startIndex + idx}, this.value)" class="w-full text-xs bg-slate-50 border border-slate-300 rounded p-1.5 outline-none font-medium text-slate-700">
-          <option value="auto" ${row.actionType === 'auto' ? 'selected' : ''}>-- กรุณาเลือก --</option>
-          <option value="merge" ${row.actionType === 'merge' ? 'selected' : ''}>🔗 รวมประวัติคนเดิม</option>
-          <option value="new" ${row.actionType === 'new' ? 'selected' : ''}>➕ สร้างใหม่แยก</option>
-        </select>
-      </div>`; 
-      targetUidVal = row.matchedUser.uid; 
-    }
-    
-    return `
-      <tr class="hover:bg-slate-50 align-top border-b border-slate-100">
-        <td class="px-4 py-3.5 border-r border-slate-100 text-center font-mono text-xs text-slate-400">${startIndex + idx + 1}</td>
-        <td class="px-4 py-3.5 border-r border-slate-100 font-medium text-slate-800">${row['คำนำหน้า']} ${row['ชื่อ-นามสกุล']}</td>
-        <td class="px-4 py-3.5 border-r border-slate-100 truncate max-w-[180px]">${row['หน่วยงาน'] || '-'}</td>
-        <td class="px-4 py-3.5 border-r border-slate-100 text-center"><span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-xs">${row['สถานะ']}</span></td>
-        <td class="px-4 py-3.5 border-r border-slate-100">${row['ชื่อหลักสูตร'] || '-'} <span class="text-xs text-slate-400">(${row['ปีที่อบรม'] || '-'})</span></td>
-        <td class="px-4 py-3.5 text-center">
-          <input type="hidden" id="targetUid_${startIndex + idx}" value="${targetUidVal}">
-          ${badgeHtml}
-        </td>
-      </tr>`;
-  }).join('');
+  if(tbody) {
+    tbody.innerHTML = pageData.map((row, idx) => {
+      let badgeHtml = `<span class="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full text-xs font-semibold">✨ บุคคลใหม่</span>`; 
+      let targetUidVal = '';
+      
+      if (row.matchType === 'exact') { 
+        badgeHtml = `<span class="bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-1 rounded-full text-xs font-semibold">🔄 อัปเดตคนเดิม (${row.matchedUser.fullName})</span>`; 
+        targetUidVal = row.matchedUser.uid; 
+      } else if (row.matchType === 'fuzzy') { 
+        badgeHtml = `
+        <div class="space-y-1.5">
+          <span class="inline-block bg-amber-50 text-amber-800 border border-amber-300 px-2.5 py-0.5 rounded text-[11px] font-semibold">⚠️ ชื่อคล้าย: ${row.matchedUser.fullName}</span>
+          <select onchange="updateImportAction(${startIndex + idx}, this.value)" class="w-full text-xs bg-slate-50 border border-slate-300 rounded p-1.5 outline-none font-medium text-slate-700">
+            <option value="auto" ${row.actionType === 'auto' ? 'selected' : ''}>-- กรุณาเลือก --</option>
+            <option value="merge" ${row.actionType === 'merge' ? 'selected' : ''}>🔗 รวมประวัติคนเดิม</option>
+            <option value="new" ${row.actionType === 'new' ? 'selected' : ''}>➕ สร้างใหม่แยก</option>
+          </select>
+        </div>`; 
+        targetUidVal = row.matchedUser.uid; 
+      }
+      
+      return `
+        <tr class="hover:bg-slate-50 align-top border-b border-slate-100">
+          <td class="px-4 py-3.5 border-r border-slate-100 text-center font-mono text-xs text-slate-400">${startIndex + idx + 1}</td>
+          <td class="px-4 py-3.5 border-r border-slate-100 font-medium text-slate-800">${row['คำนำหน้า']} ${row['ชื่อ-นามสกุล']}</td>
+          <td class="px-4 py-3.5 border-r border-slate-100 truncate max-w-[180px]">${row['หน่วยงาน'] || '-'}</td>
+          <td class="px-4 py-3.5 border-r border-slate-100 text-center"><span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-xs">${row['สถานะ']}</span></td>
+          <td class="px-4 py-3.5 border-r border-slate-100">${row['ชื่อหลักสูตร'] || '-'} <span class="text-xs text-slate-400">(${row['ปีที่อบรม'] || '-'})</span></td>
+          <td class="px-4 py-3.5 text-center">
+            <input type="hidden" id="targetUid_${startIndex + idx}" value="${targetUidVal}">
+            ${badgeHtml}
+          </td>
+        </tr>`;
+    }).join('');
+  }
   
   if (previewInfo) previewInfo.innerHTML = `แสดงรายการที่ <span class="font-bold text-slate-800 mx-1">${startIndex + 1} - ${endIndex}</span> จากทั้งหมด <span class="font-bold text-slate-800 mx-1">${totalItems}</span> รายการ`; 
   renderPreviewPaginationNav(totalPages);
@@ -1710,8 +1576,10 @@ window.changePreviewPage = function(newPage) {
 
 window.cancelImport = function() { 
   pendingImportData = []; 
-  document.getElementById('importPreviewSection').classList.add('hidden'); 
-  document.getElementById('importUploadSection').classList.remove('hidden'); 
+  const pSection = document.getElementById('importPreviewSection');
+  if(pSection) pSection.classList.add('hidden'); 
+  const uSection = document.getElementById('importUploadSection');
+  if(uSection) uSection.classList.remove('hidden'); 
 };
 
 window.confirmImport = async function() {
@@ -1723,6 +1591,7 @@ window.confirmImport = async function() {
   });
   
   const btn = document.getElementById('btnConfirmImport'); 
+  if(!btn) return;
   const originalText = btn.innerHTML; 
   btn.innerHTML = `กำลังบันทึก...`; 
   btn.disabled = true;
@@ -1751,347 +1620,6 @@ window.confirmImport = async function() {
   btn.disabled = false;
 };
 
-// 📌 ฟังก์ชันใหม่: แปลงลิงก์ Drive และเปิดหน้าต่าง Evidence Viewer
-window.openEvidenceModal = function(url) {
-  if(!url) return;
-  
-  // แปลงลิงก์ /view ให้กลายเป็น /preview อัตโนมัติ เพื่อป้องกันการบล็อก iframe
-  let previewUrl = url;
-  if (url.includes('drive.google.com/file/d/')) {
-    const fileIdMatch = url.match(/\/d\/(.*?)\//);
-    if (fileIdMatch && fileIdMatch[1]) {
-      previewUrl = `https://drive.google.com/file/d/${fileIdMatch[1]}/preview`;
-    }
-  }
-  
-  const modal = document.getElementById('evidenceModal');
-  const iframe = document.getElementById('evidenceIframe');
-  const loading = document.getElementById('evidenceLoading');
-  
-  loading.classList.remove('hidden');
-  iframe.classList.add('hidden');
-  
-  modal.classList.remove('hidden');
-  iframe.src = previewUrl;
-};
-
-// 📌 ฟังก์ชันใหม่: ปิดหน้าต่าง Evidence Viewer
-window.closeEvidenceModal = function() {
-  const modal = document.getElementById('evidenceModal');
-  const iframe = document.getElementById('evidenceIframe');
-  
-  modal.classList.add('hidden');
-  iframe.src = ''; // เคลียร์ SRC เพื่อประหยัดหน่วยความจำ
-};
-
-window.viewProfile = function(uid) {
-  currentActiveUid = uid; 
-  const person = cachedPersonnelData.find(p => p.uid === uid);
-  if (!person) { alert("❌ ไม่พบข้อมูลบุคลากร"); return; }
-  
-  document.getElementById('profileName').textContent = person.fullName; 
-  document.getElementById('profileUid').textContent = `รหัสอ้างอิง: ${person.uid}`; 
-  document.getElementById('profileAgency').textContent = `${person.agency} (${person.status})`; 
-  document.getElementById('profileGroup').textContent = person.group || 'ไม่ระบุกลุ่ม'; 
-
-  const timelineEl = document.getElementById('profileTrainings');
-  if (person.trainings && person.trainings.length > 0) { 
-    const sortedTrainings = person.trainings.sort((a, b) => b.year - a.year); 
-    timelineEl.innerHTML = sortedTrainings.map(t => `
-      <li class="relative pl-6 pb-4 border-l-2 border-slate-200 last:border-0 last:pb-0">
-        <div class="absolute w-3 h-3 bg-blue-500 rounded-full -left-[7px] top-1.5 ring-4 ring-white shadow-sm"></div>
-        <p class="text-sm font-bold text-slate-800">${t.course}</p>
-        <p class="text-xs text-slate-500 mt-0.5">ปีการศึกษา: ${t.year}</p>
-      </li>`).join(''); 
-  } else { 
-    timelineEl.innerHTML = `<li class="text-sm text-slate-500 pl-4">ยังไม่มีประวัติการอบรม</li>`; 
-  }
-  
-  const dutyEl = document.getElementById('profileDuties');
-  if (person.duties && person.duties.length > 0) {
-    dutyEl.innerHTML = person.duties.map(d => {
-      // 📌 อัปเกรด: สร้างปุ่มกดดูรูปภาพหลักฐาน (ถ้ามี)
-      let evidenceHtml = '';
-      if (d.images) {
-        const links = d.images.split(',').map(l => l.trim()).filter(l => l);
-        if (links.length > 0) {
-          evidenceHtml = `<div class="mt-3 flex flex-wrap gap-2 pt-3 border-t border-slate-100">`;
-          links.forEach((link, idx) => {
-            evidenceHtml += `
-            <button onclick="openEvidenceModal('${link}')" class="text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold py-1.5 px-3 rounded-lg border border-blue-200 transition-colors flex items-center gap-1.5 shadow-sm">
-              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg> 
-              หลักฐานชิ้นที่ ${idx + 1}
-            </button>`;
-          });
-          evidenceHtml += `</div>`;
-        }
-      }
-      
-      return `
-      <li class="bg-white p-3.5 rounded-xl border border-slate-200 flex flex-col gap-1 shadow-sm">
-        <div class="flex justify-between items-start">
-          <span class="text-sm font-bold text-slate-800">${d.sport}</span>
-          <span class="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded">ปี ${d.year || '-'}</span>
-        </div>
-        <span class="text-xs text-blue-600 font-semibold">${d.role}</span>
-        <span class="text-xs text-slate-500 flex items-center gap-1 mt-1">
-          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg> 
-          ${d.event || 'ไม่ระบุชื่องาน'}
-        </span>
-        ${evidenceHtml}
-      </li>`;
-    }).join('');
-  } else { 
-    dutyEl.innerHTML = `<div class="text-sm text-slate-500">ยังไม่มีประวัติลงพื้นที่</div>`; 
-  }
-  
-  const evalEl = document.getElementById('profileEvals');
-  if (person.evals && person.evals.length > 0) { 
-    evalEl.innerHTML = person.evals.map(e => `
-      <div class="bg-white p-3.5 rounded-xl border border-slate-200 text-sm text-slate-700 italic shadow-sm">"${e.feedback}"</div>
-    `).join(''); 
-  } else { 
-    evalEl.innerHTML = `<div class="text-sm text-slate-500">ยังไม่มีข้อเสนอแนะ</div>`; 
-  }
-  
-  const slideOver = document.getElementById('slideOver'); 
-  const backdrop = document.getElementById('slideOverBackdrop'); 
-  const panel = document.getElementById('slideOverPanel');
-  
-  slideOver.classList.remove('hidden'); 
-  setTimeout(() => { 
-    backdrop.classList.remove('opacity-0'); 
-    backdrop.classList.add('opacity-100'); 
-    panel.classList.remove('translate-x-full'); 
-    panel.classList.add('translate-x-0'); 
-  }, 10);
-  switchTab('general');
-};
-
-window.closeProfile = function() { 
-  currentActiveUid = null; 
-  const backdrop = document.getElementById('slideOverBackdrop'); 
-  const panel = document.getElementById('slideOverPanel'); 
-  
-  backdrop.classList.remove('opacity-100'); 
-  backdrop.classList.add('opacity-0'); 
-  panel.classList.remove('translate-x-0'); 
-  panel.classList.add('translate-x-full'); 
-  
-  setTimeout(() => { 
-    document.getElementById('slideOver').classList.add('hidden'); 
-  }, 300); 
-};
-
-window.switchTab = function(tabName) {
-  ['general', 'duty', 'eval'].forEach(t => {
-    const btn = document.getElementById(`tab-btn-${t}`); 
-    const content = document.getElementById(`tab-content-${t}`);
-    if (t === tabName) { 
-      btn.classList.add('border-blue-600', 'text-blue-600', 'font-bold'); 
-      btn.classList.remove('border-transparent', 'text-slate-500', 'font-medium'); 
-      content.classList.remove('hidden'); 
-      content.classList.add('block'); 
-    } else { 
-      btn.classList.add('border-transparent', 'text-slate-500', 'font-medium'); 
-      btn.classList.remove('border-blue-600', 'text-blue-600', 'font-bold'); 
-      content.classList.remove('block'); 
-      content.classList.add('hidden'); 
-    }
-  });
-};
-
-window.submitDuty = async function() {
-  if (!currentActiveUid) return; 
-  
-  const sport = document.getElementById('inputDutySport').value.trim(); 
-  const role = document.getElementById('inputDutyRole').value.trim(); 
-  const event = document.getElementById('inputDutyEvent').value.trim(); 
-  const year = document.getElementById('inputDutyYear').value.trim();
-  
-  if (!sport || !role || !event || !year) return alert('⚠️ กรุณากรอกข้อมูล ชนิดกีฬา, ประเภทบุคลากร, ชื่องาน และ ปีที่ปฏิบัติงาน ให้ครบถ้วน');
-  
-  const btn = document.getElementById('btnSaveDuty'); 
-  btn.textContent = 'กำลังบันทึก...'; 
-  btn.disabled = true;
-  
-  try {
-    const response = await fetch(API_URL, { 
-      method: 'POST', 
-      body: JSON.stringify({ action: 'saveDuty', uid: currentActiveUid, sport: sport, role: role, event: event, year: year }), 
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' } 
-    });
-    const result = await response.json();
-    if(result.status === 'success') { 
-      alert('✅ บันทึกสำเร็จ'); 
-      document.getElementById('inputDutySport').value = ''; 
-      document.getElementById('inputDutyRole').value = ''; 
-      document.getElementById('inputDutyEvent').value = ''; 
-      document.getElementById('inputDutyYear').value = ''; 
-      fetchData(); 
-    } else { 
-      alert(`❌ ข้อผิดพลาด: ${result.message}`); 
-    }
-  } catch(e) { 
-    alert('❌ การเชื่อมต่อล้มเหลว'); 
-  }
-  
-  btn.textContent = 'บันทึกข้อมูล'; 
-  btn.disabled = false;
-};
-
-window.submitEval = async function() {
-  if (!currentActiveUid) return; 
-  
-  const feedback = document.getElementById('inputEvalFeedback').value.trim();
-  if (!feedback) return alert('⚠️ กรุณากรอกข้อเสนอแนะ');
-  
-  const btn = document.getElementById('btnSaveEval'); 
-  btn.textContent = 'กำลังบันทึก...'; 
-  btn.disabled = true;
-  
-  try {
-    const response = await fetch(API_URL, { 
-      method: 'POST', 
-      body: JSON.stringify({ action: 'saveEval', uid: currentActiveUid, feedback: feedback }), 
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' } 
-    });
-    const result = await response.json();
-    if(result.status === 'success') { 
-      alert('✅ บันทึกสำเร็จ'); 
-      document.getElementById('inputEvalFeedback').value = ''; 
-      fetchData(); 
-    } else { 
-      alert(`❌ ข้อผิดพลาด: ${result.message}`); 
-    }
-  } catch(e) { 
-    alert('❌ การเชื่อมต่อล้มเหลว'); 
-  }
-  
-  btn.textContent = 'บันทึกข้อเสนอแนะ'; 
-  btn.disabled = false;
-};
-
-function handleCascadingFilter(changedType) {
-  if (!globalFiltersMaster) return;
-  const yearSelect = document.getElementById('filterYear'); 
-  const courseSelect = document.getElementById('filterCourse'); 
-  const selectedYear = yearSelect.value; 
-  const selectedCourse = courseSelect.value; 
-  const relations = globalFiltersMaster.relations;
-  
-  if (changedType === 'course' && selectedCourse) { 
-    const validYears = Object.keys(relations.courseToYears[selectedCourse] || {}); 
-    if (selectedYear && !validYears.includes(selectedYear)) yearSelect.value = ''; 
-  } else if (changedType === 'year' && selectedYear) { 
-    const validCourses = Object.keys(relations.yearToCourses[selectedYear] || {}); 
-    if (selectedCourse && !validCourses.includes(selectedCourse)) courseSelect.value = ''; 
-  }
-  updateDropdownUI(); 
-}
-
-function updateDropdownUI() {
-  if (!globalFiltersMaster) return;
-  const selectedYear = document.getElementById('filterYear').value; 
-  const selectedCourse = document.getElementById('filterCourse').value; 
-  const selectedGroup = document.getElementById('filterGroup').value;
-  
-  const relations = globalFiltersMaster.relations; 
-  let availableYears = globalFiltersMaster.years; 
-  let availableCourses = globalFiltersMaster.courses; 
-  let availableGroups = globalFiltersMaster.groups;
-  
-  if (selectedCourse) availableYears = Object.keys(relations.courseToYears[selectedCourse] || {}).sort((a,b) => b-a);
-  if (selectedYear) availableCourses = Object.keys(relations.yearToCourses[selectedYear] || {}).sort();
-  
-  populateDropdown('filterYear', availableYears, selectedYear, 'ทุกปีการศึกษา'); 
-  populateDropdown('filterCourse', availableCourses, selectedCourse, 'ทุกหลักสูตร'); 
-  populateDropdown('filterGroup', availableGroups, selectedGroup, 'ทุกกลุ่มบุคลากร');
-}
-
-function populateDropdown(elementId, items, currentValue, defaultLabel) {
-  const select = document.getElementById(elementId); 
-  select.innerHTML = `<option value="">${defaultLabel}</option>`;
-  items.forEach(item => { 
-    const option = document.createElement('option'); 
-    option.value = item; 
-    option.textContent = item; 
-    select.appendChild(option); 
-  }); 
-  select.value = currentValue;
-}
-
-window.exportToExcel = function() {
-  const filterYear = document.getElementById('filterYear').value; 
-  const filterCourse = document.getElementById('filterCourse').value; 
-  let exportData = [];
-  
-  currentFilteredData.forEach(user => {
-    let userTrainings = user.trainings || []; 
-    let matchedTrainings = userTrainings.filter(t => { 
-      const matchY = filterYear === '' || String(t.year) === String(filterYear); 
-      const matchC = filterCourse === '' || String(t.course) === String(filterCourse); 
-      return matchY && matchC; 
-    });
-    
-    if (matchedTrainings.length > 0) { 
-      matchedTrainings.forEach(t => { 
-        exportData.push({ 
-          'รหัส UID': user.uid, 
-          'ชื่อ-นามสกุล': user.fullName, 
-          'กลุ่มหน่วยงาน': user.group || '-', 
-          'หน่วยงาน': user.agency, 
-          'สถานะ': user.status, 
-          'ชื่อหลักสูตร': t.course, 
-          'ปีที่อบรม': parseInt(t.year) || t.year 
-        }); 
-      }); 
-    } else if (filterYear === '' && filterCourse === '') { 
-      exportData.push({ 
-        'รหัส UID': user.uid, 
-        'ชื่อ-นามสกุล': user.fullName, 
-        'กลุ่มหน่วยงาน': user.group || '-', 
-        'หน่วยงาน': user.agency, 
-        'สถานะ': user.status, 
-        'ชื่อหลักสูตร': '-', 
-        'ปีที่อบรม': '-' 
-      }); 
-    }
-  });
-  
-  exportData.sort((a, b) => { 
-    const yearA = parseInt(a['ปีที่อบรม']) || 9999; 
-    const yearB = parseInt(b['ปีที่อบรม']) || 9999; 
-    return yearA - yearB; 
-  });
-  
-  if (exportData.length === 0) { alert('⚠️ ไม่พบข้อมูลประวัติการอบรมสำหรับเงื่อนไขนี้'); return; }
-  
-  const ws = XLSX.utils.json_to_sheet(exportData); 
-  ws['!cols'] = [{ wch: 15 }, { wch: 30 }, { wch: 25 }, { wch: 40 }, { wch: 15 }, { wch: 40 }, { wch: 15 }]; 
-  const wb = XLSX.utils.book_new(); 
-  XLSX.utils.book_append_sheet(wb, ws, "Personnel_Training_Log");
-  
-  let filename = "ข้อมูลบุคลากรกีฬา"; 
-  if (filterCourse) filename += "_" + filterCourse.replace(/\s+/g, ""); 
-  if (filterYear) filename += "_ปี" + filterYear; 
-  filename += ".xlsx"; 
-  
-  XLSX.writeFile(wb, filename);
-};
-
-window.downloadTemplate = function() {
-  const templateData = [ 
-    ["คำนำหน้า", "ชื่อ-นามสกุล", "กลุ่มหน่วยงาน", "หน่วยงาน", "สถานะ", "ชื่อหลักสูตร", "ปีที่อบรม"], 
-    ["นาย", "ทดสอบ ตัวอย่างการกรอก", "สมาคมกีฬา", "สมาคมกีฬาแห่งจังหวัดกรุงเทพมหานคร", "ปฏิบัติงาน", "TSLP", "2569"] 
-  ];
-  const ws = XLSX.utils.aoa_to_sheet(templateData); 
-  ws['!cols'] = [{wch:10}, {wch:30}, {wch:20}, {wch:40}, {wch:15}, {wch:20}, {wch:15}]; 
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Import_Template"); 
-  XLSX.writeFile(wb, "Template_นำเข้าบุคลากร.xlsx");
-};
-
 function showLoadingState() { 
   const tbody = document.getElementById('tableBody'); 
   if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-16 text-center text-blue-500 font-medium">กำลังโหลดข้อมูล...</td></tr>`; 
@@ -2100,4 +1628,12 @@ function showLoadingState() {
 function showErrorState(message) { 
   const tbody = document.getElementById('tableBody'); 
   if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-16 text-center text-red-400 font-medium">❌ ${message}</td></tr>`; 
+  
+  const elTotal = document.getElementById('stat-total');
+  const elYear = document.getElementById('stat-top-year');
+  const elCourse = document.getElementById('stat-top-course');
+  
+  if(elTotal) elTotal.textContent = 'Err';
+  if(elYear) elYear.textContent = 'Err';
+  if(elCourse) elCourse.textContent = message;
 }
