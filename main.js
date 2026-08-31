@@ -1,5 +1,5 @@
-// 👇 นำ Web App URL ชุดใหม่ล่าสุดมาใส่ตรงนี้
-const API_URL = 'https://script.google.com/macros/s/AKfycbw76H-EVG5a0Z6iyIDAcy9DUj5LjcfcLvGJ9Yxs-3CtuYL4KI50EQzqU_cG8CC3V3rR/exec';
+// 👇 นำ Web App URL ชุดใหม่ล่าสุดมาใส่ตรงนี้ (ห้ามลืมเปลี่ยนเด็ดขาด)
+const API_URL = 'https://script.google.com/macros/s/AKfycbw--515Ocaod1h_wkMMc8dfiUumw4XD7anSkhWcM4coEXQJAVjGSKORwIMGLgq9t6Fi/exec';
 
 let cachedPersonnelData = [];
 let cachedProjectDetails = {}; 
@@ -602,7 +602,7 @@ async function fetchData() {
       showErrorState(result.message); 
     }
   } catch (error) { 
-    showErrorState('การเชื่อมต่อกับฐานข้อมูลขัดข้อง'); 
+    showErrorState('การเชื่อมต่อกับฐานข้อมูลขัดข้อง (กรุณาเช็ค API URL)'); 
   }
 }
 
@@ -644,7 +644,6 @@ function drawCharts(allYears, allGroups) {
     return count; 
   });
   
-  // 📌 อัปเกรด: แก้บั๊ก Infinity (ป้องกันเบราว์เซอร์ค้างหากยังไม่มีข้อมูล)
   let maxVal = Math.max(...yearData);
   if (!isFinite(maxVal) || maxVal === 0) maxVal = 10;
   
@@ -1296,7 +1295,7 @@ function formatThaiName(rawPrefix, rawName) {
   
   if (prefix === "น.ส.") prefix = "นางสาว"; 
   name = name.split(/\s+/).join(' ');
-  return { prefix: prefix, name: name, fullName: name };
+  return { prefix: prefix, fullName: name };
 }
 
 function isSmartMatch(importName, existingName) {
