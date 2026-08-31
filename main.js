@@ -1,4 +1,4 @@
-const API_URL = 'https://script.google.com/macros/s/AKfycbw--515Ocaod1h_wkMMc8dfiUumw4XD7anSkhWcM4coEXQJAVjGSKORwIMGLgq9t6Fi/exec';
+const API_URL = 'https://docs.google.com/spreadsheets/d/1eD6dCQCucoCLUo_UlfyfrMXGVLYRYKPEFxJm8rMNXWU/edit?usp=sharing';
 
 let cachedPersonnelData = [];
 let cachedProjectDetails = {}; 
