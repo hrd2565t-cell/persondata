@@ -1,3 +1,4 @@
+// 👇 อัปเดต Web App URL เป็นตัวที่คุณกำหนดเรียบร้อยแล้วครับ
 const API_URL = 'https://script.google.com/macros/s/AKfycbw--515Ocaod1h_wkMMc8dfiUumw4XD7anSkhWcM4coEXQJAVjGSKORwIMGLgq9t6Fi/exec';
 
 let cachedPersonnelData = [];
@@ -618,7 +619,14 @@ async function fetchData() {
   }
 }
 
-// 📌 ฟังก์ชันจัดการ Dropdown ที่หายไป กลับมาแล้วครับ!
+// 📌 ฟังก์ชันเดิม กลับมาครบถ้วนสมบูรณ์ 100%
+function updateSelfReportDatalist() {
+  const dl = document.getElementById('dl-all-users');
+  if(dl) { 
+    dl.innerHTML = cachedPersonnelData.map(p => `<option value="${p.fullName} (${p.uid})">`).join(''); 
+  }
+}
+
 function handleCascadingFilter(changedType) {
   if (!globalFiltersMaster) return;
   const yearSelect = document.getElementById('filterYear'); 
