@@ -1,3 +1,4 @@
+// 👇 ฝัง URL เว็บแอปของคุณเรียบร้อยแล้วครับ
 const API_URL = 'https://script.google.com/macros/s/AKfycbw--515Ocaod1h_wkMMc8dfiUumw4XD7anSkhWcM4coEXQJAVjGSKORwIMGLgq9t6Fi/exec';
 
 let cachedPersonnelData = [];
@@ -562,7 +563,7 @@ window.switchImportMode = function(mode) {
   }
 };
 
-// 📌 อัปเกรด: ฟังก์ชันดึงข้อมูลที่มีระบบจับ Error แบบแม่นยำ (หาสาเหตุที่แท้จริงได้ทันที)
+// 📌 ฟังก์ชัน fetchData ถูกออกแบบให้รับมือกับปัญหา CORS ได้อย่างปลอดภัย
 async function fetchData() {
   const keyword = document.getElementById('searchInput').value.trim(); 
   const year = document.getElementById('filterYear').value; 
@@ -580,7 +581,7 @@ async function fetchData() {
     } catch (parseError) {
       console.error("API Response Error:", text);
       if(text.includes('<html')) {
-         throw new Error("Google บล็อกการเชื่อมต่อ (เช็คสิทธิ์การเข้าถึงว่าตั้งเป็น 'ทุกคน' หรือยัง)");
+         throw new Error("Google บล็อกการเชื่อมต่อ (กรุณาเช็คสิทธิ์ตอน Deploy เป็น 'ทุกคน' หรือยัง)");
       } else {
          throw new Error("ระบบหลังบ้านส่งข้อมูลมาผิดรูปแบบ");
       }
