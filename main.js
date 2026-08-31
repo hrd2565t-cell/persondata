@@ -72,7 +72,6 @@ window.updatePersonnelStatus = async function(uid, newStatus, selectElement) {
   selectElement.disabled = false; selectElement.classList.remove('opacity-50', 'animate-pulse');
 };
 
-// 📌 ฟังก์ชันจัดการเปิดหน้าต่างโปรไฟล์บุคลากร (สมบูรณ์ 100%)
 window.viewProfile = function(uid) {
   currentActiveUid = uid; 
   const person = cachedPersonnelData.find(p => p.uid === uid);
@@ -83,7 +82,6 @@ window.viewProfile = function(uid) {
   document.getElementById('profileAgency').textContent = `${person.agency} (${person.status})`; 
   document.getElementById('profileGroup').textContent = person.group || 'ไม่ระบุกลุ่ม'; 
 
-  // Smart Default: ดึงข้อมูลปฏิบัติหน้าที่ล่าสุดมาใส่รอไว้ในฟอร์มเพิ่มข้อมูลใหม่
   if (person.duties && person.duties.length > 0) {
     const lastDuty = person.duties[person.duties.length - 1];
     const spInput = document.getElementById('inputDutySport');
@@ -129,7 +127,6 @@ window.viewProfile = function(uid) {
         }
       }
       
-      // ปุ่มแก้ไขประวัติ (Edit History)
       let editBtnHtml = `
         <button onclick="editDutyRecord('${d.rowIndex}', '${d.sport}', '${d.role}', '${d.event}', '${d.year}')" class="text-[11px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-md transition flex items-center gap-1">
           ✏️ แก้ไข
@@ -175,14 +172,12 @@ window.viewProfile = function(uid) {
   switchTab('general');
 };
 
-// 📌 ฟังก์ชันดึงข้อมูลเก่ามาใส่ฟอร์มเพื่อแก้ไข (Edit History)
 window.editDutyRecord = function(rowIndex, sport, role, event, year) {
   document.getElementById('inputDutySport').value = sport !== 'undefined' ? sport : '';
   document.getElementById('inputDutyRole').value = role !== 'undefined' ? role : '';
   document.getElementById('inputDutyEvent').value = event !== 'undefined' ? event : '';
   document.getElementById('inputDutyYear').value = year !== 'undefined' ? year : '';
   
-  // สร้าง hidden input สำหรับเก็บ rowIndex เพื่อบอกหลังบ้านว่าเป็นการอัปเดตแถวเดิม
   let rowInput = document.getElementById('inputDutyRowIndex');
   if(!rowInput) {
     rowInput = document.createElement('input');
@@ -192,13 +187,11 @@ window.editDutyRecord = function(rowIndex, sport, role, event, year) {
   }
   rowInput.value = rowIndex;
   
-  // เปลี่ยนปุ่มเป็นโหมดแก้ไข
   const btn = document.getElementById('btnSaveDuty');
   btn.textContent = '💾 บันทึกการแก้ไข (Update)';
   btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
   btn.classList.add('bg-amber-600', 'hover:bg-amber-700');
   
-  // สลับไปแท็บปฏิบัติหน้าที่อัตโนมัติ
   switchTab('duty');
   window.showToast('กำลังอยู่ในโหมดแก้ไขข้อมูลเดิม');
 };
@@ -245,10 +238,9 @@ window.submitDuty = async function() {
     const result = await response.json();
     if(result.status === 'success') { 
       alert('✅ ' + result.message); 
-      document.getElementById('inputDutySport.value') = ''; document.getElementById('inputDutyRole').value = ''; document.getElementById('inputDutyEvent').value = ''; document.getElementById('inputDutyYear').value = ''; 
+      document.getElementById('inputDutySport').value = ''; document.getElementById('inputDutyRole').value = ''; document.getElementById('inputDutyEvent').value = ''; document.getElementById('inputDutyYear').value = ''; 
       if(rowInput) rowInput.value = '';
       
-      // คืนค่าปุ่มกลับเป็นโหมดปกติ
       btn.textContent = 'บันทึกข้อมูล';
       btn.classList.remove('bg-amber-600', 'hover:bg-amber-700');
       btn.classList.add('bg-blue-600', 'hover:bg-blue-700');
@@ -680,13 +672,47 @@ window.renderSrForms = function() {
   dynamicForms.innerHTML = html; 
 };
 
+// 📌 ฟังก์ชันบีบอัดรูปภาพด้วย Canvas (แก้ไขปัญหา Google Apps Script ขีดจำกัด Payload)
 function getBase64(file) { 
   return new Promise((resolve, reject) => { 
-    if(file.size > 5 * 1024 * 1024) { reject(new Error('ขนาดไฟล์เกิน 5MB')); return; } 
+    if(file.size > 10 * 1024 * 1024) { reject(new Error('ขนาดไฟล์ต้องไม่เกิน 10MB')); return; } 
+    
     const reader = new FileReader(); 
     reader.readAsDataURL(file); 
-    reader.onload = () => resolve(reader.result.split(',')[1]); 
-    reader.onerror = error => reject(error); 
+    reader.onload = (event) => { 
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 800;
+        const MAX_HEIGHT = 800;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // ย่อคุณภาพให้เหลือ 75% เป็น JPEG เพื่อส่งเข้า Google Drive ได้ลื่นไหล
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
+        resolve(dataUrl.split(',')[1]);
+      };
+      img.onerror = (error) => reject(error);
+    };
+    reader.onerror = (error) => reject(error); 
   }); 
 }
 
