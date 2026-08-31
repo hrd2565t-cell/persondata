@@ -1,5 +1,4 @@
-// 👇 URL ปัจจุบันของคุณ (ไม่ต้องแก้แล้วครับ)
-const API_URL = 'https://script.google.com/macros/s/AKfycbw--515Ocaod1h_wkMMc8dfiUumw4XD7anSkhWcM4coEXQJAVjGSKORwIMGLgq9t6Fi/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbw76H-EVG5a0Z6iyIDAcy9DUj5LjcfcLvGJ9Yxs-3CtuYL4KI50EQzqU_cG8CC3V3rR/exec';
 
 let cachedPersonnelData = [];
 let cachedProjectDetails = {}; 
@@ -73,7 +72,6 @@ window.updatePersonnelStatus = async function(uid, newStatus, selectElement) {
   selectElement.disabled = false; selectElement.classList.remove('opacity-50', 'animate-pulse');
 };
 
-// 📌 ฟังก์ชันจัดการหน้าโปรไฟล์ (กลับมาแล้ว!)
 window.viewProfile = function(uid) {
   currentActiveUid = uid; 
   const person = cachedPersonnelData.find(p => p.uid === uid);
@@ -211,7 +209,6 @@ window.submitEval = async function() {
   btn.textContent = 'บันทึกข้อเสนอแนะ'; btn.disabled = false;
 };
 
-// 📌 ฟังก์ชันจัดการโครงการ (กลับมาแล้ว!)
 window.loadProjectData = function(course) {
   const form = document.getElementById('pdFormContainer');
   if(!course) { form.classList.add('hidden'); return; }
@@ -311,7 +308,6 @@ window.submitProjectDetails = async function() {
   btn.textContent = 'บันทึกข้อมูลโครงการทั้งหมด'; btn.disabled = false;
 };
 
-// 📌 ฟังก์ชันตั้งค่า Admin (กลับมาแล้ว!)
 window.saveAdminSettings = async function() {
   const yearInput = document.getElementById('adminActiveYear').value.trim();
   if(!yearInput) return alert('⚠️ กรุณาระบุปี');
@@ -346,7 +342,6 @@ window.saveAdminPin = async function() {
   btn.textContent = 'เปลี่ยนรหัส'; btn.disabled = false;
 };
 
-// 📌 ฟังก์ชัน Export Excel (กลับมาแล้ว!)
 window.exportToExcel = function() {
   const filterYear = document.getElementById('filterYear').value; const filterCourse = document.getElementById('filterCourse').value; let exportData = [];
   currentFilteredData.forEach(user => {
@@ -370,10 +365,6 @@ window.downloadTemplate = function() {
   ws['!cols'] = [{wch:10}, {wch:30}, {wch:20}, {wch:40}, {wch:15}, {wch:20}, {wch:15}]; const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Import_Template"); XLSX.writeFile(wb, "Template_นำเข้าบุคลากร.xlsx");
 };
-
-// ----------------------------------------------------
-// โค้ดส่วนอื่นๆ ที่ทำงานได้ปกติ
-// ----------------------------------------------------
 
 window.openEvidenceModal = function(url) {
   if(!url) return;
@@ -624,6 +615,17 @@ window.renderSrForms = function() {
   
   dynamicForms.innerHTML = html; 
 };
+
+// 📌 ฟังก์ชันอ่านไฟล์รูปเพื่ออัปโหลด (กลับมาแล้ว!)
+function getBase64(file) { 
+  return new Promise((resolve, reject) => { 
+    if(file.size > 5 * 1024 * 1024) { reject(new Error('ขนาดไฟล์เกิน 5MB')); return; } 
+    const reader = new FileReader(); 
+    reader.readAsDataURL(file); 
+    reader.onload = () => resolve(reader.result.split(',')[1]); 
+    reader.onerror = error => reject(error); 
+  }); 
+}
 
 window.submitSelfReport = async function() {
   syncSrFormState(); 
@@ -921,7 +923,6 @@ async function fetchData() {
   }
 }
 
-// 📌 กลับมาแล้ว!
 function updateSelfReportDatalist() {
   const dl = document.getElementById('dl-all-users');
   if(dl) { 
