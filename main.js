@@ -301,7 +301,6 @@ window.saveAdminSettings = async function() {
   btn.disabled = false;
 };
 
-// 📌 ฟังก์ชันใหม่: เปลี่ยนรหัส PIN สำหรับ Admin
 window.saveAdminPin = async function() {
   const pinInput = document.getElementById('adminPinSetting').value.trim();
   if(!pinInput || pinInput.length !== 6 || isNaN(pinInput)) {
@@ -620,9 +619,7 @@ window.checkOTP = function() {
   inputs.forEach(input => pin += input.value); 
   
   if(pin.length === 6) { 
-      // 📌 เช็คความถูกต้องจาก globalSettings.adminPin ที่ดึงมาจากฐานข้อมูล
       const correctPin = globalSettings.adminPin || "336699";
-      
       if(pin === correctPin) { 
           isAdmin = true; 
           document.body.classList.add('is-admin'); 
@@ -747,7 +744,6 @@ async function fetchData() {
         globalSettings = result.data.settings; 
         document.getElementById('adminActiveYear').value = globalSettings.activeReportYear; 
         document.getElementById('srActiveYear').value = globalSettings.activeReportYear; 
-        // ไม่ต้องแสดง adminPin ลงใน input เพื่อความปลอดภัย
       }
       if(result.data.projectDetails) { 
         cachedProjectDetails = result.data.projectDetails; 
@@ -1755,6 +1751,39 @@ window.confirmImport = async function() {
   btn.disabled = false;
 };
 
+// 📌 ฟังก์ชันใหม่: แปลงลิงก์ Drive และเปิดหน้าต่าง Evidence Viewer
+window.openEvidenceModal = function(url) {
+  if(!url) return;
+  
+  // แปลงลิงก์ /view ให้กลายเป็น /preview อัตโนมัติ เพื่อป้องกันการบล็อก iframe
+  let previewUrl = url;
+  if (url.includes('drive.google.com/file/d/')) {
+    const fileIdMatch = url.match(/\/d\/(.*?)\//);
+    if (fileIdMatch && fileIdMatch[1]) {
+      previewUrl = `https://drive.google.com/file/d/${fileIdMatch[1]}/preview`;
+    }
+  }
+  
+  const modal = document.getElementById('evidenceModal');
+  const iframe = document.getElementById('evidenceIframe');
+  const loading = document.getElementById('evidenceLoading');
+  
+  loading.classList.remove('hidden');
+  iframe.classList.add('hidden');
+  
+  modal.classList.remove('hidden');
+  iframe.src = previewUrl;
+};
+
+// 📌 ฟังก์ชันใหม่: ปิดหน้าต่าง Evidence Viewer
+window.closeEvidenceModal = function() {
+  const modal = document.getElementById('evidenceModal');
+  const iframe = document.getElementById('evidenceIframe');
+  
+  modal.classList.add('hidden');
+  iframe.src = ''; // เคลียร์ SRC เพื่อประหยัดหน่วยความจำ
+};
+
 window.viewProfile = function(uid) {
   currentActiveUid = uid; 
   const person = cachedPersonnelData.find(p => p.uid === uid);
@@ -1780,7 +1809,25 @@ window.viewProfile = function(uid) {
   
   const dutyEl = document.getElementById('profileDuties');
   if (person.duties && person.duties.length > 0) {
-    dutyEl.innerHTML = person.duties.map(d => `
+    dutyEl.innerHTML = person.duties.map(d => {
+      // 📌 อัปเกรด: สร้างปุ่มกดดูรูปภาพหลักฐาน (ถ้ามี)
+      let evidenceHtml = '';
+      if (d.images) {
+        const links = d.images.split(',').map(l => l.trim()).filter(l => l);
+        if (links.length > 0) {
+          evidenceHtml = `<div class="mt-3 flex flex-wrap gap-2 pt-3 border-t border-slate-100">`;
+          links.forEach((link, idx) => {
+            evidenceHtml += `
+            <button onclick="openEvidenceModal('${link}')" class="text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold py-1.5 px-3 rounded-lg border border-blue-200 transition-colors flex items-center gap-1.5 shadow-sm">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg> 
+              หลักฐานชิ้นที่ ${idx + 1}
+            </button>`;
+          });
+          evidenceHtml += `</div>`;
+        }
+      }
+      
+      return `
       <li class="bg-white p-3.5 rounded-xl border border-slate-200 flex flex-col gap-1 shadow-sm">
         <div class="flex justify-between items-start">
           <span class="text-sm font-bold text-slate-800">${d.sport}</span>
@@ -1791,7 +1838,9 @@ window.viewProfile = function(uid) {
           <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg> 
           ${d.event || 'ไม่ระบุชื่องาน'}
         </span>
-      </li>`).join('');
+        ${evidenceHtml}
+      </li>`;
+    }).join('');
   } else { 
     dutyEl.innerHTML = `<div class="text-sm text-slate-500">ยังไม่มีประวัติลงพื้นที่</div>`; 
   }
