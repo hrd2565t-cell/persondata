@@ -25,15 +25,13 @@
     body.is-admin .admin-only { display: flex; } 
     body.is-admin .admin-only-block { display: block; } 
     
-    /* 📌 ระบบ Print CSS สำหรับขนาด A4 (ฉบับสมบูรณ์) */
+    /* 📌 ระบบ Print CSS สำหรับขนาด A4 */
     @media print {
       @page { size: A4; margin: 12mm; }
       body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; background: white !important; }
       
-      /* ซ่อนโครงสร้างเว็บทั้งหมด ยกเว้น Modal ที่กำลังเปิดอยู่ */
       body > * { display: none !important; }
       
-      /* นำ Modal ขึ้นมาแสดงแทน Body ดั้งเดิม */
       body > .print-modal-active { 
         display: block !important; 
         position: static !important; 
@@ -65,7 +63,6 @@
       
       .print-hide { display: none !important; }
       
-      /* บังคับตัดขึ้นหน้าใหม่ */
       .print-page-break { 
         page-break-before: always !important; 
         break-before: page !important; 
@@ -123,7 +120,7 @@
           <p class="text-sm text-slate-500 mt-1">ติดตามเป้าหมาย อัตราการคงอยู่ (Retention) และประเมินผลสัมฤทธิ์โครงการ</p>
         </div>
         <button onclick="openMatrixReport()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-md transition-colors flex items-center gap-2">
-          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
           พิมพ์ตารางสรุปไขว้ (Matrix Report)
         </button>
       </div>
@@ -432,7 +429,7 @@
       </div>
     </div>
 
-    <!-- 📌 PAGE 4: Import Data & Settings (อัปเกรด Phase 1 - เพิ่มการตั้งรหัสผ่าน) -->
+    <!-- PAGE 4: Import Data & Settings -->
     <div id="page-import" class="page-section hidden">
       <div class="max-w-5xl mx-auto mt-8">
         
@@ -491,8 +488,6 @@
           <div id="importModeSettings" class="hidden">
             <h2 class="text-lg font-bold text-slate-800 mb-4 border-l-4 border-blue-600 pl-3">ตั้งค่าระบบ (System Settings)</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              
-              <!-- กล่องที่ 1: ตั้งค่าปีประเมินผล -->
               <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200">
                 <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase">ปีที่เปิดรับรายงานปฏิบัติหน้าที่</label>
                 <div class="flex gap-3">
@@ -502,7 +497,6 @@
                 <p class="text-xs text-slate-400 mt-3">ระบบจะล็อกปีในหน้าต่างรายงานฝั่งผู้ใช้ให้ตรงกับช่องนี้ เพื่อป้องกันสถิติเพี้ยน</p>
               </div>
 
-              <!-- กล่องที่ 2: ตั้งรหัสผ่าน Admin -->
               <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200">
                 <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase">รหัสผ่านสำหรับผู้ดูแลระบบ (Admin PIN)</label>
                 <div class="flex gap-3">
@@ -651,7 +645,6 @@
             <div id="reportImplementation"></div>
           </div>
           
-          <!-- 📌 บังคับตัดหน้าใหม่เสมอเวลา Print -->
           <div class="print-page-break pt-8 print:pt-0">
             <h3 class="text-lg font-bold border-l-4 border-blue-600 pl-3 mb-5" id="titleExecSec">4. บทสรุปผู้บริหารและการวิเคราะห์ภาพรวม (Executive Summary)</h3>
             <div id="reportExecutiveSummary"></div>
@@ -736,6 +729,29 @@
              </div>
              <div class="pt-2 space-y-3" id="profileEvals"></div>
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🟢 Modal: Evidence Viewer (เพิ่มใหม่ Phase 2) -->
+  <div id="evidenceModal" class="fixed inset-0 z-[120] hidden bg-slate-900/80 backdrop-blur-sm overflow-y-auto">
+    <div class="min-h-screen flex items-center justify-center p-4">
+      <div class="bg-white w-full max-w-4xl rounded-2xl shadow-2xl relative overflow-hidden flex flex-col h-[85vh]">
+        <div class="bg-slate-50 border-b border-slate-200 px-6 py-4 flex justify-between items-center sticky top-0 z-10">
+          <h2 class="text-slate-800 font-bold text-lg flex items-center gap-2">
+            <svg class="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+            หลักฐานการปฏิบัติหน้าที่
+          </h2>
+          <button onclick="closeEvidenceModal()" class="px-4 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100 transition">ปิดหน้าต่าง</button>
+        </div>
+        <div class="flex-1 bg-slate-200 p-4 md:p-6 relative">
+          <div id="evidenceLoading" class="absolute inset-0 flex flex-col items-center justify-center text-slate-500 z-0">
+            <svg class="animate-spin w-10 h-10 mb-3 text-blue-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            <p class="font-medium text-sm">กำลังเชื่อมต่อ Google Drive และแปลงไฟล์...</p>
+          </div>
+          <!-- iframe สำหรับแสดงผล Native Preview ของ Google Drive -->
+          <iframe id="evidenceIframe" class="w-full h-full border-0 rounded-xl shadow-inner relative z-10 hidden bg-white" src="" onload="document.getElementById('evidenceLoading').classList.add('hidden'); this.classList.remove('hidden');"></iframe>
         </div>
       </div>
     </div>
