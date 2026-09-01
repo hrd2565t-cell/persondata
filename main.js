@@ -78,11 +78,67 @@ window.updatePersonnelStatus = async function(uid, newStatus, selectElement) {
   selectElement.disabled = false; selectElement.classList.remove('opacity-50', 'animate-pulse');
 };
 
-// 📌 แก้ไขฟังก์ชัน: รองรับการดาวน์โหลดไฟล์ Base64 เป็น PDF ทันที
+// 📌 ฟังก์ชันเปิดหน้าต่างแสดงตัวอย่าง (Preview Modal) สำหรับ PDF
+window.showPdfPreviewModal = function(blob, filename) {
+  let modal = document.getElementById('pdfPreviewModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'pdfPreviewModal';
+    modal.className = 'fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-sm hidden transition-opacity';
+    modal.innerHTML = `
+      <div class="bg-white rounded-3xl shadow-2xl w-11/12 md:w-3/4 lg:w-1/2 h-[85vh] flex flex-col overflow-hidden transform scale-100">
+        <div class="flex justify-between items-center p-5 border-b border-slate-200 bg-slate-50/50">
+          <h3 class="font-extrabold text-slate-800 text-lg flex items-center gap-2.5">
+            <svg class="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 6H7a2 2 0 00-2 2v11a2 2 0 002 2z"></path></svg>
+            ตรวจสอบความถูกต้องของบัตร
+          </h3>
+          <button onclick="closePdfPreviewModal()" class="text-slate-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-full transition-colors">
+            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+          </button>
+        </div>
+        <div class="flex-1 bg-slate-200/50 p-4 md:p-6">
+          <iframe id="pdfPreviewIframe" class="w-full h-full rounded-xl border border-slate-300 shadow-inner bg-white" src=""></iframe>
+        </div>
+        <div class="p-5 border-t border-slate-200 bg-white flex justify-end gap-3">
+          <button onclick="closePdfPreviewModal()" class="px-6 py-3 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">ยกเลิก</button>
+          <button id="btnDownloadPdf" class="px-6 py-3 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-md hover:shadow-lg">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+            ดาวน์โหลดไฟล์ PDF
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+
+  const blobUrl = window.URL.createObjectURL(blob);
+  document.getElementById('pdfPreviewIframe').src = blobUrl;
+  modal.classList.remove('hidden');
+
+  const btnDownload = document.getElementById('btnDownloadPdf');
+  btnDownload.onclick = function() {
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.showToast('✅ ดาวน์โหลดเอกสารเรียบร้อยแล้ว');
+  };
+};
+
+window.closePdfPreviewModal = function() {
+  const modal = document.getElementById('pdfPreviewModal');
+  if (modal) {
+    modal.classList.add('hidden');
+    document.getElementById('pdfPreviewIframe').src = '';
+  }
+};
+
 window.generatePDF = async function(uid, fullName, course, year, btnId) {
   const btn = document.getElementById(btnId);
   const originalHtml = btn.innerHTML;
-  btn.innerHTML = `<svg class="animate-spin w-3.5 h-3.5 mr-1" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> รอสักครู่...`;
+  btn.innerHTML = `<svg class="animate-spin w-3.5 h-3.5 mr-1" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> กำลังสร้างบัตร...`;
   btn.disabled = true;
 
   try {
@@ -91,7 +147,6 @@ window.generatePDF = async function(uid, fullName, course, year, btnId) {
     const result = await response.json();
 
     if (result.status === 'success' && result.base64) {
-      // แปลงข้อมูล Base64 เป็น Blob
       const byteCharacters = atob(result.base64);
       const byteNumbers = new Array(byteCharacters.length);
       for (let i = 0; i < byteCharacters.length; i++) {
@@ -100,15 +155,9 @@ window.generatePDF = async function(uid, fullName, course, year, btnId) {
       const byteArray = new Uint8Array(byteNumbers);
       const blob = new Blob([byteArray], { type: 'application/pdf' });
 
-      // สร้างลิงก์ชั่วคราวและสั่งดาวน์โหลดไฟล์ลงเครื่อง
-      const link = document.createElement('a');
-      link.href = window.URL.createObjectURL(blob);
-      link.download = result.filename || `ID_Card_${uid}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // 📌 เปิดหน้าต่าง Preview แทนการดาวน์โหลดทันที
+      window.showPdfPreviewModal(blob, result.filename || `ID_Card_${uid}.pdf`);
       
-      window.showToast('✅ ดาวน์โหลดเอกสารเรียบร้อยแล้ว');
     } else {
       alert('❌ เกิดข้อผิดพลาด: ' + (result.message || 'ไม่พบข้อมูลไฟล์'));
     }
