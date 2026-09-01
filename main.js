@@ -22,12 +22,12 @@ let currentReportCourseBase64 = null;
 function utf8ToBase64(str) { return btoa(unescape(encodeURIComponent(str))); }
 function base64ToUtf8(str) { return decodeURIComponent(escape(atob(str))); }
 
-// 📌 ฟังก์ชันใหม่: แปลงลิงก์ Google Drive ให้อ่านเป็นรูปภาพตรงๆ ได้
+// 📌 แก้ไขฟังก์ชัน: เปลี่ยนโครงสร้างลิงก์ไปใช้ Image CDN ของ Google ที่อนุญาตให้แสดงผลได้ 100%
 function getDirectDriveImageUrl(url) {
   if (!url) return '';
   const match = url.match(/\/d\/(.*?)\//);
   if (match && match[1]) {
-    return `https://drive.google.com/uc?export=view&id=${match[1]}`;
+    return `https://lh3.googleusercontent.com/d/${match[1]}`;
   }
   return url; 
 }
@@ -645,7 +645,6 @@ window.renderSrForms = function() {
       let keepImagesValue = '';
       let oldImagesPreview = '';
       
-      // 📌 ระบบแปลงและโชว์ Preview รูปเดิม (แก้ไขแล้ว)
       if (form.data && form.data.images) { 
          let imgs = form.data.images.split(',').map(s=>s.trim()).filter(s=>s);
          keepImagesValue = form.data.images;
@@ -653,7 +652,7 @@ window.renderSrForms = function() {
              imageAlert = `<div class="mt-2 text-xs font-semibold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">✅ พบรูปภาพเดิมที่เคยอัปโหลดไว้ หากต้องการเปลี่ยนสามารถกดกากบาท (X) ลบทิ้งได้ครับ</div>`;
              oldImagesPreview = `<div class="mt-3 flex gap-3 flex-wrap" id="oldImages_${i}">`;
              imgs.forEach((imgUrl, imgIdx) => {
-                 let displayUrl = getDirectDriveImageUrl(imgUrl); // เรียกใช้ฟังก์ชันแปลงลิงก์
+                 let displayUrl = getDirectDriveImageUrl(imgUrl); // เรียกใช้ฟังก์ชันแปลงลิงก์ Google Photos
                  oldImagesPreview += `
                  <div class="relative inline-block" id="oldImgContainer_${i}_${imgIdx}">
                      <img src="${displayUrl}" class="h-24 w-24 object-cover rounded-lg border border-slate-300 shadow-sm">
