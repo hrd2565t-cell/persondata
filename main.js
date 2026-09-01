@@ -78,6 +78,7 @@ window.updatePersonnelStatus = async function(uid, newStatus, selectElement) {
   selectElement.disabled = false; selectElement.classList.remove('opacity-50', 'animate-pulse');
 };
 
+// 📌 แก้ไขฟังก์ชัน: รองรับการดาวน์โหลดไฟล์ Base64 เป็น PDF ทันที
 window.generatePDF = async function(uid, fullName, course, year, btnId) {
   const btn = document.getElementById(btnId);
   const originalHtml = btn.innerHTML;
@@ -89,10 +90,27 @@ window.generatePDF = async function(uid, fullName, course, year, btnId) {
     const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
     const result = await response.json();
 
-    if (result.status === 'success') {
-      window.open(result.url, '_blank'); 
+    if (result.status === 'success' && result.base64) {
+      // แปลงข้อมูล Base64 เป็น Blob
+      const byteCharacters = atob(result.base64);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'application/pdf' });
+
+      // สร้างลิงก์ชั่วคราวและสั่งดาวน์โหลดไฟล์ลงเครื่อง
+      const link = document.createElement('a');
+      link.href = window.URL.createObjectURL(blob);
+      link.download = result.filename || `ID_Card_${uid}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      window.showToast('✅ ดาวน์โหลดเอกสารเรียบร้อยแล้ว');
     } else {
-      alert('❌ เกิดข้อผิดพลาด: ' + result.message);
+      alert('❌ เกิดข้อผิดพลาด: ' + (result.message || 'ไม่พบข้อมูลไฟล์'));
     }
   } catch (err) {
     alert('❌ การเชื่อมต่อล้มเหลว หรือใช้เวลาประมวลผลนานเกินไป');
@@ -623,7 +641,6 @@ window.removeOldImage = function(formIdx, imgIdx, urlToRemove) {
   }
 };
 
-// 📌 อัปเดตฟังก์ชันเพื่อแยกการแสดงผล Preview ของรูปประจำตัว ออกจากรูปหลักฐาน
 window.renderSrForms = function() {
   const dynamicForms = document.getElementById('srDynamicForms');
   let html = '';
@@ -684,7 +701,6 @@ window.renderSrForms = function() {
          if(imgs.length > 0) {
              imageAlert = `<div class="mt-2 text-xs font-semibold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">✅ พบรูปภาพเดิมที่เคยอัปโหลดไว้ หากต้องการเปลี่ยนสามารถกดกากบาท (X) ลบทิ้งได้ครับ</div>`;
              
-             // 📌 แยกภาพที่ 1 ไปแสดงตรง Profile Picture
              let profileUrl = imgs[0];
              let displayProfileUrl = getDirectDriveImageUrl(profileUrl);
              oldProfilePreview = `
@@ -693,7 +709,6 @@ window.renderSrForms = function() {
                  <button type="button" onclick="removeOldImage(${i}, 0, '${profileUrl}')" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold hover:bg-red-600 shadow-md transition">X</button>
              </div>`;
 
-             // 📌 นำภาพที่ 2 และ 3 (ถ้ามี) ไปแสดงตรง Evidence Pictures
              if (imgs.length > 1) {
                  oldEvidencePreview = `<div class="mt-3 flex gap-3 flex-wrap" id="oldImages_${i}">`;
                  for(let imgIdx = 1; imgIdx < imgs.length; imgIdx++) {
