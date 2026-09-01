@@ -693,18 +693,18 @@ window.previewImage = function(input, imgId) {
   }
 };
 
-window.removeOldImage = function(formIdx, imgIdx, urlToRemove) {
-  const container = document.getElementById(`oldImgContainer_${formIdx}_${imgIdx}`);
+// 📌 อัปเดตฟังก์ชันลบรูปภาพเก่า ให้สอดคล้องกับระบบ 3 ตะกร้าที่แยกกัน
+window.removeOldImage = function(formIdx, slotNum) {
+  const container = document.getElementById(`oldImgContainer_${formIdx}_${slotNum-1}`);
   if(container) container.remove();
   
-  const inputKeep = document.getElementById(`keepImages_${formIdx}`);
+  const inputKeep = document.getElementById(`keepImg${slotNum}_${formIdx}`);
   if(inputKeep) {
-      let currentUrls = inputKeep.value.split(',').map(s=>s.trim()).filter(s=>s);
-      currentUrls = currentUrls.filter(u => u !== urlToRemove);
-      inputKeep.value = currentUrls.join(',');
+      inputKeep.value = '';
   }
 };
 
+// 📌 อัปเดตระบบ Preview ฟอร์ม เพื่อรองรับระบบล็อกตำแหน่งรูป 3 ตะกร้า
 window.renderSrForms = function() {
   const dynamicForms = document.getElementById('srDynamicForms');
   let html = '';
@@ -755,36 +755,49 @@ window.renderSrForms = function() {
       const provOptions = '<option value="">-- เลือกจังหวัด / ต่างประเทศ --</option>' + provinces.map(p => `<option value="${p}" ${d.province === p ? 'selected' : ''}>${p}</option>`).join('');
       
       let imageAlert = '';
-      let keepImagesValue = '';
+      let keepImg1Value = '';
+      let keepImg2Value = '';
+      let keepImg3Value = '';
+      
       let oldProfilePreview = '';
-      let oldEvidencePreview = '';
+      let oldEvidence1Preview = '';
+      let oldEvidence2Preview = '';
       
       if (form.data && form.data.images) { 
-         let imgs = form.data.images.split(',').map(s=>s.trim()).filter(s=>s);
-         keepImagesValue = form.data.images;
-         if(imgs.length > 0) {
+         let imgs = form.data.images.split(',').map(s=>s.trim());
+         
+         keepImg1Value = (imgs[0] && imgs[0] !== '') ? imgs[0] : '';
+         keepImg2Value = (imgs[1] && imgs[1] !== '') ? imgs[1] : '';
+         keepImg3Value = (imgs[2] && imgs[2] !== '') ? imgs[2] : '';
+
+         if(keepImg1Value || keepImg2Value || keepImg3Value) {
              imageAlert = `<div class="mt-2 text-xs font-semibold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">✅ พบรูปภาพเดิมที่เคยอัปโหลดไว้ หากต้องการเปลี่ยนสามารถกดกากบาท (X) ลบทิ้งได้ครับ</div>`;
              
-             let profileUrl = imgs[0];
-             let displayProfileUrl = getDirectDriveImageUrl(profileUrl);
-             oldProfilePreview = `
-             <div class="relative inline-block mt-3" id="oldImgContainer_${i}_0">
-                 <img src="${displayProfileUrl}" class="h-32 w-28 object-cover rounded-lg border border-slate-300 shadow-sm">
-                 <button type="button" onclick="removeOldImage(${i}, 0, '${profileUrl}')" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold hover:bg-red-600 shadow-md transition">X</button>
-             </div>`;
-
-             if (imgs.length > 1) {
-                 oldEvidencePreview = `<div class="mt-3 flex gap-3 flex-wrap" id="oldImages_${i}">`;
-                 for(let imgIdx = 1; imgIdx < imgs.length; imgIdx++) {
-                     let evUrl = imgs[imgIdx];
-                     let displayEvUrl = getDirectDriveImageUrl(evUrl);
-                     oldEvidencePreview += `
-                     <div class="relative inline-block" id="oldImgContainer_${i}_${imgIdx}">
-                         <img src="${displayEvUrl}" class="h-24 w-24 object-cover rounded-lg border border-slate-300 shadow-sm">
-                         <button type="button" onclick="removeOldImage(${i}, ${imgIdx}, '${evUrl}')" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold hover:bg-red-600 shadow-md transition">X</button>
-                     </div>`;
-                 }
-                 oldEvidencePreview += `</div>`;
+             if (keepImg1Value) {
+                 let displayProfileUrl = getDirectDriveImageUrl(keepImg1Value);
+                 oldProfilePreview = `
+                 <div class="relative inline-block mt-3" id="oldImgContainer_${i}_0">
+                     <img src="${displayProfileUrl}" class="h-32 w-28 object-cover rounded-lg border border-slate-300 shadow-sm">
+                     <button type="button" onclick="removeOldImage(${i}, 1)" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold hover:bg-red-600 shadow-md transition">X</button>
+                 </div>`;
+             }
+             
+             if (keepImg2Value) {
+                 let displayEv1Url = getDirectDriveImageUrl(keepImg2Value);
+                 oldEvidence1Preview = `
+                 <div class="relative inline-block mt-3" id="oldImgContainer_${i}_1">
+                     <img src="${displayEv1Url}" class="h-24 w-24 object-cover rounded-lg border border-slate-300 shadow-sm">
+                     <button type="button" onclick="removeOldImage(${i}, 2)" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold hover:bg-red-600 shadow-md transition">X</button>
+                 </div>`;
+             }
+             
+             if (keepImg3Value) {
+                 let displayEv2Url = getDirectDriveImageUrl(keepImg3Value);
+                 oldEvidence2Preview = `
+                 <div class="relative inline-block mt-3" id="oldImgContainer_${i}_2">
+                     <img src="${displayEv2Url}" class="h-24 w-24 object-cover rounded-lg border border-slate-300 shadow-sm">
+                     <button type="button" onclick="removeOldImage(${i}, 3)" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold hover:bg-red-600 shadow-md transition">X</button>
+                 </div>`;
              }
          }
       }
@@ -793,7 +806,9 @@ window.renderSrForms = function() {
       <div class="sr-card-item bg-white border border-slate-200 rounded-2xl p-6 md:p-8 relative shadow-sm mb-5">
         <input type="hidden" id="srRecordId_${i}" value="${d.recordId || ''}">
         <input type="hidden" id="srCourse_${i}" value="${courseName}">
-        <input type="hidden" id="keepImages_${i}" value="${keepImagesValue}">
+        <input type="hidden" id="keepImg1_${i}" value="${keepImg1Value}">
+        <input type="hidden" id="keepImg2_${i}" value="${keepImg2Value}">
+        <input type="hidden" id="keepImg3_${i}" value="${keepImg3Value}">
         
         <div class="absolute top-0 right-0">${badgeHTML}</div>
         <div class="flex justify-between items-center mb-5 mt-2">
@@ -855,15 +870,16 @@ window.renderSrForms = function() {
                  <div id="preview2_${i}_container" class="hidden mt-2 bg-white rounded-lg border border-slate-200 p-2 flex justify-center items-center overflow-hidden h-32 shadow-sm">
                      <img id="preview2_${i}" src="" class="hidden max-h-full max-w-full object-contain rounded">
                  </div>
+                 ${oldEvidence1Preview}
               </div>
               <div class="flex flex-col"> 
                  <input type="file" id="srFile3_${i}" accept="image/jpeg, image/png, image/jpg" onchange="previewImage(this, 'preview3_${i}')" class="w-full text-xs text-slate-500 file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 bg-white border border-slate-200 rounded p-1 cursor-pointer">
                  <div id="preview3_${i}_container" class="hidden mt-2 bg-white rounded-lg border border-slate-200 p-2 flex justify-center items-center overflow-hidden h-32 shadow-sm">
                      <img id="preview3_${i}" src="" class="hidden max-h-full max-w-full object-contain rounded">
                  </div>
+                 ${oldEvidence2Preview}
               </div>
             </div>
-            ${oldEvidencePreview}
             ${imageAlert}
           </div>
         </div>
@@ -911,6 +927,7 @@ function getBase64(file) {
    }); 
 }
 
+// 📌 อัปเดตฟังก์ชันเพื่อส่งข้อมูล 3 ตะกร้าที่แยกกันไปให้หลังบ้าน
 window.submitSelfReport = async function() {
   syncSrFormState(); 
   const activeYear = document.getElementById('srActiveYear').value; 
@@ -930,7 +947,10 @@ window.submitSelfReport = async function() {
     const province = document.getElementById(`srProvince_${i}`).value; 
     const location = document.getElementById(`srLocation_${i}`).value.trim(); 
     const knowledge = document.getElementById(`srKnowledge_${i}`).value.trim();
-    const keepImages = document.getElementById(`keepImages_${i}`).value;
+    
+    const keepImg1 = document.getElementById(`keepImg1_${i}`).value;
+    const keepImg2 = document.getElementById(`keepImg2_${i}`).value;
+    const keepImg3 = document.getElementById(`keepImg3_${i}`).value;
     const recordId = document.getElementById(`srRecordId_${i}`) ? document.getElementById(`srRecordId_${i}`).value : '';
     
     if (recordId) keptRecordIds.push(recordId);
@@ -953,7 +973,7 @@ window.submitSelfReport = async function() {
     const file2 = document.getElementById(`srFile2_${i}`).files[0];
     const file3 = document.getElementById(`srFile3_${i}`).files[0];
     
-    allReports.push({ recordId, course, eventType, eventName, role, sport, startDate, endDate, province, location, knowledge, keepImages, file1, file2, file3 });
+    allReports.push({ recordId, course, eventType, eventName, role, sport, startDate, endDate, province, location, knowledge, keepImg1, keepImg2, keepImg3, file1, file2, file3 });
   }
 
   document.getElementById('srLoadingOverlay').classList.remove('hidden');
@@ -993,7 +1013,9 @@ window.submitSelfReport = async function() {
          province: r.province, 
          location: r.location, 
          knowledge: r.knowledge, 
-         keepImages: r.keepImages, 
+         keepImg1: r.keepImg1, 
+         keepImg2: r.keepImg2, 
+         keepImg3: r.keepImg3, 
          file1Data: r.file1Data || null, 
          file1Name: r.file1Name || '', 
          file1Mime: r.file1Mime || '', 
