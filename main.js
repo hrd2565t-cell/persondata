@@ -78,7 +78,6 @@ window.updatePersonnelStatus = async function(uid, newStatus, selectElement) {
   selectElement.disabled = false; selectElement.classList.remove('opacity-50', 'animate-pulse');
 };
 
-// 📌 ฟังก์ชันเปิดหน้าต่างแสดงตัวอย่าง (Preview Modal) สำหรับ PDF
 window.showPdfPreviewModal = function(blob, filename) {
   let modal = document.getElementById('pdfPreviewModal');
   if (!modal) {
@@ -135,14 +134,16 @@ window.closePdfPreviewModal = function() {
   }
 };
 
-window.generatePDF = async function(uid, fullName, course, year, btnId) {
+// 📌 อัปเดตฟังก์ชัน: เพิ่มพารามิเตอร์ sport และ role ให้ส่งไปที่หลังบ้าน
+window.generatePDF = async function(uid, fullName, course, year, sport, role, btnId) {
   const btn = document.getElementById(btnId);
   const originalHtml = btn.innerHTML;
   btn.innerHTML = `<svg class="animate-spin w-3.5 h-3.5 mr-1" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> กำลังสร้างบัตร...`;
   btn.disabled = true;
 
   try {
-    const payload = { action: 'generatePDF', uid: uid, fullName: fullName, course: course, year: year };
+    // 📌 ส่ง sport และ role เข้าไปใน payload ด้วย
+    const payload = { action: 'generatePDF', uid: uid, fullName: fullName, course: course, year: year, sport: sport, role: role };
     const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
     const result = await response.json();
 
@@ -155,7 +156,6 @@ window.generatePDF = async function(uid, fullName, course, year, btnId) {
       const byteArray = new Uint8Array(byteNumbers);
       const blob = new Blob([byteArray], { type: 'application/pdf' });
 
-      // 📌 เปิดหน้าต่าง Preview แทนการดาวน์โหลดทันที
       window.showPdfPreviewModal(blob, result.filename || `ID_Card_${uid}.pdf`);
       
     } else {
@@ -195,20 +195,40 @@ window.viewProfile = function(uid) {
   const timelineEl = document.getElementById('profileTrainings');
   if (person.trainings && person.trainings.length > 0) { 
      const sortedTrainings = person.trainings.sort((a, b) => b.year - a.year); 
-     timelineEl.innerHTML = sortedTrainings.map((t, index) => `
-      <li class="relative pl-6 pb-4 border-l-2 border-slate-200 last:border-0 last:pb-0">
-        <div class="absolute w-3 h-3 bg-blue-500 rounded-full -left-[7px] top-1.5 ring-4 ring-white shadow-sm"></div>
-        <div class="flex justify-between items-start">
-            <div>
-                <p class="text-sm font-bold text-slate-800">${t.course}</p>
-                <p class="text-xs text-slate-500 mt-0.5">ปีการศึกษา: ${t.year}</p>
-            </div>
-            <button id="btnPdf_${index}" onclick="generatePDF('${person.uid}', '${person.fullName}', '${t.course}', '${t.year}', 'btnPdf_${index}')" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-sm">
-                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                สร้างบัตร PDF
-            </button>
-        </div>
-      </li>`).join(''); 
+     
+     // 📌 อัปเดตการจับคู่ข้อมูล Sport และ Role ของแต่ละหลักสูตรเพื่อส่งเข้าไปทำบัตร
+     timelineEl.innerHTML = sortedTrainings.map((t, index) => {
+        let dSport = '-';
+        let dRole = '-';
+        
+        // ค้นหาประวัติหน้าที่การงานที่ตรงกับหลักสูตรและปีนี้
+        let matchedDuty = (person.duties || []).find(d => String(d.course) === String(t.course) && String(d.year) === String(t.year));
+        
+        if (matchedDuty) {
+            dSport = matchedDuty.sport || '-';
+            dRole = matchedDuty.role || '-';
+        } else if (person.duties && person.duties.length > 0) {
+            // ถ้าไม่ตรงเป๊ะ ให้ดึงข้อมูลการทำงานล่าสุดมาแทน
+            let latestDuty = person.duties[person.duties.length - 1];
+            dSport = latestDuty.sport || '-';
+            dRole = latestDuty.role || '-';
+        }
+
+        return `
+        <li class="relative pl-6 pb-4 border-l-2 border-slate-200 last:border-0 last:pb-0">
+          <div class="absolute w-3 h-3 bg-blue-500 rounded-full -left-[7px] top-1.5 ring-4 ring-white shadow-sm"></div>
+          <div class="flex justify-between items-start">
+              <div>
+                  <p class="text-sm font-bold text-slate-800">${t.course}</p>
+                  <p class="text-xs text-slate-500 mt-0.5">ปีการศึกษา: ${t.year}</p>
+              </div>
+              <button id="btnPdf_${index}" onclick="generatePDF('${person.uid}', '${person.fullName}', '${t.course}', '${t.year}', '${dSport}', '${dRole}', 'btnPdf_${index}')" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-sm">
+                  <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                  สร้างบัตร PDF
+              </button>
+          </div>
+        </li>`;
+     }).join(''); 
    } else { 
      timelineEl.innerHTML = `<li class="text-sm text-slate-500 pl-4">ยังไม่มีประวัติการอบรม</li>`; 
    }
