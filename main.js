@@ -37,13 +37,11 @@ document.addEventListener('DOMContentLoaded', () => {
   setupOTPInputs();
   switchPage('report');
   
-  let delayTimer;
-  const triggerSearch = () => { clearTimeout(delayTimer); showLoadingState(); delayTimer = setTimeout(fetchData, 500); };
-  
-  document.getElementById('searchInput').addEventListener('input', triggerSearch);
-  document.getElementById('filterCourse').addEventListener('change', () => { handleCascadingFilter('course'); triggerSearch(); });
-  document.getElementById('filterYear').addEventListener('change', () => { handleCascadingFilter('year'); triggerSearch(); });
-  document.getElementById('filterGroup').addEventListener('change', () => { triggerSearch(); });
+  // 📌 นำ Event Listener มาผูกกับระบบการกรองแบบ Local (ทำให้ตารางเปลี่ยนทันทีโดยไม่ต้องรอโหลด)
+  document.getElementById('searchInput').addEventListener('input', applyLocalFilters);
+  document.getElementById('filterCourse').addEventListener('change', () => { handleCascadingFilter('course'); applyLocalFilters(); });
+  document.getElementById('filterYear').addEventListener('change', () => { handleCascadingFilter('year'); applyLocalFilters(); });
+  document.getElementById('filterGroup').addEventListener('change', applyLocalFilters);
   
   document.getElementById('excelUpload').addEventListener('change', (e) => { processExcelFile(e.target.files[0], e.target); });
   document.getElementById('singleFullName').addEventListener('blur', function() { if(this.value) this.value = this.value.trim().replace(/\s+/g, ' '); });
@@ -72,6 +70,7 @@ window.updatePersonnelStatus = async function(uid, newStatus, selectElement) {
          selectElement.className = "text-xs font-bold bg-white border border-amber-300 text-amber-600 rounded-full px-2 py-1 outline-none cursor-pointer shadow-sm text-center w-[110px] mx-auto block transition-colors";
       }
       showToast('บันทึกสถานะเรียบร้อยแล้ว');
+      // เมื่อเซฟสถานะเสร็จ ให้โหลดข้อมูลใหม่ทั้งหมดเพื่อให้แดชบอร์ดอัปเดตด้วย
       fetchData(); 
     } else { alert('❌ ' + result.message); }
   } catch(err) { alert('❌ การเชื่อมต่อล้มเหลว'); }
@@ -693,7 +692,6 @@ window.previewImage = function(input, imgId) {
   }
 };
 
-// 📌 อัปเดตฟังก์ชันลบรูปภาพเก่า ให้สอดคล้องกับระบบ 3 ตะกร้าที่แยกกัน
 window.removeOldImage = function(formIdx, slotNum) {
   const container = document.getElementById(`oldImgContainer_${formIdx}_${slotNum-1}`);
   if(container) container.remove();
@@ -704,7 +702,6 @@ window.removeOldImage = function(formIdx, slotNum) {
   }
 };
 
-// 📌 อัปเดตระบบ Preview ฟอร์ม เพื่อรองรับระบบล็อกตำแหน่งรูป 3 ตะกร้า
 window.renderSrForms = function() {
   const dynamicForms = document.getElementById('srDynamicForms');
   let html = '';
@@ -927,7 +924,6 @@ function getBase64(file) {
    }); 
 }
 
-// 📌 อัปเดตฟังก์ชันเพื่อส่งข้อมูล 3 ตะกร้าที่แยกกันไปให้หลังบ้าน
 window.submitSelfReport = async function() {
   syncSrFormState(); 
   const activeYear = document.getElementById('srActiveYear').value; 
@@ -1185,14 +1181,48 @@ window.switchImportMode = function(mode) {
   }
 };
 
+// 📌 ปรับเปลี่ยนฟังก์ชันค้นหา ให้ทำงานแบบ Local (ฝั่งหน้าบ้าน)
+function applyLocalFilters() {
+  const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
+  const filterYear = document.getElementById('filterYear').value;
+  const filterCourse = document.getElementById('filterCourse').value;
+  const filterGroup = document.getElementById('filterGroup').value;
+
+  // นำข้อมูลทั้งหมดในแคชมาคัดกรอง
+  currentFilteredData = cachedPersonnelData.filter(user => {
+    const matchKeyword = keyword === '' || 
+                         user.uid.toLowerCase().includes(keyword) || 
+                         user.fullName.toLowerCase().includes(keyword) || 
+                         (user.agency && user.agency.toLowerCase().includes(keyword));
+    const matchGroup = filterGroup === '' || user.group === filterGroup;
+
+    let matchTraining = true;
+    if (filterYear !== '' || filterCourse !== '') {
+      if (!user.trainings || user.trainings.length === 0) { 
+        matchTraining = false; 
+      } else {
+        matchTraining = user.trainings.some(t => {
+          const yMatch = filterYear === '' || String(t.year) === String(filterYear);
+          const cMatch = filterCourse === '' || String(t.course) === String(filterCourse);
+          return yMatch && cMatch;
+        });
+      }
+    }
+
+    return matchKeyword && matchGroup && matchTraining;
+  });
+
+  // อัปเดตตารางและคำอธิบายใต้ Dropdown ให้แสดงเฉพาะข้อมูลที่ค้นหา
+  currentPage = 1;
+  updateSmartSummary(filterCourse, filterYear, currentFilteredData.length);
+  renderTablePage();
+}
+
 async function fetchData() {
-  const keyword = document.getElementById('searchInput').value.trim(); 
-   const year = document.getElementById('filterYear').value; 
-   const course = document.getElementById('filterCourse').value; 
-   const group = document.getElementById('filterGroup').value;
-   
+  showLoadingState(); 
   try {
-    const url = `${API_URL}?action=getData&keyword=${encodeURIComponent(keyword)}&year=${year}&course=${encodeURIComponent(course)}&group=${encodeURIComponent(group)}`;
+    // 📌 ดึงข้อมูลทั้งหมด 1 ครั้งตอนเปิดเว็บ หรือตอนเซฟข้อมูลเสร็จ
+    const url = `${API_URL}?action=getData`;
     const res = await fetch(url);
     const text = await res.text(); 
     
@@ -1210,6 +1240,8 @@ async function fetchData() {
     
     if (result.status === 'success') {
       cachedPersonnelData = result.data.list;
+      currentFilteredData = result.data.list;
+      
       if (!globalFiltersMaster) { 
          globalFiltersMaster = result.data.filters; 
          updateDropdownUI(); 
@@ -1227,12 +1259,14 @@ async function fetchData() {
        
        updateDatalists(); 
        updateSelfReportDatalist(); 
+       
+       // 📌 วาดกราฟแดชบอร์ดจากข้อมูลทั้งหมด (Master Data) เพียงครั้งเดียว
        renderDashboard(result.data.stats); 
        drawCharts(result.data.filters.years, result.data.filters.groups); 
-       currentFilteredData = result.data.list; 
-       currentPage = 1; 
-       updateSmartSummary(course, year, currentFilteredData.length); 
-       renderTablePage();
+       
+       // สั่งให้ตารางอัปเดตตามตัวกรองปัจจุบัน (ถ้ามีค่าค้างอยู่)
+       applyLocalFilters();
+       
     } else { 
        showErrorState(result.message); 
      }
