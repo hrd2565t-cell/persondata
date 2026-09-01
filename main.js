@@ -22,7 +22,6 @@ let currentReportCourseBase64 = null;
 function utf8ToBase64(str) { return btoa(unescape(encodeURIComponent(str))); }
 function base64ToUtf8(str) { return decodeURIComponent(escape(atob(str))); }
 
-// 📌 แก้ไขฟังก์ชัน: เปลี่ยนโครงสร้างลิงก์ไปใช้ Image CDN ของ Google ที่อนุญาตให้แสดงผลได้ 100%
 function getDirectDriveImageUrl(url) {
   if (!url) return '';
   const match = url.match(/\/d\/(.*?)\//);
@@ -79,6 +78,30 @@ window.updatePersonnelStatus = async function(uid, newStatus, selectElement) {
   selectElement.disabled = false; selectElement.classList.remove('opacity-50', 'animate-pulse');
 };
 
+window.generatePDF = async function(uid, fullName, course, year, btnId) {
+  const btn = document.getElementById(btnId);
+  const originalHtml = btn.innerHTML;
+  btn.innerHTML = `<svg class="animate-spin w-3.5 h-3.5 mr-1" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> รอสักครู่...`;
+  btn.disabled = true;
+
+  try {
+    const payload = { action: 'generatePDF', uid: uid, fullName: fullName, course: course, year: year };
+    const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+    const result = await response.json();
+
+    if (result.status === 'success') {
+      window.open(result.url, '_blank'); 
+    } else {
+      alert('❌ เกิดข้อผิดพลาด: ' + result.message);
+    }
+  } catch (err) {
+    alert('❌ การเชื่อมต่อล้มเหลว หรือใช้เวลาประมวลผลนานเกินไป');
+  }
+
+  btn.innerHTML = originalHtml;
+  btn.disabled = false;
+};
+
 window.viewProfile = function(uid) {
   currentActiveUid = uid; 
   const person = cachedPersonnelData.find(p => p.uid === uid);
@@ -105,11 +128,19 @@ window.viewProfile = function(uid) {
   const timelineEl = document.getElementById('profileTrainings');
   if (person.trainings && person.trainings.length > 0) { 
      const sortedTrainings = person.trainings.sort((a, b) => b.year - a.year); 
-     timelineEl.innerHTML = sortedTrainings.map(t => `
+     timelineEl.innerHTML = sortedTrainings.map((t, index) => `
       <li class="relative pl-6 pb-4 border-l-2 border-slate-200 last:border-0 last:pb-0">
         <div class="absolute w-3 h-3 bg-blue-500 rounded-full -left-[7px] top-1.5 ring-4 ring-white shadow-sm"></div>
-        <p class="text-sm font-bold text-slate-800">${t.course}</p>
-        <p class="text-xs text-slate-500 mt-0.5">ปีการศึกษา: ${t.year}</p>
+        <div class="flex justify-between items-start">
+            <div>
+                <p class="text-sm font-bold text-slate-800">${t.course}</p>
+                <p class="text-xs text-slate-500 mt-0.5">ปีการศึกษา: ${t.year}</p>
+            </div>
+            <button id="btnPdf_${index}" onclick="generatePDF('${person.uid}', '${person.fullName}', '${t.course}', '${t.year}', 'btnPdf_${index}')" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-sm">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                สร้างบัตร PDF
+            </button>
+        </div>
       </li>`).join(''); 
    } else { 
      timelineEl.innerHTML = `<li class="text-sm text-slate-500 pl-4">ยังไม่มีประวัติการอบรม</li>`; 
@@ -127,7 +158,7 @@ window.viewProfile = function(uid) {
             evidenceHtml += `
             <button onclick="openEvidenceModal('${link}')" class="text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold py-1.5 px-3 rounded-lg border border-blue-200 transition-colors flex items-center gap-1.5 shadow-sm">
               <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg> 
-              หลักฐานชิ้นที่ ${idx + 1}
+              รูปภาพที่ ${idx + 1}
             </button>`;
           });
           evidenceHtml += `</div>`;
@@ -652,7 +683,7 @@ window.renderSrForms = function() {
              imageAlert = `<div class="mt-2 text-xs font-semibold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">✅ พบรูปภาพเดิมที่เคยอัปโหลดไว้ หากต้องการเปลี่ยนสามารถกดกากบาท (X) ลบทิ้งได้ครับ</div>`;
              oldImagesPreview = `<div class="mt-3 flex gap-3 flex-wrap" id="oldImages_${i}">`;
              imgs.forEach((imgUrl, imgIdx) => {
-                 let displayUrl = getDirectDriveImageUrl(imgUrl); // เรียกใช้ฟังก์ชันแปลงลิงก์ Google Photos
+                 let displayUrl = getDirectDriveImageUrl(imgUrl);
                  oldImagesPreview += `
                  <div class="relative inline-block" id="oldImgContainer_${i}_${imgIdx}">
                      <img src="${displayUrl}" class="h-24 w-24 object-cover rounded-lg border border-slate-300 shadow-sm">
@@ -713,22 +744,30 @@ window.renderSrForms = function() {
             <textarea id="srKnowledge_${i}" rows="3" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-4 outline-none focus:ring-2 focus:ring-blue-500 resize-none" placeholder="อธิบายสั้นๆ...">${d.knowledge || ''}</textarea>
           </div>
           <div class="bg-blue-50/50 border border-blue-100 p-4 rounded-xl">
-            <label class="block text-xs font-bold text-slate-700 mb-2">แนบรูปภาพหลักฐานประกอบ (ถ้ามี / ไม่เกิน 5MB ต่อภาพ)</label>
-            ${oldImagesPreview}
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
-              <div class="flex flex-col"> 
-                 <input type="file" id="srFile1_${i}" accept="image/jpeg, image/png, image/jpg" onchange="previewImage(this, 'preview1_${i}')" class="w-full text-xs text-slate-500 file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 bg-white border border-slate-200 rounded p-1 cursor-pointer">
-                 <div id="preview1_${i}_container" class="hidden mt-2 bg-white rounded-lg border border-slate-200 p-2 flex justify-center items-center overflow-hidden h-32 shadow-sm">
-                     <img id="preview1_${i}" src="" class="hidden max-h-full max-w-full object-contain rounded">
-                 </div>
-              </div>
+            <label class="block text-xs font-bold text-slate-700 mb-2">📷 รูปถ่ายประจำตัว (สำหรับทำบัตร / หน้าตรง)</label>
+            <div class="flex flex-col mb-4"> 
+               <input type="file" id="srFile1_${i}" accept="image/jpeg, image/png, image/jpg" onchange="previewImage(this, 'preview1_${i}')" class="w-full text-xs text-slate-500 file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 bg-white border border-slate-200 rounded p-1 cursor-pointer">
+               <div id="preview1_${i}_container" class="hidden mt-2 bg-white rounded-lg border border-slate-200 p-2 flex justify-center items-center overflow-hidden h-32 shadow-sm w-max">
+                   <img id="preview1_${i}" src="" class="hidden max-h-full max-w-full object-contain rounded">
+               </div>
+            </div>
+
+            <label class="block text-xs font-bold text-slate-700 mb-2">📂 รูปภาพหลักฐานการปฏิบัติหน้าที่ (ไม่เกิน 5MB ต่อภาพ)</label>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div class="flex flex-col"> 
                  <input type="file" id="srFile2_${i}" accept="image/jpeg, image/png, image/jpg" onchange="previewImage(this, 'preview2_${i}')" class="w-full text-xs text-slate-500 file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 bg-white border border-slate-200 rounded p-1 cursor-pointer">
                  <div id="preview2_${i}_container" class="hidden mt-2 bg-white rounded-lg border border-slate-200 p-2 flex justify-center items-center overflow-hidden h-32 shadow-sm">
                      <img id="preview2_${i}" src="" class="hidden max-h-full max-w-full object-contain rounded">
                  </div>
               </div>
+              <div class="flex flex-col"> 
+                 <input type="file" id="srFile3_${i}" accept="image/jpeg, image/png, image/jpg" onchange="previewImage(this, 'preview3_${i}')" class="w-full text-xs text-slate-500 file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 bg-white border border-slate-200 rounded p-1 cursor-pointer">
+                 <div id="preview3_${i}_container" class="hidden mt-2 bg-white rounded-lg border border-slate-200 p-2 flex justify-center items-center overflow-hidden h-32 shadow-sm">
+                     <img id="preview3_${i}" src="" class="hidden max-h-full max-w-full object-contain rounded">
+                 </div>
+              </div>
             </div>
+            ${oldImagesPreview}
             ${imageAlert}
           </div>
         </div>
@@ -816,8 +855,9 @@ window.submitSelfReport = async function() {
     
     const file1 = document.getElementById(`srFile1_${i}`).files[0]; 
     const file2 = document.getElementById(`srFile2_${i}`).files[0];
+    const file3 = document.getElementById(`srFile3_${i}`).files[0];
     
-    allReports.push({ recordId, course, eventType, eventName, role, sport, startDate, endDate, province, location, knowledge, keepImages, file1, file2 });
+    allReports.push({ recordId, course, eventType, eventName, role, sport, startDate, endDate, province, location, knowledge, keepImages, file1, file2, file3 });
   }
 
   document.getElementById('srLoadingOverlay').classList.remove('hidden');
@@ -826,6 +866,7 @@ window.submitSelfReport = async function() {
     for (let r of allReports) { 
        if(r.file1) { r.file1Data = await getBase64(r.file1); r.file1Name = r.file1.name; r.file1Mime = r.file1.type; } 
        if(r.file2) { r.file2Data = await getBase64(r.file2); r.file2Name = r.file2.name; r.file2Mime = r.file2.type; }
+       if(r.file3) { r.file3Data = await getBase64(r.file3); r.file3Name = r.file3.name; r.file3Mime = r.file3.type; }
     }
 
     document.getElementById('srLoadingTitle').textContent = `กำลังเคลียร์ข้อมูลเดิม...`;
@@ -862,7 +903,10 @@ window.submitSelfReport = async function() {
          file1Mime: r.file1Mime || '', 
          file2Data: r.file2Data || null, 
          file2Name: r.file2Name || '', 
-         file2Mime: r.file2Mime || '' 
+         file2Mime: r.file2Mime || '',
+         file3Data: r.file3Data || null, 
+         file3Name: r.file3Name || '', 
+         file3Mime: r.file3Mime || ''
        };
        
        const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) }); 
