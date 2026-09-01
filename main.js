@@ -22,6 +22,16 @@ let currentReportCourseBase64 = null;
 function utf8ToBase64(str) { return btoa(unescape(encodeURIComponent(str))); }
 function base64ToUtf8(str) { return decodeURIComponent(escape(atob(str))); }
 
+// 📌 ฟังก์ชันใหม่: แปลงลิงก์ Google Drive ให้อ่านเป็นรูปภาพตรงๆ ได้
+function getDirectDriveImageUrl(url) {
+  if (!url) return '';
+  const match = url.match(/\/d\/(.*?)\//);
+  if (match && match[1]) {
+    return `https://drive.google.com/uc?export=view&id=${match[1]}`;
+  }
+  return url; 
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   fetchData();
   setupDragAndDrop();
@@ -552,7 +562,6 @@ window.toggleOtherInput = function(selectEl, otherId) {
   }
 };
 
-// 📌 ฟังก์ชัน Preview Image โดยไม่ต้องรออัปโหลด
 window.previewImage = function(input, imgId) {
   const imgEl = document.getElementById(imgId);
   const containerEl = document.getElementById(imgId + '_container');
@@ -571,7 +580,6 @@ window.previewImage = function(input, imgId) {
   }
 };
 
-// 📌 ฟังก์ชันจัดการเมื่อผู้ใช้กดกากบาทลบรูปเก่าทิ้ง
 window.removeOldImage = function(formIdx, imgIdx, urlToRemove) {
   const container = document.getElementById(`oldImgContainer_${formIdx}_${imgIdx}`);
   if(container) container.remove();
@@ -637,7 +645,7 @@ window.renderSrForms = function() {
       let keepImagesValue = '';
       let oldImagesPreview = '';
       
-      // 📌 ระบบโชว์ Preview รูปเดิม และปุ่มลบทิ้ง
+      // 📌 ระบบแปลงและโชว์ Preview รูปเดิม (แก้ไขแล้ว)
       if (form.data && form.data.images) { 
          let imgs = form.data.images.split(',').map(s=>s.trim()).filter(s=>s);
          keepImagesValue = form.data.images;
@@ -645,9 +653,10 @@ window.renderSrForms = function() {
              imageAlert = `<div class="mt-2 text-xs font-semibold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">✅ พบรูปภาพเดิมที่เคยอัปโหลดไว้ หากต้องการเปลี่ยนสามารถกดกากบาท (X) ลบทิ้งได้ครับ</div>`;
              oldImagesPreview = `<div class="mt-3 flex gap-3 flex-wrap" id="oldImages_${i}">`;
              imgs.forEach((imgUrl, imgIdx) => {
+                 let displayUrl = getDirectDriveImageUrl(imgUrl); // เรียกใช้ฟังก์ชันแปลงลิงก์
                  oldImagesPreview += `
                  <div class="relative inline-block" id="oldImgContainer_${i}_${imgIdx}">
-                     <img src="${imgUrl}" class="h-24 w-24 object-cover rounded-lg border border-slate-300 shadow-sm">
+                     <img src="${displayUrl}" class="h-24 w-24 object-cover rounded-lg border border-slate-300 shadow-sm">
                      <button type="button" onclick="removeOldImage(${i}, ${imgIdx}, '${imgUrl}')" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold hover:bg-red-600 shadow-md transition">X</button>
                  </div>`;
              });
@@ -772,7 +781,7 @@ window.submitSelfReport = async function() {
   syncSrFormState(); 
   const activeYear = document.getElementById('srActiveYear').value; 
   let allReports = [];
-  let keptRecordIds = []; // 📌 เก็บรหัสแถวที่ยังคงอยู่ในหน้าจอ (เพื่อไม่ให้ถูกลบ)
+  let keptRecordIds = []; 
   
   for (let i = 0; i < srFormState.length; i++) {
     let course = document.getElementById(`srCourse_${i}`).value; 
@@ -822,7 +831,6 @@ window.submitSelfReport = async function() {
 
     document.getElementById('srLoadingTitle').textContent = `กำลังเคลียร์ข้อมูลเดิม...`;
     
-    // 📌 ส่ง keptRecordIds ไปให้ API.gs รู้ว่าแถวไหนที่ถูกผู้ใช้กดกากบาททิ้งไปแล้ว เพื่อลบแถวนั้นและลบขยะใน Drive
     await fetch(API_URL, {
         method: 'POST',
         body: JSON.stringify({ action: 'deleteMissingDutyRecords', uid: srSelectedUser.uid, year: activeYear, keptRecordIds: keptRecordIds }),
@@ -837,7 +845,7 @@ window.submitSelfReport = async function() {
          action: 'saveSelfReport', 
          uid: srSelectedUser.uid, 
          fullName: srSelectedUser.fullName,
-         recordId: r.recordId, // 📌 ส่ง Record ID ไปให้หลังบ้านเขียนทับแถวเดิม
+         recordId: r.recordId, 
          course: r.course, 
          eventType: r.eventType, 
          eventName: r.eventName, 
