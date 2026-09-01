@@ -623,6 +623,7 @@ window.removeOldImage = function(formIdx, imgIdx, urlToRemove) {
   }
 };
 
+// 📌 อัปเดตฟังก์ชันเพื่อแยกการแสดงผล Preview ของรูปประจำตัว ออกจากรูปหลักฐาน
 window.renderSrForms = function() {
   const dynamicForms = document.getElementById('srDynamicForms');
   let html = '';
@@ -674,23 +675,38 @@ window.renderSrForms = function() {
       
       let imageAlert = '';
       let keepImagesValue = '';
-      let oldImagesPreview = '';
+      let oldProfilePreview = '';
+      let oldEvidencePreview = '';
       
       if (form.data && form.data.images) { 
          let imgs = form.data.images.split(',').map(s=>s.trim()).filter(s=>s);
          keepImagesValue = form.data.images;
          if(imgs.length > 0) {
              imageAlert = `<div class="mt-2 text-xs font-semibold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">✅ พบรูปภาพเดิมที่เคยอัปโหลดไว้ หากต้องการเปลี่ยนสามารถกดกากบาท (X) ลบทิ้งได้ครับ</div>`;
-             oldImagesPreview = `<div class="mt-3 flex gap-3 flex-wrap" id="oldImages_${i}">`;
-             imgs.forEach((imgUrl, imgIdx) => {
-                 let displayUrl = getDirectDriveImageUrl(imgUrl);
-                 oldImagesPreview += `
-                 <div class="relative inline-block" id="oldImgContainer_${i}_${imgIdx}">
-                     <img src="${displayUrl}" class="h-24 w-24 object-cover rounded-lg border border-slate-300 shadow-sm">
-                     <button type="button" onclick="removeOldImage(${i}, ${imgIdx}, '${imgUrl}')" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold hover:bg-red-600 shadow-md transition">X</button>
-                 </div>`;
-             });
-             oldImagesPreview += `</div>`;
+             
+             // 📌 แยกภาพที่ 1 ไปแสดงตรง Profile Picture
+             let profileUrl = imgs[0];
+             let displayProfileUrl = getDirectDriveImageUrl(profileUrl);
+             oldProfilePreview = `
+             <div class="relative inline-block mt-3" id="oldImgContainer_${i}_0">
+                 <img src="${displayProfileUrl}" class="h-32 w-28 object-cover rounded-lg border border-slate-300 shadow-sm">
+                 <button type="button" onclick="removeOldImage(${i}, 0, '${profileUrl}')" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold hover:bg-red-600 shadow-md transition">X</button>
+             </div>`;
+
+             // 📌 นำภาพที่ 2 และ 3 (ถ้ามี) ไปแสดงตรง Evidence Pictures
+             if (imgs.length > 1) {
+                 oldEvidencePreview = `<div class="mt-3 flex gap-3 flex-wrap" id="oldImages_${i}">`;
+                 for(let imgIdx = 1; imgIdx < imgs.length; imgIdx++) {
+                     let evUrl = imgs[imgIdx];
+                     let displayEvUrl = getDirectDriveImageUrl(evUrl);
+                     oldEvidencePreview += `
+                     <div class="relative inline-block" id="oldImgContainer_${i}_${imgIdx}">
+                         <img src="${displayEvUrl}" class="h-24 w-24 object-cover rounded-lg border border-slate-300 shadow-sm">
+                         <button type="button" onclick="removeOldImage(${i}, ${imgIdx}, '${evUrl}')" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold hover:bg-red-600 shadow-md transition">X</button>
+                     </div>`;
+                 }
+                 oldEvidencePreview += `</div>`;
+             }
          }
       }
 
@@ -750,6 +766,7 @@ window.renderSrForms = function() {
                <div id="preview1_${i}_container" class="hidden mt-2 bg-white rounded-lg border border-slate-200 p-2 flex justify-center items-center overflow-hidden h-32 shadow-sm w-max">
                    <img id="preview1_${i}" src="" class="hidden max-h-full max-w-full object-contain rounded">
                </div>
+               ${oldProfilePreview}
             </div>
 
             <label class="block text-xs font-bold text-slate-700 mb-2">📂 รูปภาพหลักฐานการปฏิบัติหน้าที่ (ไม่เกิน 5MB ต่อภาพ)</label>
@@ -767,7 +784,7 @@ window.renderSrForms = function() {
                  </div>
               </div>
             </div>
-            ${oldImagesPreview}
+            ${oldEvidencePreview}
             ${imageAlert}
           </div>
         </div>
