@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupOTPInputs();
   switchPage('report');
   
-  // 📌 ระบบค้นหาหน้า Dashboard (รองรับ Enter และ ค้นหาเมื่อลบข้อความออกหมด)
+  // 📌 เพิ่ม Safety Checks (if) ก่อนผูก Event เสมอ เพื่อป้องกันสคริปต์พัง
   const searchInput = document.getElementById('searchInput');
   if (searchInput) {
     searchInput.addEventListener('keydown', (e) => {
@@ -47,13 +47,10 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
     searchInput.addEventListener('input', (e) => {
-      if (e.target.value.trim() === '') {
-        applyLocalFilters();
-      }
+      if (e.target.value.trim() === '') applyLocalFilters();
     });
   }
 
-  // 📌 ระบบค้นหาหน้ารายงานผลการปฏิบัติหน้าที่ (รองรับ Enter)
   const srSearchInput = document.getElementById('srSearchName');
   if (srSearchInput) {
     srSearchInput.addEventListener('keydown', (e) => {
@@ -64,16 +61,25 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  document.getElementById('filterCourse').addEventListener('change', () => { handleCascadingFilter('course'); applyLocalFilters(); });
-  document.getElementById('filterYear').addEventListener('change', () => { handleCascadingFilter('year'); applyLocalFilters(); });
-  document.getElementById('filterGroup').addEventListener('change', applyLocalFilters);
+  const filterCourse = document.getElementById('filterCourse');
+  if (filterCourse) filterCourse.addEventListener('change', () => { handleCascadingFilter('course'); applyLocalFilters(); });
+
+  const filterYear = document.getElementById('filterYear');
+  if (filterYear) filterYear.addEventListener('change', () => { handleCascadingFilter('year'); applyLocalFilters(); });
+
+  const filterGroup = document.getElementById('filterGroup');
+  if (filterGroup) filterGroup.addEventListener('change', applyLocalFilters);
   
-  document.getElementById('excelUpload').addEventListener('change', (e) => { processExcelFile(e.target.files[0], e.target); });
-  document.getElementById('singleFullName').addEventListener('blur', function() { if(this.value) this.value = this.value.trim().replace(/\s+/g, ' '); });
+  const excelUpload = document.getElementById('excelUpload');
+  if (excelUpload) excelUpload.addEventListener('change', (e) => { processExcelFile(e.target.files[0], e.target); });
+
+  const singleFullName = document.getElementById('singleFullName');
+  if (singleFullName) singleFullName.addEventListener('blur', function() { if(this.value) this.value = this.value.trim().replace(/\s+/g, ' '); });
 });
 
 window.showToast = function(message) { 
    const toast = document.getElementById('toastNotification'); 
+   if(!toast) return;
    document.getElementById('toastMessage').textContent = message; 
    toast.classList.remove('translate-y-20', 'opacity-0'); 
    setTimeout(() => { toast.classList.add('translate-y-20', 'opacity-0'); }, 3000);
@@ -949,10 +955,11 @@ function getBase64(file) {
 }
 
 function applyLocalFilters() {
-  const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
-  const filterYear = document.getElementById('filterYear').value;
-  const filterCourse = document.getElementById('filterCourse').value;
-  const filterGroup = document.getElementById('filterGroup').value;
+  const searchInput = document.getElementById('searchInput');
+  const keyword = searchInput ? searchInput.value.trim().toLowerCase() : '';
+  const filterYear = document.getElementById('filterYear') ? document.getElementById('filterYear').value : '';
+  const filterCourse = document.getElementById('filterCourse') ? document.getElementById('filterCourse').value : '';
+  const filterGroup = document.getElementById('filterGroup') ? document.getElementById('filterGroup').value : '';
 
   currentFilteredData = cachedPersonnelData.filter(user => {
     const matchKeyword = keyword === '' || 
@@ -1046,10 +1053,12 @@ function updateSelfReportDatalist() {
 function handleCascadingFilter(changedType) {
   if (!globalFiltersMaster) return;
   const yearSelect = document.getElementById('filterYear'); 
-   const courseSelect = document.getElementById('filterCourse'); 
-   const selectedYear = yearSelect.value; 
-   const selectedCourse = courseSelect.value; 
-   const relations = globalFiltersMaster.relations;
+  const courseSelect = document.getElementById('filterCourse'); 
+  if(!yearSelect || !courseSelect) return;
+
+  const selectedYear = yearSelect.value; 
+  const selectedCourse = courseSelect.value; 
+  const relations = globalFiltersMaster.relations;
    
   if (changedType === 'course' && selectedCourse) { 
      const validYears = Object.keys(relations.courseToYears[selectedCourse] || {}); 
@@ -1063,26 +1072,30 @@ function handleCascadingFilter(changedType) {
 
 function updateDropdownUI() {
   if (!globalFiltersMaster) return;
-  const selectedYear = document.getElementById('filterYear').value; 
-   const selectedCourse = document.getElementById('filterCourse').value; 
-   const selectedGroup = document.getElementById('filterGroup').value;
+  const yearSelect = document.getElementById('filterYear');
+  const courseSelect = document.getElementById('filterCourse');
+  const groupSelect = document.getElementById('filterGroup');
+
+  const selectedYear = yearSelect ? yearSelect.value : ''; 
+  const selectedCourse = courseSelect ? courseSelect.value : ''; 
+  const selectedGroup = groupSelect ? groupSelect.value : '';
    
   const relations = globalFiltersMaster.relations; 
-   let availableYears = globalFiltersMaster.years; 
-   let availableCourses = globalFiltersMaster.courses; 
-   let availableGroups = globalFiltersMaster.groups;
+  let availableYears = globalFiltersMaster.years; 
+  let availableCourses = globalFiltersMaster.courses; 
+  let availableGroups = globalFiltersMaster.groups;
    
   if (selectedCourse) availableYears = Object.keys(relations.courseToYears[selectedCourse] || {}).sort((a,b) => b-a);
   if (selectedYear) availableCourses = Object.keys(relations.yearToCourses[selectedYear] || {}).sort();
   
   populateDropdown('filterYear', availableYears, selectedYear, 'ทุกปีการศึกษา'); 
-   populateDropdown('filterCourse', availableCourses, selectedCourse, 'ทุกหลักสูตร'); 
-   populateDropdown('filterGroup', availableGroups, selectedGroup, 'ทุกกลุ่มบุคลากร');
+  populateDropdown('filterCourse', availableCourses, selectedCourse, 'ทุกหลักสูตร'); 
+  populateDropdown('filterGroup', availableGroups, selectedGroup, 'ทุกกลุ่มบุคลากร');
 }
 
 function populateDropdown(elementId, items, currentValue, defaultLabel) {
   const select = document.getElementById(elementId); 
-   if(!select) return;
+  if(!select) return;
   select.innerHTML = `<option value="">${defaultLabel}</option>`;
   items.forEach(item => { 
      const option = document.createElement('option'); 
@@ -1090,7 +1103,7 @@ function populateDropdown(elementId, items, currentValue, defaultLabel) {
      option.textContent = item; 
      select.appendChild(option); 
    }); 
-   select.value = currentValue;
+  select.value = currentValue;
 }
 
 function updateDatalists() {
@@ -1119,9 +1132,10 @@ function updateDatalists() {
 }
 
 function drawCharts(allYears, allGroups) {
+  if (typeof Chart === 'undefined') return;
   Chart.register(ChartDataLabels);
   const sortedYears = [...allYears].sort((a,b)=>a-b); 
-   const last5Years = sortedYears.slice(-5);
+  const last5Years = sortedYears.slice(-5);
    
   const yearData = last5Years.map(y => { 
      let count = 0; 
@@ -1249,8 +1263,10 @@ window.openMatrixReport = function() {
    
   const startSelect = document.getElementById('matrixStartYear'); 
    const endSelect = document.getElementById('matrixEndYear'); 
-   startSelect.innerHTML = matrixAvailableYears.map(y => `<option value="${y}">${y}</option>`).join(''); 
-   endSelect.innerHTML = matrixAvailableYears.map(y => `<option value="${y}">${y}</option>`).join(''); 
+   if (startSelect && endSelect) {
+     startSelect.innerHTML = matrixAvailableYears.map(y => `<option value="${y}">${y}</option>`).join(''); 
+     endSelect.innerHTML = matrixAvailableYears.map(y => `<option value="${y}">${y}</option>`).join(''); 
+   }
    const modal = document.getElementById('matrixModal');
   if(modal) modal.classList.remove('hidden'); 
    applyMatrixFilter('all');
@@ -1266,14 +1282,19 @@ window.applyMatrixFilter = function(type) {
    else if (type === '10') { startYear = Math.max(minYear, maxYear - 9); endYear = maxYear; } 
    else if (type === 'all') { startYear = minYear; endYear = maxYear; } 
    else if (type === 'custom') { 
-     startYear = parseInt(document.getElementById('matrixStartYear').value); 
-     endYear = parseInt(document.getElementById('matrixEndYear').value); 
+     const sInput = document.getElementById('matrixStartYear');
+     const eInput = document.getElementById('matrixEndYear');
+     startYear = sInput ? parseInt(sInput.value) : minYear; 
+     endYear = eInput ? parseInt(eInput.value) : maxYear; 
      if (startYear > endYear) { alert('⚠️ ปีเริ่มต้นต้องไม่มากกว่าปีสิ้นสุด'); return; } 
    }
    
-  document.getElementById('matrixStartYear').value = startYear; 
-   document.getElementById('matrixEndYear').value = endYear; 
-   buildMatrixTable(startYear, endYear);
+  const sInput = document.getElementById('matrixStartYear');
+  if (sInput) sInput.value = startYear; 
+  const eInput = document.getElementById('matrixEndYear');
+  if (eInput) eInput.value = endYear; 
+  
+  buildMatrixTable(startYear, endYear);
 };
 
 function buildMatrixTable(startYear, endYear) {
@@ -1405,7 +1426,9 @@ window.openProposalReport = function(encodedCourseName, btnId) {
 window.renderReportData = function() {
   if(!currentReportCourseBase64) return;
   const courseName = base64ToUtf8(currentReportCourseBase64);
-  const selectedYear = document.getElementById('reportYearFilter') ? document.getElementById('reportYearFilter').value : 'all';
+  const filterEl = document.getElementById('reportYearFilter');
+  const selectedYear = filterEl ? filterEl.value : 'all';
+  
   let courseUsers = cachedPersonnelData.filter(u => u.trainings && u.trainings.some(t => t.course === courseName));
   if(selectedYear !== 'all') { 
      courseUsers = courseUsers.filter(u => u.trainings.some(t => t.course === courseName && String(t.year) === selectedYear)); 
@@ -1557,7 +1580,7 @@ window.renderReportData = function() {
   summaryText += `และมีอัตราการปฏิบัติหน้าที่คงอยู่ในระบบภาพรวมที่ <span class="font-bold text-emerald-600">${retentionPercent}</span> `;
   
   if(sortedRoles.length > 0) { 
-     summaryText += `โดยส่วนใหญนำความรู้ไปประยุกต์ใช้ในหน้าที่ <span class="font-bold text-blue-600">${topRole}</span> เป็นหลัก และมีการกระจายตัวลงพื้นที่ปฏิบัติงานในชนิดกีฬา <span class="font-bold text-blue-600">${topSport}</span> มากที่สุด `; 
+     summaryText += `โดยส่วนใหญ่นำความรู้ไปประยุกต์ใช้ในหน้าที่ <span class="font-bold text-blue-600">${topRole}</span> เป็นหลัก และมีการกระจายตัวลงพื้นที่ปฏิบัติงานในชนิดกีฬา <span class="font-bold text-blue-600">${topSport}</span> มากที่สุด `; 
    } else { 
      summaryText += `อย่างไรก็ตาม ขณะนี้ยังอยู่ในช่วงการติดตามเก็บสถิติการลงพื้นที่ปฏิบัติงานจริงของกลุ่มเป้าหมายเพื่อตอบชี้วัดของโครงการต่อไป `; 
    }
@@ -1945,19 +1968,27 @@ window.submitSingleEntry = function() {
      actionType: matchType === 'exact' ? 'merge' : 'auto' 
    }];
    
-  document.getElementById('singlePrefix').value = ''; 
-   document.getElementById('singleFullName').value = ''; 
-   document.getElementById('singleGroup').value = ''; 
-   document.getElementById('singleAgency').value = ''; 
-   document.getElementById('singleCourse').value = ''; 
-   document.getElementById('singleYear').value = ''; 
+  const prefixInput = document.getElementById('singlePrefix');
+  if(prefixInput) prefixInput.value = ''; 
+  const nameInput = document.getElementById('singleFullName');
+  if(nameInput) nameInput.value = ''; 
+  const groupInput = document.getElementById('singleGroup');
+  if(groupInput) groupInput.value = ''; 
+  const agencyInput = document.getElementById('singleAgency');
+  if(agencyInput) agencyInput.value = ''; 
+  const courseInput = document.getElementById('singleCourse');
+  if(courseInput) courseInput.value = ''; 
+  const yearInput = document.getElementById('singleYear');
+  if(yearInput) yearInput.value = ''; 
    
   showPreviewSection();
 };
 
 function showPreviewSection() { 
-   document.getElementById('importUploadSection').classList.add('hidden'); 
-   document.getElementById('importPreviewSection').classList.remove('hidden'); 
+   const uploadSec = document.getElementById('importUploadSection');
+   if(uploadSec) uploadSec.classList.add('hidden'); 
+   const previewSec = document.getElementById('importPreviewSection');
+   if(previewSec) previewSec.classList.remove('hidden'); 
    currentPreviewPage = 1; 
    renderPreviewTablePage(); 
  }
@@ -1970,7 +2001,9 @@ function renderPreviewTablePage() {
    const startIndex = (currentPreviewPage - 1) * previewItemsPerPage; 
    const endIndex = Math.min(startIndex + previewItemsPerPage, totalItems); 
    const pageData = pendingImportData.slice(startIndex, endIndex);
-  if(document.getElementById('previewTotalText')) document.getElementById('previewTotalText').innerHTML = `พบข้อมูลที่รอยืนยัน <span class="font-bold text-blue-600">${totalItems}</span> รายการ`;
+  
+  const textEl = document.getElementById('previewTotalText');
+  if(textEl) textEl.innerHTML = `พบข้อมูลที่รอยืนยัน <span class="font-bold text-blue-600">${totalItems}</span> รายการ`;
   
   if(tbody) {
     tbody.innerHTML = pageData.map((row, idx) => {
