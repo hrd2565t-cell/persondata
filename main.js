@@ -2,7 +2,7 @@
 // ⚙️ ตั้งค่าพื้นฐาน (Configuration)
 // ==========================================
 // นำ URL ของ Web App ที่คุณ Deploy จาก API.gs มาใส่ที่นี่
-const API_URL = 'YOUR_WEB_APP_URL_HERE'; 
+const API_URL = 'https://script.google.com/macros/s/AKfycbw--515Ocaod1h_wkMMc8dfiUumw4XD7anSkhWcM4coEXQJAVjGSKORwIMGLgq9t6Fi/exec'; 
 
 // ตัวแปรเก็บสถานะของระบบ
 const AppState = {
