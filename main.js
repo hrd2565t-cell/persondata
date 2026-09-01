@@ -134,7 +134,6 @@ window.closePdfPreviewModal = function() {
   }
 };
 
-// 📌 อัปเดตฟังก์ชัน: เพิ่มพารามิเตอร์ sport และ role ให้ส่งไปที่หลังบ้าน
 window.generatePDF = async function(uid, fullName, course, year, sport, role, btnId) {
   const btn = document.getElementById(btnId);
   const originalHtml = btn.innerHTML;
@@ -142,7 +141,6 @@ window.generatePDF = async function(uid, fullName, course, year, sport, role, bt
   btn.disabled = true;
 
   try {
-    // 📌 ส่ง sport และ role เข้าไปใน payload ด้วย
     const payload = { action: 'generatePDF', uid: uid, fullName: fullName, course: course, year: year, sport: sport, role: role };
     const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
     const result = await response.json();
@@ -196,19 +194,16 @@ window.viewProfile = function(uid) {
   if (person.trainings && person.trainings.length > 0) { 
      const sortedTrainings = person.trainings.sort((a, b) => b.year - a.year); 
      
-     // 📌 อัปเดตการจับคู่ข้อมูล Sport และ Role ของแต่ละหลักสูตรเพื่อส่งเข้าไปทำบัตร
      timelineEl.innerHTML = sortedTrainings.map((t, index) => {
         let dSport = '-';
         let dRole = '-';
         
-        // ค้นหาประวัติหน้าที่การงานที่ตรงกับหลักสูตรและปีนี้
         let matchedDuty = (person.duties || []).find(d => String(d.course) === String(t.course) && String(d.year) === String(t.year));
         
         if (matchedDuty) {
             dSport = matchedDuty.sport || '-';
             dRole = matchedDuty.role || '-';
         } else if (person.duties && person.duties.length > 0) {
-            // ถ้าไม่ตรงเป๊ะ ให้ดึงข้อมูลการทำงานล่าสุดมาแทน
             let latestDuty = person.duties[person.duties.length - 1];
             dSport = latestDuty.sport || '-';
             dRole = latestDuty.role || '-';
