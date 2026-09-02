@@ -37,49 +37,30 @@ document.addEventListener('DOMContentLoaded', () => {
   setupOTPInputs();
   switchPage('report');
   
-  // 📌 เพิ่ม Safety Checks (if) ก่อนผูก Event เสมอ เพื่อป้องกันสคริปต์พัง
+  // 📌 ปรับปรุงระบบค้นหา: ค้นหาเมื่อกดปุ่ม Enter หรือเมื่อช่องค้นหาว่างเปล่า
   const searchInput = document.getElementById('searchInput');
-  if (searchInput) {
-    searchInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        applyLocalFilters();
-      }
-    });
-    searchInput.addEventListener('input', (e) => {
-      if (e.target.value.trim() === '') applyLocalFilters();
-    });
-  }
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      applyLocalFilters();
+    }
+  });
+  searchInput.addEventListener('input', (e) => {
+    if (e.target.value.trim() === '') {
+      applyLocalFilters();
+    }
+  });
 
-  const srSearchInput = document.getElementById('srSearchName');
-  if (srSearchInput) {
-    srSearchInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        handleSelfReportUserSelect();
-      }
-    });
-  }
-
-  const filterCourse = document.getElementById('filterCourse');
-  if (filterCourse) filterCourse.addEventListener('change', () => { handleCascadingFilter('course'); applyLocalFilters(); });
-
-  const filterYear = document.getElementById('filterYear');
-  if (filterYear) filterYear.addEventListener('change', () => { handleCascadingFilter('year'); applyLocalFilters(); });
-
-  const filterGroup = document.getElementById('filterGroup');
-  if (filterGroup) filterGroup.addEventListener('change', applyLocalFilters);
+  document.getElementById('filterCourse').addEventListener('change', () => { handleCascadingFilter('course'); applyLocalFilters(); });
+  document.getElementById('filterYear').addEventListener('change', () => { handleCascadingFilter('year'); applyLocalFilters(); });
+  document.getElementById('filterGroup').addEventListener('change', applyLocalFilters);
   
-  const excelUpload = document.getElementById('excelUpload');
-  if (excelUpload) excelUpload.addEventListener('change', (e) => { processExcelFile(e.target.files[0], e.target); });
-
-  const singleFullName = document.getElementById('singleFullName');
-  if (singleFullName) singleFullName.addEventListener('blur', function() { if(this.value) this.value = this.value.trim().replace(/\s+/g, ' '); });
+  document.getElementById('excelUpload').addEventListener('change', (e) => { processExcelFile(e.target.files[0], e.target); });
+  document.getElementById('singleFullName').addEventListener('blur', function() { if(this.value) this.value = this.value.trim().replace(/\s+/g, ' '); });
 });
 
 window.showToast = function(message) { 
    const toast = document.getElementById('toastNotification'); 
-   if(!toast) return;
    document.getElementById('toastMessage').textContent = message; 
    toast.classList.remove('translate-y-20', 'opacity-0'); 
    setTimeout(() => { toast.classList.add('translate-y-20', 'opacity-0'); }, 3000);
@@ -954,12 +935,12 @@ function getBase64(file) {
    }); 
 }
 
+// 📌 ปรับปรุงการกดปุ่มเพื่อใช้ Event Local Filtering
 function applyLocalFilters() {
-  const searchInput = document.getElementById('searchInput');
-  const keyword = searchInput ? searchInput.value.trim().toLowerCase() : '';
-  const filterYear = document.getElementById('filterYear') ? document.getElementById('filterYear').value : '';
-  const filterCourse = document.getElementById('filterCourse') ? document.getElementById('filterCourse').value : '';
-  const filterGroup = document.getElementById('filterGroup') ? document.getElementById('filterGroup').value : '';
+  const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
+  const filterYear = document.getElementById('filterYear').value;
+  const filterCourse = document.getElementById('filterCourse').value;
+  const filterGroup = document.getElementById('filterGroup').value;
 
   currentFilteredData = cachedPersonnelData.filter(user => {
     const matchKeyword = keyword === '' || 
@@ -989,6 +970,264 @@ function applyLocalFilters() {
   renderTablePage();
 }
 
+window.submitSelfReport = async function() {
+  syncSrFormState(); 
+  const activeYear = document.getElementById('srActiveYear').value; 
+  let allReports = [];
+  let keptRecordIds = []; 
+  
+  for (let i = 0; i < srFormState.length; i++) {
+    let course = document.getElementById(`srCourse_${i}`).value; 
+    course = course.replace(/ทั่วไป/g, 'ไม่ระบุ');
+    
+    let eventType = document.getElementById(`srEventType_${i}`).value; 
+    const eventName = document.getElementById(`srEventName_${i}`).value.trim(); 
+    let role = document.getElementById(`srRole_${i}`).value; 
+    const sport = document.getElementById(`srSport_${i}`).value.trim(); 
+    const startDate = document.getElementById(`srStartDate_${i}`).value; 
+    const endDate = document.getElementById(`srEndDate_${i}`).value; 
+    const province = document.getElementById(`srProvince_${i}`).value; 
+    const location = document.getElementById(`srLocation_${i}`).value.trim(); 
+    const knowledge = document.getElementById(`srKnowledge_${i}`).value.trim();
+    
+    const keepImg1 = document.getElementById(`keepImg1_${i}`).value;
+    const keepImg2 = document.getElementById(`keepImg2_${i}`).value;
+    const keepImg3 = document.getElementById(`keepImg3_${i}`).value;
+    const recordId = document.getElementById(`srRecordId_${i}`) ? document.getElementById(`srRecordId_${i}`).value : '';
+    
+    if (recordId) keptRecordIds.push(recordId);
+    
+    if (eventType === 'อื่นๆ') {
+      const otherVal = document.getElementById(`srEventTypeOther_${i}`).value.trim();
+      if(!otherVal) return alert(`⚠️ กรุณาระบุรูปแบบงานใน ${course} งานที่ ${i+1}`);
+      eventType = 'อื่นๆ: ' + otherVal;
+    }
+    if (role === 'อื่นๆ') {
+      const otherVal = document.getElementById(`srRoleOther_${i}`).value.trim();
+      if(!otherVal) return alert(`⚠️ กรุณาระบุตำแหน่งใน ${course} งานที่ ${i+1}`);
+      role = 'อื่นๆ: ' + otherVal;
+    }
+    if(!eventType || !eventName || !role || !sport || !startDate || !endDate || !province || !location || !knowledge) { 
+       return alert(`⚠️ กรุณากรอกข้อมูลสำคัญที่มีดอกจันสีแดงให้ครบถ้วนในหลักสูตร ${course}`); 
+    }
+    
+    const file1 = document.getElementById(`srFile1_${i}`).files[0]; 
+    const file2 = document.getElementById(`srFile2_${i}`).files[0];
+    const file3 = document.getElementById(`srFile3_${i}`).files[0];
+    
+    allReports.push({ recordId, course, eventType, eventName, role, sport, startDate, endDate, province, location, knowledge, keepImg1, keepImg2, keepImg3, file1, file2, file3 });
+  }
+
+  document.getElementById('srLoadingOverlay').classList.remove('hidden');
+  
+  try {
+    for (let r of allReports) { 
+       if(r.file1) { r.file1Data = await getBase64(r.file1); r.file1Name = r.file1.name; r.file1Mime = r.file1.type; } 
+       if(r.file2) { r.file2Data = await getBase64(r.file2); r.file2Name = r.file2.name; r.file2Mime = r.file2.type; }
+       if(r.file3) { r.file3Data = await getBase64(r.file3); r.file3Name = r.file3.name; r.file3Mime = r.file3.type; }
+    }
+
+    document.getElementById('srLoadingTitle').textContent = `กำลังเคลียร์ข้อมูลเดิม...`;
+    
+    await fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'deleteMissingDutyRecords', uid: srSelectedUser.uid, year: activeYear, keptRecordIds: keptRecordIds }),
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+    });
+
+    for (let i = 0; i < allReports.length; i++) {
+      document.getElementById('srLoadingTitle').textContent = `กำลังบันทึกข้อมูลงานที่ ${i+1} / ${allReports.length}`;
+      let r = allReports[i]; 
+      
+      const payload = { 
+         action: 'saveSelfReport', 
+         uid: srSelectedUser.uid, 
+         fullName: srSelectedUser.fullName,
+         recordId: r.recordId, 
+         course: r.course, 
+         eventType: r.eventType, 
+         eventName: r.eventName, 
+         role: r.role, 
+         sport: r.sport, 
+         startDate: r.startDate, 
+         endDate: r.endDate, 
+         year: activeYear, 
+         province: r.province, 
+         location: r.location, 
+         knowledge: r.knowledge, 
+         keepImg1: r.keepImg1, 
+         keepImg2: r.keepImg2, 
+         keepImg3: r.keepImg3, 
+         file1Data: r.file1Data || null, 
+         file1Name: r.file1Name || '', 
+         file1Mime: r.file1Mime || '', 
+         file2Data: r.file2Data || null, 
+         file2Name: r.file2Name || '', 
+         file2Mime: r.file2Mime || '',
+         file3Data: r.file3Data || null, 
+         file3Name: r.file3Name || '', 
+         file3Mime: r.file3Mime || ''
+       };
+       
+       const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) }); 
+       const json = await res.json();
+      if(json.status !== 'success') throw new Error(json.message);
+    }
+    
+    alert('✅ บันทึกรายงานสำเร็จทั้งหมด ข้อมูลของคุณได้รับการอัปเดตเรียบร้อยแล้ว'); 
+    document.getElementById('srSearchName').value = ''; 
+    document.getElementById('srFormContainer').classList.add('hidden'); 
+    srSelectedUser = null; 
+    srFormState = [];
+    fetchData(); 
+  } catch(err) {
+    if(err.message === 'ขนาดไฟล์เกิน 5MB') alert('❌ ' + err.message); 
+    else alert('❌ เกิดข้อผิดพลาดในการบันทึก: ' + err.message);
+  }
+  
+  document.getElementById('srLoadingOverlay').classList.add('hidden');
+};
+
+window.openLoginModal = function() { 
+   const modal = document.getElementById('loginModal'); 
+   if(modal) modal.classList.remove('hidden'); 
+   const err = document.getElementById('loginErrorMsg'); 
+  if(err) err.classList.add('hidden'); 
+   
+  const inputs = Array.from(document.querySelectorAll('.otp-input')).slice(0, 6); 
+   inputs.forEach(input => input.value = ''); 
+   setTimeout(() => { if (inputs.length > 0) inputs[0].focus(); }, 100); 
+};
+
+window.closeLoginModal = function() { 
+   const modal = document.getElementById('loginModal'); 
+  if(modal) modal.classList.add('hidden'); 
+};
+
+function setupOTPInputs() { 
+   const inputs = Array.from(document.querySelectorAll('.otp-input')).slice(0, 6); 
+   inputs.forEach((input, index) => { 
+       input.addEventListener('input', (e) => { 
+         if(e.target.value.length === 1 && index < 5) inputs[index + 1].focus(); 
+         checkOTP(); 
+       }); 
+       input.addEventListener('keydown', (e) => { 
+         if(e.key === 'Backspace' && e.target.value === '' && index > 0) inputs[index - 1].focus(); 
+       }); 
+       input.addEventListener('paste', (e) => { 
+         e.preventDefault(); 
+         const pastedData = (e.clipboardData || window.clipboardData).getData('text').slice(0, 6).split(''); 
+         inputs.forEach((inp, i) => { if(pastedData[i]) inp.value = pastedData[i]; }); 
+         if(pastedData.length > 0) inputs[Math.min(pastedData.length, 5)].focus(); 
+         checkOTP(); 
+       }); 
+   }); 
+}
+
+window.checkOTP = function() { 
+   const inputs = Array.from(document.querySelectorAll('.otp-input')).slice(0, 6); 
+   let pin = ''; 
+   inputs.forEach(input => pin += input.value); 
+   
+  if(pin.length === 6) { 
+       const correctPin = String(globalSettings.adminPin || "336699").trim(); 
+       
+       if(pin === correctPin) { 
+           isAdmin = true; 
+           document.body.classList.add('is-admin'); 
+           
+           const btnLogin = document.getElementById('btnLogin'); 
+          if(btnLogin) { btnLogin.classList.remove('flex'); btnLogin.classList.add('hidden'); }
+          
+           const btnLogout = document.getElementById('btnLogout'); 
+           if(btnLogout) { btnLogout.classList.remove('hidden'); btnLogout.classList.add('flex'); }
+           
+           closeLoginModal(); 
+           switchPage('dashboard'); 
+           renderTablePage(); 
+       } else { 
+           const err = document.getElementById('loginErrorMsg'); 
+          if(err) err.classList.remove('hidden'); 
+           inputs.forEach(input => input.value = ''); 
+           if(inputs.length > 0) inputs[0].focus(); 
+       } 
+   } 
+};
+
+window.logoutAdmin = function() { 
+   isAdmin = false; 
+   document.body.classList.remove('is-admin'); 
+   
+   const btnLogin = document.getElementById('btnLogin'); 
+  if(btnLogin) { btnLogin.classList.remove('hidden'); btnLogin.classList.add('flex'); }
+  
+  const btnLogout = document.getElementById('btnLogout'); 
+   if(btnLogout) { btnLogout.classList.remove('flex'); btnLogout.classList.add('hidden'); }
+   
+  switchPage('report'); 
+   renderTablePage(); 
+};
+
+window.switchPage = function(pageId) {
+  const pages = ['dashboard', 'search', 'timeline', 'import', 'report', 'project'];
+  pages.forEach(p => {
+    const section = document.getElementById(`page-${p}`);
+    if (section) { 
+       section.classList.toggle('hidden', p !== pageId); 
+       section.classList.toggle('block', p === pageId); 
+     }
+    const btn = document.getElementById(`nav-btn-${p}`);
+    if (btn) {
+      if(p === 'report') {
+        btn.classList.toggle('bg-blue-50/50', p === pageId); 
+         btn.classList.toggle('text-blue-600', p === pageId); 
+         btn.classList.toggle('font-bold', p === pageId); 
+         btn.classList.toggle('text-slate-500', p !== pageId); 
+         btn.classList.toggle('font-medium', p !== pageId);
+      } else {
+        btn.classList.toggle('border-blue-600', p === pageId); 
+         btn.classList.toggle('text-blue-600', p === pageId); 
+         btn.classList.toggle('font-bold', p === pageId); 
+         btn.classList.toggle('border-transparent', p !== pageId); 
+         btn.classList.toggle('text-slate-500', p !== pageId); 
+         btn.classList.toggle('font-medium', p !== pageId);
+      }
+    }
+  });
+  if (pageId === 'timeline' && globalFiltersMaster) {
+    renderTimeline(globalFiltersMaster.relations, globalFiltersMaster.years, globalFiltersMaster.courses);
+  }
+};
+
+window.switchImportMode = function(mode) {
+  const btnBulk = document.getElementById('tab-import-bulk'); 
+   const btnSingle = document.getElementById('tab-import-single'); 
+   const btnSettings = document.getElementById('tab-import-settings');
+  const secBulk = document.getElementById('importModeBulk'); 
+   const secSingle = document.getElementById('importModeSingle'); 
+   const secSettings = document.getElementById('importModeSettings');
+   
+  [btnBulk, btnSingle, btnSettings].forEach(b => { 
+     if(b) b.className = "pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-700 font-medium text-sm transition px-4 flex items-center gap-2" + (b.id === 'tab-import-settings' ? ' ml-auto' : ''); 
+   });
+   
+  [secBulk, secSingle, secSettings].forEach(s => { 
+     if(s) { s.classList.remove('block'); s.classList.add('hidden'); } 
+   });
+   
+  if(mode === 'bulk') { 
+     if(btnBulk) { btnBulk.classList.add('border-blue-600', 'text-blue-600', 'font-bold'); btnBulk.classList.remove('border-transparent', 'text-slate-500', 'font-medium'); }
+    if(secBulk) { secBulk.classList.remove('hidden'); secBulk.classList.add('block'); }
+  } else if (mode === 'single') { 
+     if(btnSingle) { btnSingle.classList.add('border-blue-600', 'text-blue-600', 'font-bold'); btnSingle.classList.remove('border-transparent', 'text-slate-500', 'font-medium'); }
+    if(secSingle) { secSingle.classList.remove('hidden'); secSingle.classList.add('block'); }
+  } else if (mode === 'settings') { 
+     if(btnSettings) { btnSettings.classList.add('border-blue-600', 'text-blue-600', 'font-bold'); btnSettings.classList.remove('border-transparent', 'text-slate-500', 'font-medium'); }
+    if(secSettings) { secSettings.classList.remove('hidden'); secSettings.classList.add('block'); }
+  }
+};
+
+// 📌 ฟังก์ชันดึงข้อมูลแบบ Local-First เพื่อล็อกค่า Dashboard ให้คงที่
 async function fetchData() {
   showLoadingState(); 
   try {
@@ -1053,12 +1292,10 @@ function updateSelfReportDatalist() {
 function handleCascadingFilter(changedType) {
   if (!globalFiltersMaster) return;
   const yearSelect = document.getElementById('filterYear'); 
-  const courseSelect = document.getElementById('filterCourse'); 
-  if(!yearSelect || !courseSelect) return;
-
-  const selectedYear = yearSelect.value; 
-  const selectedCourse = courseSelect.value; 
-  const relations = globalFiltersMaster.relations;
+   const courseSelect = document.getElementById('filterCourse'); 
+   const selectedYear = yearSelect.value; 
+   const selectedCourse = courseSelect.value; 
+   const relations = globalFiltersMaster.relations;
    
   if (changedType === 'course' && selectedCourse) { 
      const validYears = Object.keys(relations.courseToYears[selectedCourse] || {}); 
@@ -1072,30 +1309,26 @@ function handleCascadingFilter(changedType) {
 
 function updateDropdownUI() {
   if (!globalFiltersMaster) return;
-  const yearSelect = document.getElementById('filterYear');
-  const courseSelect = document.getElementById('filterCourse');
-  const groupSelect = document.getElementById('filterGroup');
-
-  const selectedYear = yearSelect ? yearSelect.value : ''; 
-  const selectedCourse = courseSelect ? courseSelect.value : ''; 
-  const selectedGroup = groupSelect ? groupSelect.value : '';
+  const selectedYear = document.getElementById('filterYear').value; 
+   const selectedCourse = document.getElementById('filterCourse').value; 
+   const selectedGroup = document.getElementById('filterGroup').value;
    
   const relations = globalFiltersMaster.relations; 
-  let availableYears = globalFiltersMaster.years; 
-  let availableCourses = globalFiltersMaster.courses; 
-  let availableGroups = globalFiltersMaster.groups;
+   let availableYears = globalFiltersMaster.years; 
+   let availableCourses = globalFiltersMaster.courses; 
+   let availableGroups = globalFiltersMaster.groups;
    
   if (selectedCourse) availableYears = Object.keys(relations.courseToYears[selectedCourse] || {}).sort((a,b) => b-a);
   if (selectedYear) availableCourses = Object.keys(relations.yearToCourses[selectedYear] || {}).sort();
   
   populateDropdown('filterYear', availableYears, selectedYear, 'ทุกปีการศึกษา'); 
-  populateDropdown('filterCourse', availableCourses, selectedCourse, 'ทุกหลักสูตร'); 
-  populateDropdown('filterGroup', availableGroups, selectedGroup, 'ทุกกลุ่มบุคลากร');
+   populateDropdown('filterCourse', availableCourses, selectedCourse, 'ทุกหลักสูตร'); 
+   populateDropdown('filterGroup', availableGroups, selectedGroup, 'ทุกกลุ่มบุคลากร');
 }
 
 function populateDropdown(elementId, items, currentValue, defaultLabel) {
   const select = document.getElementById(elementId); 
-  if(!select) return;
+   if(!select) return;
   select.innerHTML = `<option value="">${defaultLabel}</option>`;
   items.forEach(item => { 
      const option = document.createElement('option'); 
@@ -1103,7 +1336,7 @@ function populateDropdown(elementId, items, currentValue, defaultLabel) {
      option.textContent = item; 
      select.appendChild(option); 
    }); 
-  select.value = currentValue;
+   select.value = currentValue;
 }
 
 function updateDatalists() {
@@ -1132,10 +1365,9 @@ function updateDatalists() {
 }
 
 function drawCharts(allYears, allGroups) {
-  if (typeof Chart === 'undefined') return;
   Chart.register(ChartDataLabels);
   const sortedYears = [...allYears].sort((a,b)=>a-b); 
-  const last5Years = sortedYears.slice(-5);
+   const last5Years = sortedYears.slice(-5);
    
   const yearData = last5Years.map(y => { 
      let count = 0; 
@@ -1263,10 +1495,8 @@ window.openMatrixReport = function() {
    
   const startSelect = document.getElementById('matrixStartYear'); 
    const endSelect = document.getElementById('matrixEndYear'); 
-   if (startSelect && endSelect) {
-     startSelect.innerHTML = matrixAvailableYears.map(y => `<option value="${y}">${y}</option>`).join(''); 
-     endSelect.innerHTML = matrixAvailableYears.map(y => `<option value="${y}">${y}</option>`).join(''); 
-   }
+   startSelect.innerHTML = matrixAvailableYears.map(y => `<option value="${y}">${y}</option>`).join(''); 
+   endSelect.innerHTML = matrixAvailableYears.map(y => `<option value="${y}">${y}</option>`).join(''); 
    const modal = document.getElementById('matrixModal');
   if(modal) modal.classList.remove('hidden'); 
    applyMatrixFilter('all');
@@ -1282,19 +1512,14 @@ window.applyMatrixFilter = function(type) {
    else if (type === '10') { startYear = Math.max(minYear, maxYear - 9); endYear = maxYear; } 
    else if (type === 'all') { startYear = minYear; endYear = maxYear; } 
    else if (type === 'custom') { 
-     const sInput = document.getElementById('matrixStartYear');
-     const eInput = document.getElementById('matrixEndYear');
-     startYear = sInput ? parseInt(sInput.value) : minYear; 
-     endYear = eInput ? parseInt(eInput.value) : maxYear; 
+     startYear = parseInt(document.getElementById('matrixStartYear').value); 
+     endYear = parseInt(document.getElementById('matrixEndYear').value); 
      if (startYear > endYear) { alert('⚠️ ปีเริ่มต้นต้องไม่มากกว่าปีสิ้นสุด'); return; } 
    }
    
-  const sInput = document.getElementById('matrixStartYear');
-  if (sInput) sInput.value = startYear; 
-  const eInput = document.getElementById('matrixEndYear');
-  if (eInput) eInput.value = endYear; 
-  
-  buildMatrixTable(startYear, endYear);
+  document.getElementById('matrixStartYear').value = startYear; 
+   document.getElementById('matrixEndYear').value = endYear; 
+   buildMatrixTable(startYear, endYear);
 };
 
 function buildMatrixTable(startYear, endYear) {
@@ -1426,9 +1651,7 @@ window.openProposalReport = function(encodedCourseName, btnId) {
 window.renderReportData = function() {
   if(!currentReportCourseBase64) return;
   const courseName = base64ToUtf8(currentReportCourseBase64);
-  const filterEl = document.getElementById('reportYearFilter');
-  const selectedYear = filterEl ? filterEl.value : 'all';
-  
+  const selectedYear = document.getElementById('reportYearFilter') ? document.getElementById('reportYearFilter').value : 'all';
   let courseUsers = cachedPersonnelData.filter(u => u.trainings && u.trainings.some(t => t.course === courseName));
   if(selectedYear !== 'all') { 
      courseUsers = courseUsers.filter(u => u.trainings.some(t => t.course === courseName && String(t.year) === selectedYear)); 
@@ -1968,27 +2191,19 @@ window.submitSingleEntry = function() {
      actionType: matchType === 'exact' ? 'merge' : 'auto' 
    }];
    
-  const prefixInput = document.getElementById('singlePrefix');
-  if(prefixInput) prefixInput.value = ''; 
-  const nameInput = document.getElementById('singleFullName');
-  if(nameInput) nameInput.value = ''; 
-  const groupInput = document.getElementById('singleGroup');
-  if(groupInput) groupInput.value = ''; 
-  const agencyInput = document.getElementById('singleAgency');
-  if(agencyInput) agencyInput.value = ''; 
-  const courseInput = document.getElementById('singleCourse');
-  if(courseInput) courseInput.value = ''; 
-  const yearInput = document.getElementById('singleYear');
-  if(yearInput) yearInput.value = ''; 
+  document.getElementById('singlePrefix').value = ''; 
+   document.getElementById('singleFullName').value = ''; 
+   document.getElementById('singleGroup').value = ''; 
+   document.getElementById('singleAgency').value = ''; 
+   document.getElementById('singleCourse').value = ''; 
+   document.getElementById('singleYear').value = ''; 
    
   showPreviewSection();
 };
 
 function showPreviewSection() { 
-   const uploadSec = document.getElementById('importUploadSection');
-   if(uploadSec) uploadSec.classList.add('hidden'); 
-   const previewSec = document.getElementById('importPreviewSection');
-   if(previewSec) previewSec.classList.remove('hidden'); 
+   document.getElementById('importUploadSection').classList.add('hidden'); 
+   document.getElementById('importPreviewSection').classList.remove('hidden'); 
    currentPreviewPage = 1; 
    renderPreviewTablePage(); 
  }
@@ -2001,9 +2216,7 @@ function renderPreviewTablePage() {
    const startIndex = (currentPreviewPage - 1) * previewItemsPerPage; 
    const endIndex = Math.min(startIndex + previewItemsPerPage, totalItems); 
    const pageData = pendingImportData.slice(startIndex, endIndex);
-  
-  const textEl = document.getElementById('previewTotalText');
-  if(textEl) textEl.innerHTML = `พบข้อมูลที่รอยืนยัน <span class="font-bold text-blue-600">${totalItems}</span> รายการ`;
+  if(document.getElementById('previewTotalText')) document.getElementById('previewTotalText').innerHTML = `พบข้อมูลที่รอยืนยัน <span class="font-bold text-blue-600">${totalItems}</span> รายการ`;
   
   if(tbody) {
     tbody.innerHTML = pageData.map((row, idx) => {
