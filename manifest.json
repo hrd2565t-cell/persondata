@@ -1,0 +1,22 @@
+{
+  "name": "ระบบติดตามโครงการ กกท.",
+  "short_name": "SAT Tracking",
+  "description": "ระบบติดตามและวิเคราะห์งบประมาณโครงการพัฒนาบุคลากรกีฬา",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#1e3a8a",
+  "theme_color": "#1e3a8a",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
