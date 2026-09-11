@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+    <rect width="512" height="512" rx="100" fill="#1e3a8a"/>
+    <path d="M100 350 L200 200 L300 280 L412 120" fill="none" stroke="#eab308" stroke-width="36" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="100" cy="350" r="28" fill="#10b981"/>
+    <circle cx="200" cy="200" r="28" fill="#f59e0b"/>
+    <circle cx="300" cy="280" r="28" fill="#3b82f6"/>
+    <circle cx="412" cy="120" r="28" fill="#ef4444"/>
+    <text x="256" y="460" font-family="sans-serif" font-size="85" font-weight="bold" fill="#ffffff" text-anchor="middle">SAT</text>
+</svg>
