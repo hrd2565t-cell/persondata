@@ -37,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupOTPInputs();
   switchPage('report');
   
+  // 📌 ปรับปรุงระบบค้นหา: เพิ่ม Null Check และรองรับการกด Enter หรือช่องว่างเปล่า
   const searchInput = document.getElementById('searchInput');
   if (searchInput) {
     searchInput.addEventListener('keydown', (e) => {
@@ -52,6 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // 📌 เพิ่มการรองรับกดปุ่ม Enter สำหรับหน้ารายงานผล
   const srSearchInput = document.getElementById('srSearchName');
   if (srSearchInput) {
     srSearchInput.addEventListener('keydown', (e) => {
@@ -62,6 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // 📌 เพิ่ม Null Check ป้องกันโค้ดหยุดทำงานหากหา Element ไม่พบ
   const filterCourse = document.getElementById('filterCourse');
   if (filterCourse) filterCourse.addEventListener('change', () => { handleCascadingFilter('course'); applyLocalFilters(); });
   
