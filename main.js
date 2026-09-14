@@ -1361,20 +1361,20 @@ window.closeMatrixReport = function() {
 
 window.printMatrixReport = function() { 
    const modal = document.getElementById('matrixModal');
-  if(modal) modal.classList.add('print-modal-active'); 
+   if(modal) modal.classList.add('print-modal-active'); 
    
-  // เพิ่มคำสั่งตั้งหน้ากระดาษเป็นแนวนอน (Landscape) สำหรับ Matrix Report
-  let printStyle = document.createElement('style');
-  printStyle.id = 'dynamic-print-style';
-  printStyle.innerHTML = '@media print { @page { size: A4 landscape !important; margin: 12mm; } }';
-  document.head.appendChild(printStyle);
+   let printStyle = document.getElementById('dynamic-print-style');
+   if (!printStyle) {
+     printStyle = document.createElement('style');
+     printStyle.id = 'dynamic-print-style';
+     document.head.appendChild(printStyle);
+   }
+   printStyle.innerHTML = '@media print { @page { size: A4 landscape !important; margin: 12mm; } }';
 
-   window.print(); 
-
-   if(modal) modal.classList.remove('print-modal-active'); 
-  // ลบคำสั่งกระดาษแนวนอนทิ้งหลังพิมพ์เสร็จ
-  let styleToRemove = document.getElementById('dynamic-print-style');
-  if (styleToRemove) styleToRemove.remove();
+   setTimeout(() => {
+     window.print(); 
+     if(modal) modal.classList.remove('print-modal-active'); 
+   }, 300);
 };
 
 window.exportMatrixToExcel = function() { 
@@ -1598,20 +1598,20 @@ window.closeProposalReport = function() {
 
 window.printProposalReport = function() { 
    const modal = document.getElementById('proposalModal');
-  if(modal) modal.classList.add('print-modal-active'); 
+   if(modal) modal.classList.add('print-modal-active'); 
   
-  // เพิ่มคำสั่งตั้งหน้ากระดาษเป็นแนวตั้ง (Portrait) สำหรับ Proposal Report
-  let printStyle = document.createElement('style');
-  printStyle.id = 'dynamic-print-style';
-  printStyle.innerHTML = '@media print { @page { size: A4 portrait !important; margin: 12mm; } }';
-  document.head.appendChild(printStyle);
+   let printStyle = document.getElementById('dynamic-print-style');
+   if (!printStyle) {
+     printStyle = document.createElement('style');
+     printStyle.id = 'dynamic-print-style';
+     document.head.appendChild(printStyle);
+   }
+   printStyle.innerHTML = '@media print { @page { size: A4 portrait !important; margin: 12mm; } }';
 
-   window.print(); 
-
-   if(modal) modal.classList.remove('print-modal-active'); 
-  // ลบคำสั่งกระดาษแนวตั้งทิ้งหลังพิมพ์เสร็จ
-  let styleToRemove = document.getElementById('dynamic-print-style');
-  if (styleToRemove) styleToRemove.remove();
+   setTimeout(() => {
+     window.print(); 
+     if(modal) modal.classList.remove('print-modal-active'); 
+   }, 300);
 };
 
 function updateSmartSummary(course, year, totalCount) { 
