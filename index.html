@@ -56,9 +56,22 @@
         padding: 0 !important;
       }
       
-      table, img, .break-inside-avoid { 
+      /* 🟢 แก้ไข: อนุญาตให้ Table แยกหน้าได้ แต่ป้องกันไม่ให้แถว (tr) ขาดครึ่งหน้า */
+      table { 
+        page-break-inside: auto !important; 
+        break-inside: auto !important; 
+      }
+      tr { 
+        page-break-inside: avoid !important; 
+        break-inside: avoid !important; 
+      }
+      img, .break-inside-avoid { 
         break-inside: avoid !important; 
         page-break-inside: avoid !important; 
+      }
+      /* 🟢 แก้ไข: ปลดล็อก overflow ซ่อนตาราง เพื่อให้ตารางพิมพ์ได้สมบูรณ์ไม่ถูกตัด */
+      .overflow-x-auto {
+        overflow: visible !important;
       }
       
       .print-hide { display: none !important; }
