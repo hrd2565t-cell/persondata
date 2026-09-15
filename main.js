@@ -1,6 +1,7 @@
 const API_URL = 'https://script.google.com/macros/s/AKfycbw--515Ocaod1h_wkMMc8dfiUumw4XD7anSkhWcM4coEXQJAVjGSKORwIMGLgq9t6Fi/exec';
 let cachedPersonnelData = [];
 let cachedProjectDetails = {}; 
+let cachedStrategyDoc = null;
 let currentActiveUid = null;
 let globalFiltersMaster = null; 
 let currentFilteredData = [];
@@ -34,10 +35,10 @@ function getDirectDriveImageUrl(url) {
 document.addEventListener('DOMContentLoaded', () => {
   fetchData();
   setupDragAndDrop();
+  setupStrategyUpload();
   setupOTPInputs();
   switchPage('report');
   
-  // 📌 ปรับปรุงระบบค้นหา: เพิ่ม Null Check และรองรับการกด Enter หรือช่องว่างเปล่า
   const searchInput = document.getElementById('searchInput');
   if (searchInput) {
     searchInput.addEventListener('keydown', (e) => {
@@ -53,7 +54,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 📌 เพิ่มการรองรับกดปุ่ม Enter สำหรับหน้ารายงานผล
   const srSearchInput = document.getElementById('srSearchName');
   if (srSearchInput) {
     srSearchInput.addEventListener('keydown', (e) => {
@@ -64,7 +64,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 📌 เพิ่ม Null Check ป้องกันโค้ดหยุดทำงานหากหา Element ไม่พบ
   const filterCourse = document.getElementById('filterCourse');
   if (filterCourse) filterCourse.addEventListener('change', () => { handleCascadingFilter('course'); applyLocalFilters(); });
   
@@ -413,7 +412,7 @@ window.submitEval = async function() {
   const btn = document.getElementById('btnSaveEval'); 
   btn.textContent = 'กำลังบันทึก...'; btn.disabled = true;
   try {
-    const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveEval', uid: currentActiveUid, feedback: feedback }), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
+    const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
     const result = await response.json();
     if(result.status === 'success') { alert('✅ บันทึกสำเร็จ'); document.getElementById('inputEvalFeedback').value = ''; fetchData(); } else { alert(`❌ ข้อผิดพลาด: ${result.message}`); }
   } catch(e) { alert('❌ การเชื่อมต่อล้มเหลว'); }
@@ -492,7 +491,7 @@ window.submitProjectDetails = async function() {
   });
   
   const payload = { 
-    action: 'saveProjectDetails', course: course, 
+    action: 'saveProjectDetails', course: course.replace(/ทั่วไป/g, 'ไม่ระบุ'), 
     fullCourseName: document.getElementById('pdFullCourseName').value.trim(), 
     rationale: document.getElementById('pdRationale').value.trim(), 
     objectives: document.getElementById('pdObjectives').value.trim(), 
@@ -517,6 +516,145 @@ window.submitProjectDetails = async function() {
     if(result.status === 'success') { alert('✅ บันทึกสำเร็จ'); fetchData(); } else { alert('❌ ' + result.message); }
   } catch(e) { alert('❌ การเชื่อมต่อล้มเหลว'); }
   btn.textContent = 'บันทึกข้อมูลโครงการทั้งหมด'; btn.disabled = false;
+};
+
+/* 📌 ฟังก์ชันจัดการเอกสารยุทธศาสตร์และการวิเคราะห์ AI */
+function setupStrategyUpload() {
+  const fileInput = document.getElementById('strategyFileInput');
+  const dropZone = document.getElementById('strategyDropZone');
+  if (!fileInput || !dropZone) return;
+
+  dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('border-indigo-500', 'bg-indigo-50/50');
+  });
+  dropZone.addEventListener('dragleave', () => {
+    dropZone.classList.remove('border-indigo-500', 'bg-indigo-50/50');
+  });
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('border-indigo-500', 'bg-indigo-50/50');
+    if (e.dataTransfer.files.length > 0) {
+      uploadStrategyDoc(e.dataTransfer.files[0]);
+    }
+  });
+  fileInput.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) {
+      uploadStrategyDoc(e.target.files[0]);
+    }
+  });
+}
+
+async function uploadStrategyDoc(file) {
+  if (!file) return;
+  if (file.size > 15 * 1024 * 1024) {
+    alert('⚠️ ขนาดไฟล์ต้องไม่เกิน 15MB');
+    return;
+  }
+  const titleEl = document.getElementById('stratDocTitle');
+  const metaEl = document.getElementById('stratDocMeta');
+  if (titleEl) titleEl.textContent = `กำลังอัปโหลด: ${file.name}...`;
+  if (metaEl) metaEl.textContent = 'กรุณารอสักครู่ ระบบกำลังจัดเก็บไฟล์ลง Google Drive';
+
+  try {
+    const base64Data = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+    const payload = {
+      action: 'uploadStrategyFile',
+      fileName: file.name,
+      mimeType: file.type,
+      fileData: base64Data
+    };
+
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+    });
+    const result = await response.json();
+
+    if (result.status === 'success') {
+      showToast('✅ อัปโหลดเอกสารยุทธศาสตร์สำเร็จ');
+      cachedStrategyDoc = result.data;
+      renderStrategyDocStatus(result.data);
+    } else {
+      alert('❌ เกิดข้อผิดพลาด: ' + result.message);
+      if (cachedStrategyDoc) renderStrategyDocStatus(cachedStrategyDoc);
+    }
+  } catch (err) {
+    alert('❌ การอัปโหลดล้มเหลว: ' + err.message);
+    if (cachedStrategyDoc) renderStrategyDocStatus(cachedStrategyDoc);
+  }
+  const fileInput = document.getElementById('strategyFileInput');
+  if (fileInput) fileInput.value = '';
+}
+
+function renderStrategyDocStatus(doc) {
+  const titleEl = document.getElementById('stratDocTitle');
+  const metaEl = document.getElementById('stratDocMeta');
+  if (!titleEl || !metaEl) return;
+  if (doc && doc.fileName) {
+    titleEl.textContent = doc.fileName;
+    metaEl.textContent = `อัปเดตล่าสุด: ${doc.updatedAt || 'ไม่ระบุ'} | สถานะ: บันทึกในระบบแล้ว`;
+  } else {
+    titleEl.textContent = 'ยังไม่มีการอัปโหลดเอกสารยุทธศาสตร์';
+    metaEl.textContent = 'กรุณาอัปโหลดเอกสารเพื่อเริ่มต้นการประเมิน';
+  }
+}
+
+window.triggerAiStrategicAnalysis = async function() {
+  const course = document.getElementById('aiAnalysisCourse').value;
+  const year = document.getElementById('aiAnalysisYear').value;
+  if (!course || !year) {
+    alert('⚠️ กรุณาเลือกหลักสูตรและปีการศึกษาที่ต้องการวิเคราะห์');
+    return;
+  }
+
+  const btn = document.getElementById('btnRunAiAnalysis');
+  const originalText = btn.innerHTML;
+  btn.innerHTML = `<svg class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> AI กำลังประมวลผล...`;
+  btn.disabled = true;
+
+  try {
+    const payload = {
+      action: 'analyzeStrategy',
+      course: course.replace(/ทั่วไป/g, 'ไม่ระบุ'),
+      year: year
+    };
+
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+    });
+    const result = await response.json();
+
+    if (result.status === 'success' && result.data) {
+      const card = document.getElementById('aiResultCard');
+      if (card) card.classList.remove('hidden');
+
+      document.getElementById('aiResultHeading').textContent = `ผลการวิเคราะห์หลักสูตร ${course} (ปี ${year})`;
+      document.getElementById('aiResultMeta').textContent = `วิเคราะห์จากผู้ปฏิบัติงานจริง ${result.data.evaluatedPeople || 0} คน เทียบกับแผนยุทธศาสตร์และข้อมูลโครงการ`;
+      document.getElementById('aiScoreVal').textContent = `${result.data.alignmentScore || 0}%`;
+      document.getElementById('aiCompetencySummary').textContent = result.data.competencyFit || 'ไม่ระบุ';
+      document.getElementById('aiStrategicSummary').textContent = result.data.strategicAlignment || 'ไม่ระบุ';
+      document.getElementById('aiPolicyRecommendations').textContent = result.data.policyRecommendations || 'ไม่ระบุ';
+
+      showToast('✅ สังเคราะห์ผลการวิเคราะห์ด้วย AI สำเร็จ');
+    } else {
+      alert('❌ ' + (result.message || 'ไม่สามารถวิเคราะห์ข้อมูลได้'));
+    }
+  } catch (err) {
+    alert('❌ การเชื่อมต่อล้มเหลว: ' + err.message);
+  }
+
+  btn.innerHTML = originalText;
+  btn.disabled = false;
 };
 
 window.saveAdminSettings = async function() {
@@ -1185,14 +1323,14 @@ window.logoutAdmin = function() {
   if(btnLogin) { btnLogin.classList.remove('hidden'); btnLogin.classList.add('flex'); }
   
   const btnLogout = document.getElementById('btnLogout'); 
-   if(btnLogout) { btnLogout.classList.remove('flex'); btnLogout.classList.add('hidden'); }
+   if(btnLogout) { btnLogout.classList.remove('hidden'); btnLogout.classList.add('flex'); }
    
   switchPage('report'); 
    renderTablePage(); 
 };
 
 window.switchPage = function(pageId) {
-  const pages = ['dashboard', 'search', 'timeline', 'import', 'report', 'project'];
+  const pages = ['dashboard', 'search', 'timeline', 'import', 'report', 'project', 'strategy'];
   pages.forEach(p => {
     const section = document.getElementById(`page-${p}`);
     if (section) { 
@@ -1250,7 +1388,6 @@ window.switchImportMode = function(mode) {
   }
 };
 
-// 📌 ฟังก์ชันดึงข้อมูลแบบ Local-First เพื่อล็อกค่า Dashboard ให้คงที่
 async function fetchData() {
   showLoadingState(); 
   try {
@@ -1288,6 +1425,10 @@ async function fetchData() {
       if(result.data.projectDetails) { 
          cachedProjectDetails = result.data.projectDetails; 
        }
+      if(result.data.strategyDoc) {
+         cachedStrategyDoc = result.data.strategyDoc;
+         renderStrategyDocStatus(cachedStrategyDoc);
+      }
        
        updateDatalists(); 
        updateSelfReportDatalist(); 
@@ -1385,6 +1526,15 @@ function updateDatalists() {
    
   const yearList = document.getElementById('dl-years'); 
    if(yearList) yearList.innerHTML = globalFiltersMaster.years.map(y => `<option value="${y}">`).join('');
+
+  const aiCourse = document.getElementById('aiAnalysisCourse');
+  if (aiCourse) {
+    aiCourse.innerHTML = '<option value="">-- เลือกหลักสูตร --</option>' + globalFiltersMaster.courses.map(c => `<option value="${c}">${c}</option>`).join('');
+  }
+  const aiYear = document.getElementById('aiAnalysisYear');
+  if (aiYear) {
+    aiYear.innerHTML = '<option value="">-- เลือกปีการศึกษา --</option>' + globalFiltersMaster.years.map(y => `<option value="${y}">${y}</option>`).join('');
+  }
 }
 
 function drawCharts(allYears, allGroups) {
@@ -1622,9 +1772,26 @@ window.closeMatrixReport = function() {
 
 window.printMatrixReport = function() { 
    const modal = document.getElementById('matrixModal');
-  if(modal) modal.classList.add('print-modal-active'); 
-   window.print(); 
-   if(modal) modal.classList.remove('print-modal-active'); 
+   if(modal) modal.classList.add('print-modal-active'); 
+   
+   let printStyle = document.getElementById('dynamic-print-style');
+   if (!printStyle) {
+     printStyle = document.createElement('style');
+     printStyle.id = 'dynamic-print-style';
+     document.head.appendChild(printStyle);
+   }
+   printStyle.innerHTML = '@media print { @page { size: A4 landscape !important; margin: 12mm; } }';
+
+   const afterPrint = () => {
+     if(modal) modal.classList.remove('print-modal-active'); 
+     if(printStyle) printStyle.remove();
+     window.removeEventListener('afterprint', afterPrint);
+   };
+   window.addEventListener('afterprint', afterPrint);
+
+   setTimeout(() => {
+     window.print(); 
+   }, 300);
 };
 
 window.exportMatrixToExcel = function() { 
@@ -1848,9 +2015,26 @@ window.closeProposalReport = function() {
 
 window.printProposalReport = function() { 
    const modal = document.getElementById('proposalModal');
-  if(modal) modal.classList.add('print-modal-active'); 
-   window.print(); 
-   if(modal) modal.classList.remove('print-modal-active'); 
+   if(modal) modal.classList.add('print-modal-active'); 
+  
+   let printStyle = document.getElementById('dynamic-print-style');
+   if (!printStyle) {
+     printStyle = document.createElement('style');
+     printStyle.id = 'dynamic-print-style';
+     document.head.appendChild(printStyle);
+   }
+   printStyle.innerHTML = '@media print { @page { size: A4 portrait !important; margin: 12mm; } }';
+
+   const afterPrint = () => {
+     if(modal) modal.classList.remove('print-modal-active'); 
+     if(printStyle) printStyle.remove();
+     window.removeEventListener('afterprint', afterPrint);
+   };
+   window.addEventListener('afterprint', afterPrint);
+
+   setTimeout(() => {
+     window.print(); 
+   }, 300);
 };
 
 function updateSmartSummary(course, year, totalCount) { 
@@ -2155,7 +2339,7 @@ function processExcelFile(file, inputElement) {
            'กลุ่มหน่วยงาน': row['กลุ่มหน่วยงาน'] || '', 
            'หน่วยงาน': String(row['หน่วยงาน'] || '').replace(/\s+/g, ' ').trim(), 
            'สถานะ': row['สถานะ'] || 'ปฏิบัติงาน', 
-           'ชื่อหลักสูตร': row['ชื่อหลักสูตร'] || '', 
+           'ชื่อหลักสูตร': String(row['ชื่อหลักสูตร'] || '').replace(/ทั่วไป/g, 'ไม่ระบุ'), 
            'ปีที่อบรม': row['ปีที่อบรม'] || '', 
            matchType: matchType, 
            matchedUser: matchedExisting, 
@@ -2207,7 +2391,7 @@ window.submitSingleEntry = function() {
      'กลุ่มหน่วยงาน': pGroup, 
      'หน่วยงาน': pAgency, 
      'สถานะ': 'ปฏิบัติงาน', 
-     'ชื่อหลักสูตร': pCourse, 
+     'ชื่อหลักสูตร': pCourse.replace(/ทั่วไป/g, 'ไม่ระบุ'), 
      'ปีที่อบรม': pYear, 
      matchType: matchType, 
      matchedUser: matchedExisting, 
@@ -2411,7 +2595,7 @@ window.logoutAdmin = function() {
   if(btnLogin) { btnLogin.classList.remove('hidden'); btnLogin.classList.add('flex'); }
   
   const btnLogout = document.getElementById('btnLogout'); 
-   if(btnLogout) { btnLogout.classList.remove('flex'); btnLogout.classList.add('hidden'); }
+   if(btnLogout) { btnLogout.classList.remove('hidden'); btnLogout.classList.add('flex'); }
    
   switchPage('report'); 
    renderTablePage(); 
