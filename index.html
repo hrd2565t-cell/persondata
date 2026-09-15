@@ -426,7 +426,7 @@
             <p class="text-xs text-slate-400 mt-0.5">ระบบจะนำ (1) แผนยุทธศาสตร์ (2) วัตถุประสงค์โครงการ และ (3) ผลการปฏิบัติงานจริงทั้งหมดในรุ่นนั้น มาประมวลผลร่วมกัน</p>
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
             <div class="sm:col-span-1">
               <label class="block text-xs font-bold text-slate-600 mb-1.5 uppercase">เลือกหลักสูตร</label>
               <select id="aiAnalysisCourse" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-indigo-500"></select>
@@ -434,6 +434,16 @@
             <div class="sm:col-span-1">
               <label class="block text-xs font-bold text-slate-600 mb-1.5 uppercase">เลือกปีการศึกษา</label>
               <select id="aiAnalysisYear" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-indigo-500"></select>
+            </div>
+            <div class="sm:col-span-1">
+              <label class="block text-xs font-bold text-slate-600 mb-1.5 uppercase">รอบการประเมิน (ปีงบประมาณ)</label>
+              <select id="aiAnalysisQuarter" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer font-medium">
+                <option value="all">ทั้งปีงบประมาณ</option>
+                <option value="Q1">ไตรมาส 1 (ต.ค. - ธ.ค.)</option>
+                <option value="Q2">ไตรมาส 2 (ม.ค. - มี.ค.)</option>
+                <option value="Q3">ไตรมาส 3 (เม.ย. - มิ.ย.)</option>
+                <option value="Q4">ไตรมาส 4 (ก.ค. - ก.ย.)</option>
+              </select>
             </div>
             <div class="sm:col-span-1 flex items-end">
               <button id="btnRunAiAnalysis" onclick="triggerAiStrategicAnalysis()" class="w-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-bold py-3.5 px-6 rounded-xl shadow-md transition-transform hover:scale-[1.02] flex items-center justify-center gap-2">
@@ -801,9 +811,20 @@
                  <span class="text-sm font-bold text-slate-500 mb-1">หลักสูตรที่ประเมิน</span>
                  <span id="reportCourseName" class="text-lg md:text-xl font-bold text-blue-700 leading-snug break-words whitespace-normal print:text-lg">---</span>
                </div>
-               <select id="reportYearFilter" onchange="renderReportData()" class="text-sm border border-blue-200 rounded-lg py-1.5 px-4 outline-none focus:ring-2 focus:ring-blue-500 bg-white text-blue-700 cursor-pointer print-hide font-bold shadow-sm">
-                  <option value="all">รวมทุกปี</option>
-               </select>
+               
+               <!-- 🟢 แถบตัวกรองรอบปีและไตรมาสปีงบประมาณ -->
+               <div class="flex flex-wrap items-center justify-center gap-3 print-hide">
+                 <select id="reportYearFilter" onchange="renderReportData()" class="text-sm border border-blue-200 rounded-lg py-1.5 px-4 outline-none focus:ring-2 focus:ring-blue-500 bg-white text-blue-700 cursor-pointer font-bold shadow-sm">
+                    <option value="all">รวมทุกปี</option>
+                 </select>
+                 <select id="reportQuarterFilter" onchange="renderReportData()" class="text-sm border border-indigo-200 rounded-lg py-1.5 px-4 outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-indigo-700 cursor-pointer font-bold shadow-sm">
+                    <option value="all">ทุกไตรมาส (ทั้งปีงบประมาณ)</option>
+                    <option value="Q1">ไตรมาส 1 (ต.ค. - ธ.ค.)</option>
+                    <option value="Q2">ไตรมาส 2 (ม.ค. - มี.ค.)</option>
+                    <option value="Q3">ไตรมาส 3 (เม.ย. - มิ.ย.)</option>
+                    <option value="Q4">ไตรมาส 4 (ก.ค. - ก.ย.)</option>
+                 </select>
+               </div>
             </div>
           </div>
 
@@ -832,7 +853,7 @@
             <div id="reportImplementation"></div>
           </div>
 
-          <!-- 🟢 หมวดใหม่: การประเมินผลสัมฤทธิ์ตามกรอบกองทุน NSDF (ตอบ 3 ข้อคำถามสำคัญ) -->
+          <!-- 🟢 หมวดตอบโจทย์ 3 ข้อคำถามของกองทุน NSDF -->
           <div class="break-inside-avoid pt-2">
             <h3 class="text-lg font-bold border-l-4 border-indigo-600 pl-3 mb-4 text-indigo-900">4. ผลสัมฤทธิ์ตามกรอบกองทุนพัฒนาการกีฬาแห่งชาติ (NSDF Outcome Framework)</h3>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -851,7 +872,7 @@
             </div>
           </div>
 
-          <!-- 🟢 หมวดใหม่: แผนพัฒนาหลักสูตรและหัวข้อการอบรมต่อเนื่องในปีถัดไป -->
+          <!-- 🟢 หมวดแผนพัฒนาหลักสูตรปีถัดไปเพื่อเขียนคำของบประมาณ -->
           <div class="break-inside-avoid pt-2">
             <div class="flex items-center justify-between mb-3">
               <h3 class="text-lg font-bold border-l-4 border-amber-500 pl-3 text-slate-800">5. แผนพัฒนาหลักสูตรและหัวข้อการอบรมต่อเนื่องในปีถัดไป (Proposed Modules)</h3>
