@@ -456,29 +456,74 @@
               </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div class="bg-white p-5 rounded-xl border border-indigo-100 shadow-sm space-y-2">
-                <h5 class="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5">
-                  <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                  จุดเด่นการประยุกต์ใช้ความรู้ (Competency Fit)
-                </h5>
-                <p class="text-sm text-slate-700 leading-relaxed" id="aiCompetencySummary">กำลังประมวลผล...</p>
-              </div>
-              <div class="bg-white p-5 rounded-xl border border-indigo-100 shadow-sm space-y-2">
-                <h5 class="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5">
-                  <svg class="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
-                  ความสอดคล้องกับยุทธศาสตร์ชาติ (Strategic Alignment)
-                </h5>
-                <p class="text-sm text-slate-700 leading-relaxed" id="aiStrategicSummary">กำลังประมวลผล...</p>
+            <!-- หมวดตอบคำถาม 3 ข้อของกองทุน NSDF -->
+            <div class="space-y-4">
+              <h5 class="text-sm font-bold text-indigo-900 flex items-center gap-2">
+                <svg class="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                ผลสัมฤทธิ์ตามกรอบกองทุนพัฒนาการกีฬาแห่งชาติ (NSDF Framework)
+              </h5>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-white p-5 rounded-xl border border-indigo-100 shadow-sm space-y-2">
+                  <span class="text-[11px] font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-md uppercase block w-fit">ข้อ 1: อบรมแล้วได้อะไร</span>
+                  <p class="text-xs font-semibold text-slate-500 uppercase">องค์ความรู้และสมรรถนะที่ได้รับ</p>
+                  <p class="text-sm text-slate-700 leading-relaxed" id="aiCompetencySummary">กำลังประมวลผล...</p>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-emerald-100 shadow-sm space-y-2">
+                  <span class="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md uppercase block w-fit">ข้อ 2: เกิดประโยชน์อะไร</span>
+                  <p class="text-xs font-semibold text-slate-500 uppercase">คุณค่าเชิงประจักษ์หน้างาน</p>
+                  <p class="text-sm text-slate-700 leading-relaxed" id="aiTangibleBenefits">กำลังประมวลผล...</p>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-blue-100 shadow-sm space-y-2">
+                  <span class="text-[11px] font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md uppercase block w-fit">ข้อ 3: นำไปต่อยอดอย่างไร</span>
+                  <p class="text-xs font-semibold text-slate-500 uppercase">การขยายผลและยกระดับ</p>
+                  <p class="text-sm text-slate-700 leading-relaxed" id="aiFutureExtension">กำลังประมวลผล...</p>
+                </div>
               </div>
             </div>
 
+            <!-- ความสอดคล้องเชิงยุทธศาสตร์ -->
             <div class="bg-white p-5 rounded-xl border border-indigo-100 shadow-sm space-y-2">
               <h5 class="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5">
-                <svg class="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                ข้อเสนอแนะเชิงนโยบายเพื่อปรับปรุงหลักสูตรในอนาคต
+                <svg class="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                ความสอดคล้องกับแผนยุทธศาสตร์กีฬาแห่งชาติ
               </h5>
-              <p class="text-sm text-slate-700 leading-relaxed" id="aiPolicyRecommendations">กำลังประมวลผล...</p>
+              <p class="text-sm text-slate-700 leading-relaxed" id="aiStrategicSummary">กำลังประมวลผล...</p>
+            </div>
+
+            <!-- ตารางข้อเสนอแนะหัวข้อการอบรมปีถัดไป -->
+            <div class="bg-white p-5 rounded-xl border border-indigo-100 shadow-sm space-y-3">
+              <div class="flex items-center justify-between">
+                <h5 class="text-xs font-bold text-slate-700 uppercase flex items-center gap-1.5">
+                  <svg class="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                  หัวข้ออบรมที่ควรจัดในปีถัดไป (สำหรับจัดทำคำของบประมาณ)
+                </h5>
+                <span class="text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded">Future Curriculum Plan</span>
+              </div>
+              <div class="overflow-x-auto rounded-lg border border-slate-200">
+                <table class="w-full text-left text-xs">
+                  <thead class="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 uppercase">
+                    <tr>
+                      <th class="p-3 w-10 text-center">ลำดับ</th>
+                      <th class="p-3">หัวข้ออบรมที่ควรทำ</th>
+                      <th class="p-3 w-48">กลุ่มเป้าหมาย</th>
+                      <th class="p-3 w-24 text-center">ระยะเวลา</th>
+                      <th class="p-3">เหตุผลความคุ้มค่าในการของบ</th>
+                    </tr>
+                  </thead>
+                  <tbody id="aiRecommendedTopicsBody" class="divide-y divide-slate-100 bg-white text-slate-700">
+                    <tr><td colspan="5" class="p-4 text-center text-slate-400">ยังไม่มีข้อมูลการวิเคราะห์</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- บทสรุปผู้บริหาร -->
+            <div class="bg-white p-5 rounded-xl border border-indigo-100 shadow-sm space-y-2">
+              <h5 class="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5">
+                <svg class="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                บทสรุปผู้บริหารและการนำไปใช้ของบประมาณ
+              </h5>
+              <p class="text-sm text-slate-700 leading-relaxed" id="aiExecutiveSummary">กำลังประมวลผล...</p>
             </div>
           </div>
         </div>
@@ -737,7 +782,7 @@
       <div class="bg-white w-full max-w-4xl rounded-sm shadow-2xl relative print:shadow-none print:w-full print:max-w-none">
         
         <div class="bg-slate-50 border-b border-slate-200 px-6 py-4 flex justify-between items-center print-hide sticky top-0 z-10">
-          <h2 class="text-slate-700 font-bold text-sm">Impact Assessment Report Builder</h2>
+          <h2 class="text-slate-700 font-bold text-sm">Impact Assessment Report Builder (NSDF Framework)</h2>
           <div class="flex gap-3">
             <button onclick="closeProposalReport()" class="px-4 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100 transition">ปิด</button>
             <button onclick="printProposalReport()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-semibold text-white shadow-sm transition flex items-center gap-2">
@@ -749,7 +794,7 @@
         <div class="p-6 md:p-10 space-y-8 text-slate-800 mx-auto bg-white print:p-0 print:space-y-6">
           <div class="text-center space-y-3 border-b-2 border-slate-800 pb-8">
             <h1 class="text-2xl md:text-3xl font-extrabold uppercase tracking-tight text-slate-900 print:text-2xl">รายงานผลสัมฤทธิ์โครงการ (IMPACT ASSESSMENT)</h1>
-            <p class="text-slate-600 font-medium print:text-sm">ประกอบการพิจารณาประเมินผลโครงการ / กองทุนพัฒนาการกีฬาแห่งชาติ (NSDF)</p>
+            <p class="text-slate-600 font-medium print:text-sm">ประกอบการพิจารณาประเมินผลโครงการและการของบประมาณ / กองทุนพัฒนาการกีฬาแห่งชาติ (NSDF)</p>
             
             <div class="mt-6 bg-blue-50/50 text-slate-800 border border-blue-100 p-5 rounded-2xl flex flex-col items-center justify-center gap-4 w-full mx-auto shadow-sm print:border-none print:bg-slate-50 break-inside-avoid">
                <div class="flex flex-col items-center text-center w-full">
@@ -786,9 +831,52 @@
             <h3 class="text-lg font-bold border-l-4 border-blue-600 pl-3 mb-5" id="titleImpSec">3. การติดตามการนำความรู้ไปปฏิบัติหน้าที่ (Implementation Tracking)</h3>
             <div id="reportImplementation"></div>
           </div>
+
+          <!-- 🟢 หมวดใหม่: การประเมินผลสัมฤทธิ์ตามกรอบกองทุน NSDF (ตอบ 3 ข้อคำถามสำคัญ) -->
+          <div class="break-inside-avoid pt-2">
+            <h3 class="text-lg font-bold border-l-4 border-indigo-600 pl-3 mb-4 text-indigo-900">4. ผลสัมฤทธิ์ตามกรอบกองทุนพัฒนาการกีฬาแห่งชาติ (NSDF Outcome Framework)</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <span class="text-xs font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded block w-fit mb-2">1. อบรมแล้วได้อะไร</span>
+                <p class="text-xs text-slate-700 leading-relaxed" id="reportNsdfGains">-</p>
+              </div>
+              <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <span class="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded block w-fit mb-2">2. เกิดประโยชน์อะไร</span>
+                <p class="text-xs text-slate-700 leading-relaxed" id="reportNsdfBenefits">-</p>
+              </div>
+              <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <span class="text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded block w-fit mb-2">3. นำไปต่อยอดอย่างไร</span>
+                <p class="text-xs text-slate-700 leading-relaxed" id="reportNsdfExtensions">-</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 🟢 หมวดใหม่: แผนพัฒนาหลักสูตรและหัวข้อการอบรมต่อเนื่องในปีถัดไป -->
+          <div class="break-inside-avoid pt-2">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-lg font-bold border-l-4 border-amber-500 pl-3 text-slate-800">5. แผนพัฒนาหลักสูตรและหัวข้อการอบรมต่อเนื่องในปีถัดไป (Proposed Modules)</h3>
+              <span class="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full">แนวทางคำของบประมาณ NSDF</span>
+            </div>
+            <div class="overflow-x-auto rounded-xl border border-slate-300">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-slate-100 text-slate-700 font-bold border-b border-slate-300">
+                  <tr>
+                    <th class="p-2.5 text-center w-10">ลำดับ</th>
+                    <th class="p-2.5">หัวข้ออบรมที่ควรทำ</th>
+                    <th class="p-2.5 w-44">กลุ่มเป้าหมาย</th>
+                    <th class="p-2.5 text-center w-20">ระยะเวลา</th>
+                    <th class="p-2.5">เหตุผลความจำเป็นและความคุ้มค่า</th>
+                  </tr>
+                </thead>
+                <tbody id="reportRecommendedTopicsBody" class="divide-y divide-slate-200 bg-white text-slate-700">
+                  <tr><td colspan="5" class="p-3 text-center text-slate-400">ยังไม่มีข้อมูลหัวข้ออบรม</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
           
           <div class="print-page-break pt-8 print:pt-0">
-            <h3 class="text-lg font-bold border-l-4 border-blue-600 pl-3 mb-5" id="titleExecSec">4. บทสรุปผู้บริหารและการวิเคราะห์ภาพรวม (Executive Summary)</h3>
+            <h3 class="text-lg font-bold border-l-4 border-blue-600 pl-3 mb-5" id="titleExecSec">6. บทสรุปผู้บริหารและการวิเคราะห์ภาพรวม (Executive Summary)</h3>
             <div id="reportExecutiveSummary"></div>
             
             <div class="pt-16 mt-16 border-t border-slate-200 flex justify-end break-inside-avoid">
