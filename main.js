@@ -2,6 +2,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbw--515Ocaod1h_wkMMc8df
 let cachedPersonnelData = [];
 let cachedProjectDetails = {}; 
 let cachedStrategyDoc = null;
+let cachedStrategyAnalyses = {};
 let currentActiveUid = null;
 let globalFiltersMaster = null; 
 let currentFilteredData = [];
@@ -412,7 +413,7 @@ window.submitEval = async function() {
   const btn = document.getElementById('btnSaveEval'); 
   btn.textContent = 'กำลังบันทึก...'; btn.disabled = true;
   try {
-    const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
+    const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload = { action: 'saveEval', uid: currentActiveUid, feedback: feedback }), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
     const result = await response.json();
     if(result.status === 'success') { alert('✅ บันทึกสำเร็จ'); document.getElementById('inputEvalFeedback').value = ''; fetchData(); } else { alert(`❌ ข้อผิดพลาด: ${result.message}`); }
   } catch(e) { alert('❌ การเชื่อมต่อล้มเหลว'); }
@@ -638,14 +639,35 @@ window.triggerAiStrategicAnalysis = async function() {
       const card = document.getElementById('aiResultCard');
       if (card) card.classList.remove('hidden');
 
-      document.getElementById('aiResultHeading').textContent = `ผลการวิเคราะห์หลักสูตร ${course} (ปี ${year})`;
-      document.getElementById('aiResultMeta').textContent = `วิเคราะห์จากผู้ปฏิบัติงานจริง ${result.data.evaluatedPeople || 0} คน เทียบกับแผนยุทธศาสตร์และข้อมูลโครงการ`;
+      document.getElementById('aiResultHeading').textContent = `ผลการสังเคราะห์หลักสูตร ${course} (ปี ${year})`;
+      document.getElementById('aiResultMeta').textContent = `วิเคราะห์จากผู้ปฏิบัติหน้าที่จริง ${result.data.evaluatedPeople || 0} คน ตามกรอบกองทุนพัฒนาการกีฬาแห่งชาติ (NSDF)`;
       document.getElementById('aiScoreVal').textContent = `${result.data.alignmentScore || 0}%`;
-      document.getElementById('aiCompetencySummary').textContent = result.data.competencyFit || 'ไม่ระบุ';
-      document.getElementById('aiStrategicSummary').textContent = result.data.strategicAlignment || 'ไม่ระบุ';
-      document.getElementById('aiPolicyRecommendations').textContent = result.data.policyRecommendations || 'ไม่ระบุ';
+      
+      document.getElementById('aiCompetencySummary').textContent = result.data.competencyFit || '-';
+      document.getElementById('aiTangibleBenefits').textContent = result.data.tangibleBenefits || '-';
+      document.getElementById('aiFutureExtension').textContent = result.data.futureExtension || '-';
+      document.getElementById('aiStrategicSummary').textContent = result.data.strategicAlignment || '-';
+      document.getElementById('aiExecutiveSummary').textContent = result.data.executiveSummary || '-';
 
-      showToast('✅ สังเคราะห์ผลการวิเคราะห์ด้วย AI สำเร็จ');
+      const topicsTbody = document.getElementById('aiRecommendedTopicsBody');
+      if (topicsTbody) {
+        if (result.data.recommendedTopics && result.data.recommendedTopics.length > 0) {
+          topicsTbody.innerHTML = result.data.recommendedTopics.map((t, idx) => `
+            <tr class="hover:bg-slate-50">
+              <td class="p-3 text-center font-bold text-slate-400">${idx + 1}</td>
+              <td class="p-3 font-semibold text-slate-800">${t.moduleName}</td>
+              <td class="p-3"><span class="bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded text-[11px] font-medium">${t.targetGroup}</span></td>
+              <td class="p-3 text-center font-bold text-indigo-600">${t.hours} ชม.</td>
+              <td class="p-3 text-slate-600">${t.justification}</td>
+            </tr>
+          `).join('');
+        } else {
+          topicsTbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-400">ยังไม่มีข้อเสนอแนะหัวข้ออบรม</td></tr>`;
+        }
+      }
+
+      cachedStrategyAnalyses[`${course}_${year}`] = result.data;
+      showToast('✅ วิเคราะห์และสังเคราะห์ผลสำเร็จ');
     } else {
       alert('❌ ' + (result.message || 'ไม่สามารถวิเคราะห์ข้อมูลได้'));
     }
@@ -1323,7 +1345,7 @@ window.logoutAdmin = function() {
   if(btnLogin) { btnLogin.classList.remove('hidden'); btnLogin.classList.add('flex'); }
   
   const btnLogout = document.getElementById('btnLogout'); 
-   if(btnLogout) { btnLogout.classList.remove('hidden'); btnLogout.classList.add('flex'); }
+   if(btnLogout) { btnLogout.classList.remove('flex'); btnLogout.classList.add('flex'); }
    
   switchPage('report'); 
    renderTablePage(); 
@@ -1428,6 +1450,9 @@ async function fetchData() {
       if(result.data.strategyDoc) {
          cachedStrategyDoc = result.data.strategyDoc;
          renderStrategyDocStatus(cachedStrategyDoc);
+      }
+      if(result.data.strategyAnalyses) {
+         cachedStrategyAnalyses = result.data.strategyAnalyses;
       }
        
        updateDatalists(); 
@@ -1882,12 +1907,12 @@ window.renderReportData = function() {
       
      if(document.getElementById('titleStatSec')) document.getElementById('titleStatSec').textContent = "2. ข้อมูลสถิติและกลุ่มเป้าหมาย (Target Group Breakdown)"; 
      if(document.getElementById('titleImpSec')) document.getElementById('titleImpSec').textContent = "3. การติดตามการนำความรู้ไปปฏิบัติหน้าที่ (Implementation Tracking)"; 
-     if(document.getElementById('titleExecSec')) document.getElementById('titleExecSec').textContent = "4. บทสรุปผู้บริหารและการวิเคราะห์ภาพรวม (Executive Summary)";
+     if(document.getElementById('titleExecSec')) document.getElementById('titleExecSec').textContent = "6. บทสรุปผู้บริหารและการวิเคราะห์ภาพรวม (Executive Summary)";
   } else { 
      if(pdOverview) pdOverview.classList.add('hidden'); 
      if(document.getElementById('titleStatSec')) document.getElementById('titleStatSec').textContent = "1. ข้อมูลสถิติและกลุ่มเป้าหมาย (Target Group Breakdown)"; 
      if(document.getElementById('titleImpSec')) document.getElementById('titleImpSec').textContent = "2. การติดตามการนำความรู้ไปปฏิบัติหน้าที่ (Implementation Tracking)"; 
-     if(document.getElementById('titleExecSec')) document.getElementById('titleExecSec').textContent = "3. บทสรุปผู้บริหารและการวิเคราะห์ภาพรวม (Executive Summary)";
+     if(document.getElementById('titleExecSec')) document.getElementById('titleExecSec').textContent = "5. บทสรุปผู้บริหารและการวิเคราะห์ภาพรวม (Executive Summary)";
   }
   const totalPeople = courseUsers.length; 
    const activePeople = courseUsers.filter(u => u.status !== 'พ้นสภาพ').length; 
@@ -1951,7 +1976,7 @@ window.renderReportData = function() {
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div class="bg-slate-50 p-5 rounded-xl border border-slate-200 shadow-sm">
         <h4 class="text-xs font-bold text-slate-500 mb-3 uppercase flex items-center gap-1.5">
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg> 
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2H6a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg> 
           บทบาทหน้าที่หลัก (Top Roles)
         </h4>
         <ul class="text-sm space-y-2">
@@ -1975,6 +2000,51 @@ window.renderReportData = function() {
    }
    
   if(document.getElementById('reportImplementation')) document.getElementById('reportImplementation').innerHTML = implHtml;
+
+  /* 🟢 เชื่อมต่อผลการประเมินกองทุน NSDF และหัวข้อปีถัดไป เข้ากับหน้ารายงาน A4 */
+  let matchedAnalysis = null;
+  if (selectedYear !== 'all') {
+    matchedAnalysis = cachedStrategyAnalyses[`${courseName}_${selectedYear}`];
+  } else {
+    // หาผลวิเคราะห์ล่าสุดที่มีของหลักสูตรนี้
+    const analysisKeys = Object.keys(cachedStrategyAnalyses).filter(k => k.startsWith(`${courseName}_`));
+    if (analysisKeys.length > 0) {
+      matchedAnalysis = cachedStrategyAnalyses[analysisKeys[analysisKeys.length - 1]];
+    }
+  }
+
+  const elGains = document.getElementById('reportNsdfGains');
+  const elBenefits = document.getElementById('reportNsdfBenefits');
+  const elExtensions = document.getElementById('reportNsdfExtensions');
+  const elTopicsBody = document.getElementById('reportRecommendedTopicsBody');
+
+  if (matchedAnalysis) {
+    if (elGains) elGains.textContent = matchedAnalysis.competencyFit || '-';
+    if (elBenefits) elBenefits.textContent = matchedAnalysis.tangibleBenefits || '-';
+    if (elExtensions) elExtensions.textContent = matchedAnalysis.futureExtension || '-';
+
+    if (elTopicsBody) {
+      if (matchedAnalysis.recommendedTopics && matchedAnalysis.recommendedTopics.length > 0) {
+        elTopicsBody.innerHTML = matchedAnalysis.recommendedTopics.map((t, idx) => `
+          <tr class="hover:bg-slate-50">
+            <td class="p-2.5 text-center font-bold text-slate-400">${idx + 1}</td>
+            <td class="p-2.5 font-bold text-slate-800">${t.moduleName}</td>
+            <td class="p-2.5"><span class="bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded text-[10px] font-semibold">${t.targetGroup}</span></td>
+            <td class="p-2.5 text-center font-bold text-indigo-600">${t.hours} ชม.</td>
+            <td class="p-2.5 text-slate-600">${t.justification}</td>
+          </tr>
+        `).join('');
+      } else {
+        elTopicsBody.innerHTML = `<tr><td colspan="5" class="p-3 text-center text-slate-400">ยังไม่มีข้อมูลหัวข้ออบรมที่เสนอแนะ</td></tr>`;
+      }
+    }
+  } else {
+    if (elGains) elGains.textContent = 'ยังไม่มีข้อมูลการวิเคราะห์เชิงยุทธศาสตร์ (กรุณากดวิเคราะห์ที่แท็บแผนยุทธศาสตร์กีฬา)';
+    if (elBenefits) elBenefits.textContent = 'ยังไม่มีข้อมูลการวิเคราะห์เชิงยุทธศาสตร์';
+    if (elExtensions) elExtensions.textContent = 'ยังไม่มีข้อมูลการวิเคราะห์เชิงยุทธศาสตร์';
+    if (elTopicsBody) elTopicsBody.innerHTML = `<tr><td colspan="5" class="p-3 text-center text-slate-400">ยังไม่มีข้อมูลหัวข้ออบรม (กรุณากดวิเคราะห์ที่แท็บแผนยุทธศาสตร์กีฬา)</td></tr>`;
+  }
+
   let feedbacks = []; 
    courseUsers.forEach(u => { if (u.evals) u.evals.forEach(e => feedbacks.push(e.feedback)); }); 
    let recentFeedbacks = feedbacks.slice(-3);
@@ -1997,8 +2067,12 @@ window.renderReportData = function() {
    } else { 
      summaryText += `อย่างไรก็ตาม ขณะนี้ยังอยู่ในช่วงการติดตามเก็บสถิติการลงพื้นที่ปฏิบัติงานจริงของกลุ่มเป้าหมายเพื่อตอบชี้วัดของโครงการต่อไป `; 
    }
+
+  if (matchedAnalysis && matchedAnalysis.executiveSummary) {
+    summaryText += `<br><br><strong class="text-indigo-900">บทวิเคราะห์ความคุ้มค่าและทิศทางในอนาคต:</strong> ${matchedAnalysis.executiveSummary}`;
+  }
    
-  summaryText += recentFeedbacks.length > 0 ? `นอกจากนี้ ข้อคิดเห็นและข้อเสนอแนะเชิงธรรมาภิบาลจากผู้ใช้งานระบบได้ระบุประเด็นที่น่าสนใจดังนี้:` : `(ยังไม่มีการประเมินหรือข้อเสนอแนะเพิ่มเติมในขณะนี้)`;
+  summaryText += recentFeedbacks.length > 0 ? `<br><br>นอกจากนี้ ข้อคิดเห็นและข้อเสนอแนะเชิงธรรมาภิบาลจากผู้ใช้งานระบบได้ระบุประเด็นที่น่าสนใจดังนี้:` : ` (ยังไม่มีการประเมินหรือข้อเสนอแนะเพิ่มเติมในขณะนี้)`;
   let summaryHtml = `<p class="text-sm leading-relaxed text-slate-800 bg-blue-50/70 p-5 rounded-xl border border-blue-200 shadow-sm">${summaryText}</p>`;
   if (recentFeedbacks.length > 0) { 
      summaryHtml += `<div class="mt-4 space-y-3">` + recentFeedbacks.map(f => `<div class="text-sm italic text-slate-600 border-l-4 border-blue-400 bg-slate-50 pl-4 py-2 shadow-sm rounded-r-lg">"${f}"</div>`).join('') + `</div>`; 
@@ -2595,7 +2669,7 @@ window.logoutAdmin = function() {
   if(btnLogin) { btnLogin.classList.remove('hidden'); btnLogin.classList.add('flex'); }
   
   const btnLogout = document.getElementById('btnLogout'); 
-   if(btnLogout) { btnLogout.classList.remove('hidden'); btnLogout.classList.add('flex'); }
+   if(btnLogout) { btnLogout.classList.remove('flex'); btnLogout.classList.add('flex'); }
    
   switchPage('report'); 
    renderTablePage(); 
