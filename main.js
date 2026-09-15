@@ -18,6 +18,8 @@ let donutChartObj = null;
 let srSelectedUser = null; 
 let srFormState = []; 
 let globalSettings = { activeReportYear: '2569', adminPin: '336699' }; 
+let publicUsersList = [];
+let hasFullDataLoaded = false;
 const provinces = ["ต่างประเทศ","กรุงเทพมหานคร","กระบี่","กาญจนบุรี","กาฬสินธุ์","กำแพงเพชร","ขอนแก่น","จันทบุรี","ฉะเชิงเทรา","ชลบุรี","ชัยนาท","ชัยภูมิ","ชุมพร","เชียงราย","เชียงใหม่","ตรัง","ตราด","ตาก","นครนายก","นครปฐม","นครพนม","นครราชสีมา","นครศรีธรรมราช","นครสวรรค์","นนทบุรี","นราธิวาส","น่าน","บึงกาฬ","บุรีรัมย์","ปทุมธานี","ประจวบคีรีขันธ์","ปราจีนบุรี","ปัตตานี","พระนครศรีอยุธยา","พะเยา","พังงา","พัทลุง","พิจิตร","พิษณุโลก","เพชรบุรี","เพชรบูรณ์","แพร่","ภูเก็ต","มหาสารคาม","มุกดาหาร","แม่ฮ่องสอน","ยโสธร","ยะลา","ร้อยเอ็ด","ระนอง","ระยอง","ราชบุรี","ลพบุรี","ลำปาง","ลำพูน","เลย","ศรีสะเกษ","สกลนคร","สงขลา","สตูล","สมุทรปราการ","สมุทรสงคราม","สมุทรสาคร","สระแก้ว","สระบุรี","สิงห์บุรี","สุโขทัย","สุพรรณบุรี","สุราษฎร์ธานี","สุรินทร์","หนองคาย","หนองบัวลำภู","อ่างทอง","อำนาจเจริญ","อุดรธานี","อุตรดิตถ์","อุทัยธานี","อุบลราชธานี"];
 let currentReportCourseBase64 = null; 
 
@@ -34,7 +36,7 @@ function getDirectDriveImageUrl(url) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  fetchData();
+  fetchPublicData(); // ⚡ โหลดข้อมูลเบาสำหรับหน้าแรกทันที
   setupDragAndDrop();
   setupStrategyUpload();
   setupOTPInputs();
@@ -88,6 +90,209 @@ window.showToast = function(message) {
    toast.classList.remove('translate-y-20', 'opacity-0'); 
    setTimeout(() => { toast.classList.add('translate-y-20', 'opacity-0'); }, 3000);
 };
+
+// ⚡ 1. ฟังก์ชันโหลดข้อมูลหน้าแรกแบบความเร็วสูง (Public Fast-Loader)
+async function fetchPublicData() {
+  const statusEl = document.getElementById('srConnStatus');
+  const searchInput = document.getElementById('srSearchName');
+  const searchBtn = document.getElementById('btnSrSearch');
+
+  try {
+    const res = await fetch(`${API_URL}?action=getPublicData`);
+    const text = await res.text();
+    let result;
+    try {
+      result = JSON.parse(text);
+    } catch (parseError) {
+      if(text.includes('<html')) throw new Error("Google บล็อกการเชื่อมต่อ (กรุณาเช็คสิทธิ์ตอน Deploy)");
+      throw new Error("ระบบหลังบ้านส่งข้อมูลมาผิดรูปแบบ");
+    }
+
+    if (result.status === 'success') {
+      globalSettings.activeReportYear = result.data.activeReportYear || '2569';
+      globalSettings.adminPin = result.data.adminPin || '336699';
+      publicUsersList = result.data.users || [];
+
+      // อัปเดตรอบปีงบประมาณบนหน้าจอ
+      const srYearInput = document.getElementById('srActiveYear');
+      if (srYearInput) srYearInput.value = globalSettings.activeReportYear;
+
+      // เติมรายชื่อบุคลากรลงใน Datalist
+      const dl = document.getElementById('dl-all-users');
+      if (dl) {
+        dl.innerHTML = publicUsersList.map(u => `<option value="${u.fullName} (${u.uid})">`).join('');
+      }
+
+      // ปลดล็อกช่องค้นหาและเปลี่ยนสถานะเป็นพร้อมใช้งาน
+      if (statusEl) {
+        statusEl.className = "text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full flex items-center gap-1.5 transition-all";
+        statusEl.innerHTML = `<span>✅ ฐานข้อมูลพร้อมใช้งาน</span>`;
+      }
+      if (searchInput) {
+        searchInput.disabled = false;
+        searchInput.classList.remove('disabled:bg-slate-100', 'disabled:text-slate-400', 'disabled:cursor-not-allowed');
+        searchInput.classList.add('bg-slate-50');
+        searchInput.placeholder = "พิมพ์ชื่อเพื่อค้นหาประวัติการอบรม...";
+      }
+      if (searchBtn) {
+        searchBtn.disabled = false;
+        searchBtn.classList.remove('disabled:bg-blue-300', 'disabled:cursor-not-allowed');
+      }
+    } else {
+      throw new Error(result.message);
+    }
+  } catch (err) {
+    if (statusEl) {
+      statusEl.className = "text-xs font-semibold text-red-600 bg-red-50 border border-red-200 px-3 py-1 rounded-full flex items-center gap-1.5";
+      statusEl.innerHTML = `<span>❌ เชื่อมต่อล้มเหลว: ${err.message}</span>`;
+    }
+    if (searchInput) searchInput.placeholder = "การเชื่อมต่อล้มเหลว กรุณารีเฟรชหน้าจอ";
+  }
+}
+
+// ⚡ 2. ฟังก์ชันค้นหาประวัติเฉพาะบุคคลแบบ On-Demand
+window.handleSelfReportUserSelect = async function() {
+  const inputVal = document.getElementById('srSearchName').value.trim(); 
+  const warnText = document.getElementById('srUserWarn'); 
+  const formContainer = document.getElementById('srFormContainer'); 
+  const btnSearch = document.getElementById('btnSrSearch');
+  const btnText = document.getElementById('btnSrSearchText');
+  const activeYear = globalSettings.activeReportYear;
+
+  if (!inputVal) {
+    warnText.textContent = '⚠️ กรุณากรอกหรือเลือกชื่อ-นามสกุลก่อนกดค้นหา';
+    warnText.classList.remove('hidden');
+    formContainer.classList.add('hidden');
+    return;
+  }
+
+  let selectedUid = '';
+  const match = inputVal.match(/\((USR-\d{4}-\d{4})\)/);
+  if (match) {
+    selectedUid = match[1];
+  } else {
+    const foundUser = publicUsersList.find(u => u.fullName.toLowerCase() === inputVal.toLowerCase());
+    if (foundUser) selectedUid = foundUser.uid;
+  }
+
+  if (!selectedUid) {
+    srSelectedUser = null;
+    srFormState = [];
+    warnText.textContent = '⚠️ ไม่พบประวัติการอบรมของชื่อนี้ กรุณาตรวจสอบการสะกดคำหรือเลือกจากรายการแนะนำ'; 
+    warnText.classList.remove('hidden');
+    formContainer.classList.add('hidden');
+    return;
+  }
+
+  // ล็อกปุ่มและแสดงสถานะกำลังค้นหา
+  btnSearch.disabled = true;
+  const originalBtnContent = btnSearch.innerHTML;
+  btnSearch.innerHTML = `<svg class="animate-spin w-5 h-5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> <span>กำลังค้นหา...</span>`;
+
+  try {
+    const res = await fetch(`${API_URL}?action=getUserHistory&uid=${encodeURIComponent(selectedUid)}`);
+    const result = await res.json();
+
+    if (result.status === 'success' && result.data) {
+      srSelectedUser = result.data;
+      const filteredCourses = (srSelectedUser.trainings || []).filter(t => String(t.year).trim() === String(activeYear).trim());
+      
+      if (filteredCourses.length === 0) { 
+        warnText.textContent = `⚠️ ท่านไม่มีประวัติการอบรมในปีงบประมาณ ${activeYear} จึงไม่ต้องรายงานผลในรอบนี้`; 
+        warnText.classList.remove('hidden');
+        formContainer.classList.add('hidden'); 
+        srFormState = [];
+      } else {
+        warnText.classList.add('hidden'); 
+        formContainer.classList.remove('hidden');
+        srFormState = []; 
+        
+        filteredCourses.forEach(c => { 
+          const existingDuties = (srSelectedUser.duties || []).filter(d => 
+            String(d.year).trim() === String(activeYear).trim() && 
+            String(d.course).trim() === String(c.course).trim() 
+          );
+          
+          if (existingDuties.length > 0) {
+            existingDuties.forEach(d => { 
+              srFormState.push({ course: c.course, data: d, isReported: true, tempData: null });
+            });
+          } else {
+            srFormState.push({ course: c.course, data: null, isReported: false, tempData: null });
+          }
+        });
+        
+        renderSrForms();
+      }
+    } else {
+      warnText.textContent = '❌ ' + (result.message || 'ไม่สามารถดึงข้อมูลประวัติได้');
+      warnText.classList.remove('hidden');
+      formContainer.classList.add('hidden');
+    }
+  } catch (err) {
+    warnText.textContent = '❌ การเชื่อมต่อล้มเหลว กรุณาลองใหม่อีกครั้ง';
+    warnText.classList.remove('hidden');
+    formContainer.classList.add('hidden');
+  }
+
+  btnSearch.innerHTML = originalBtnContent;
+  btnSearch.disabled = false;
+};
+
+// 📊 3. ฟังก์ชันโหลดข้อมูลระบบทั้งหมด (สำหรับ Admin เท่านั้น)
+async function fetchData() {
+  showLoadingState(); 
+  try {
+    const url = `${API_URL}?action=getData`;
+    const res = await fetch(url);
+    const text = await res.text(); 
+    
+    let result;
+    try {
+      result = JSON.parse(text);
+    } catch (parseError) {
+      if(text.includes('<html')) throw new Error("Google บล็อกการเชื่อมต่อ (กรุณาเช็คสิทธิ์ตอน Deploy)");
+      throw new Error("ระบบหลังบ้านส่งข้อมูลมาผิดรูปแบบ"); 
+    }
+    
+    if (result.status === 'success') {
+      cachedPersonnelData = result.data.list;
+      currentFilteredData = result.data.list;
+      hasFullDataLoaded = true;
+      
+      if (!globalFiltersMaster) { 
+        globalFiltersMaster = result.data.filters; 
+        updateDropdownUI(); 
+      }
+      if(result.data.settings) { 
+        globalSettings = result.data.settings; 
+        const adminYearInput = document.getElementById('adminActiveYear');
+        if(adminYearInput) adminYearInput.value = globalSettings.activeReportYear; 
+        const srYearInput = document.getElementById('srActiveYear');
+        if(srYearInput) srYearInput.value = globalSettings.activeReportYear; 
+      }
+      if(result.data.projectDetails) { 
+        cachedProjectDetails = result.data.projectDetails; 
+      }
+      if(result.data.strategyDoc) {
+        cachedStrategyDoc = result.data.strategyDoc;
+        renderStrategyDocStatus(cachedStrategyDoc);
+      }
+      if(result.data.strategyAnalyses) {
+        cachedStrategyAnalyses = result.data.strategyAnalyses;
+      }
+       
+      updateDatalists(); 
+      renderDashboard(result.data.stats); 
+      drawCharts(result.data.filters.years, result.data.filters.groups); 
+      applyLocalFilters();
+    } else { 
+      showErrorState(result.message); 
+    }
+  } catch (error) { 
+    showErrorState(error.message || 'การเชื่อมต่อกับฐานข้อมูลขัดข้อง'); 
+  }
+}
 
 window.updatePersonnelStatus = async function(uid, newStatus, selectElement) {
   selectElement.disabled = true; selectElement.classList.add('opacity-50', 'animate-pulse');
@@ -189,7 +394,6 @@ window.generatePDF = async function(uid, fullName, course, year, sport, role, bt
       const blob = new Blob([byteArray], { type: 'application/pdf' });
 
       window.showPdfPreviewModal(blob, result.filename || `ID_Card_${uid}.pdf`);
-      
     } else {
       alert('❌ เกิดข้อผิดพลาด: ' + (result.message || 'ไม่พบข้อมูลไฟล์'));
     }
@@ -519,7 +723,6 @@ window.submitProjectDetails = async function() {
   btn.textContent = 'บันทึกข้อมูลโครงการทั้งหมด'; btn.disabled = false;
 };
 
-/* 📌 ฟังก์ชันจัดการเอกสารยุทธศาสตร์และการวิเคราะห์ AI */
 function setupStrategyUpload() {
   const fileInput = document.getElementById('strategyFileInput');
   const dropZone = document.getElementById('strategyDropZone');
@@ -774,55 +977,6 @@ window.clearSelfReportSearch = function() {
   srSelectedUser = null;
   srFormState = []; 
   document.getElementById('srSearchName').focus(); 
-};
-
-window.handleSelfReportUserSelect = function() {
-  const inputVal = document.getElementById('srSearchName').value; 
-  const warnText = document.getElementById('srUserWarn'); 
-  const formContainer = document.getElementById('srFormContainer'); 
-  const activeYear = globalSettings.activeReportYear;
-  
-  const match = inputVal.match(/\((USR-\d{4}-\d{4})\)/);
-  if(match) {
-    const uid = match[1]; 
-    srSelectedUser = cachedPersonnelData.find(p => p.uid === uid);
-    
-    if(srSelectedUser) {
-      const filteredCourses = (srSelectedUser.trainings || []).filter(t => String(t.year).trim() === String(activeYear).trim());
-      
-      if(filteredCourses.length === 0) { 
-         warnText.textContent = `⚠️ ท่านไม่มีประวัติการอบรมในปีงบประมาณ ${activeYear} จึงไม่ต้องรายงานผลในรอบนี้`; 
-         warnText.classList.remove('hidden'); formContainer.classList.add('hidden'); 
-         return; 
-      }
-      
-      warnText.classList.add('hidden'); 
-      formContainer.classList.remove('hidden');
-      srFormState = []; 
-      
-      filteredCourses.forEach(c => { 
-         const existingDuties = (srSelectedUser.duties || []).filter(d => 
-             String(d.year).trim() === String(activeYear).trim() && 
-             String(d.course).trim() === String(c.course).trim() 
-         );
-         
-         if (existingDuties.length > 0) {
-            existingDuties.forEach(d => { 
-               srFormState.push({ course: c.course, data: d, isReported: true, tempData: null });
-            });
-         } else {
-            srFormState.push({ course: c.course, data: null, isReported: false, tempData: null });
-         }
-      });
-      
-      renderSrForms();
-      return;
-    }
-  }
-  
-  srSelectedUser = null; srFormState = [];
-  warnText.textContent = '⚠️ ไม่พบประวัติการอบรมของชื่อนี้ กรุณาตรวจสอบการสะกดคำ'; 
-  warnText.classList.remove('hidden'); formContainer.classList.add('hidden');
 };
 
 function syncSrFormState() {
@@ -1266,7 +1420,7 @@ window.submitSelfReport = async function() {
     document.getElementById('srFormContainer').classList.add('hidden'); 
     srSelectedUser = null; 
     srFormState = [];
-    fetchData(); 
+    if (isAdmin) fetchData(); 
   } catch(err) {
     if(err.message === 'ขนาดไฟล์เกิน 5MB') alert('❌ ' + err.message); 
     else alert('❌ เกิดข้อผิดพลาดในการบันทึก: ' + err.message);
@@ -1279,16 +1433,16 @@ window.openLoginModal = function() {
    const modal = document.getElementById('loginModal'); 
    if(modal) modal.classList.remove('hidden'); 
    const err = document.getElementById('loginErrorMsg'); 
-  if(err) err.classList.add('hidden'); 
+   if(err) err.classList.add('hidden'); 
    
-  const inputs = Array.from(document.querySelectorAll('.otp-input')).slice(0, 6); 
+   const inputs = Array.from(document.querySelectorAll('.otp-input')).slice(0, 6); 
    inputs.forEach(input => input.value = ''); 
    setTimeout(() => { if (inputs.length > 0) inputs[0].focus(); }, 100); 
 };
 
 window.closeLoginModal = function() { 
    const modal = document.getElementById('loginModal'); 
-  if(modal) modal.classList.add('hidden'); 
+   if(modal) modal.classList.add('hidden'); 
 };
 
 function setupOTPInputs() { 
@@ -1316,7 +1470,7 @@ window.checkOTP = function() {
    let pin = ''; 
    inputs.forEach(input => pin += input.value); 
    
-  if(pin.length === 6) { 
+   if(pin.length === 6) { 
        const correctPin = String(globalSettings.adminPin || "336699").trim(); 
        
        if(pin === correctPin) { 
@@ -1324,17 +1478,23 @@ window.checkOTP = function() {
            document.body.classList.add('is-admin'); 
            
            const btnLogin = document.getElementById('btnLogin'); 
-          if(btnLogin) { btnLogin.classList.remove('flex'); btnLogin.classList.add('hidden'); }
+           if(btnLogin) { btnLogin.classList.remove('flex'); btnLogin.classList.add('hidden'); }
           
            const btnLogout = document.getElementById('btnLogout'); 
            if(btnLogout) { btnLogout.classList.remove('hidden'); btnLogout.classList.add('flex'); }
            
            closeLoginModal(); 
            switchPage('dashboard'); 
-           renderTablePage(); 
+           
+           // โหลดข้อมูลแบบเต็มเฉพาะเมื่อ Admin เข้าสู่ระบบ
+           if (!hasFullDataLoaded) {
+             fetchData();
+           } else {
+             renderTablePage();
+           }
        } else { 
            const err = document.getElementById('loginErrorMsg'); 
-          if(err) err.classList.remove('hidden'); 
+           if(err) err.classList.remove('hidden'); 
            inputs.forEach(input => input.value = ''); 
            if(inputs.length > 0) inputs[0].focus(); 
        } 
@@ -1346,13 +1506,12 @@ window.logoutAdmin = function() {
    document.body.classList.remove('is-admin'); 
    
    const btnLogin = document.getElementById('btnLogin'); 
-  if(btnLogin) { btnLogin.classList.remove('hidden'); btnLogin.classList.add('flex'); }
+   if(btnLogin) { btnLogin.classList.remove('hidden'); btnLogin.classList.add('flex'); }
   
-  const btnLogout = document.getElementById('btnLogout'); 
-   if(btnLogout) { btnLogout.classList.remove('flex'); btnLogout.classList.add('hidden'); }
+   const btnLogout = document.getElementById('btnLogout'); 
+   if(btnLogout) { btnLogout.classList.remove('hidden'); btnLogout.classList.add('flex'); }
    
-  switchPage('report'); 
-   renderTablePage(); 
+   switchPage('report'); 
 };
 
 window.switchPage = function(pageId) {
@@ -1413,74 +1572,6 @@ window.switchImportMode = function(mode) {
     if(secSettings) { secSettings.classList.remove('hidden'); secSettings.classList.add('block'); }
   }
 };
-
-async function fetchData() {
-  showLoadingState(); 
-  try {
-    const url = `${API_URL}?action=getData`;
-    const res = await fetch(url);
-    const text = await res.text(); 
-    
-    let result;
-    try {
-      result = JSON.parse(text);
-    } catch (parseError) {
-      console.error("API Response Error:", text);
-      if(text.includes('<html')) { 
-         throw new Error("Google บล็อกการเชื่อมต่อ (กรุณาเช็คสิทธิ์ตอน Deploy เป็น 'ทุกคน' หรือยัง)"); 
-      } else { 
-         throw new Error("ระบบหลังบ้านส่งข้อมูลมาผิดรูปแบบ"); 
-      }
-    }
-    
-    if (result.status === 'success') {
-      cachedPersonnelData = result.data.list;
-      currentFilteredData = result.data.list;
-      
-      if (!globalFiltersMaster) { 
-         globalFiltersMaster = result.data.filters; 
-         updateDropdownUI(); 
-       }
-      if(result.data.settings) { 
-         globalSettings = result.data.settings; 
-         const adminYearInput = document.getElementById('adminActiveYear');
-        if(adminYearInput) adminYearInput.value = globalSettings.activeReportYear; 
-         const srYearInput = document.getElementById('srActiveYear');
-        if(srYearInput) srYearInput.value = globalSettings.activeReportYear; 
-       }
-      if(result.data.projectDetails) { 
-         cachedProjectDetails = result.data.projectDetails; 
-       }
-      if(result.data.strategyDoc) {
-         cachedStrategyDoc = result.data.strategyDoc;
-         renderStrategyDocStatus(cachedStrategyDoc);
-      }
-      if(result.data.strategyAnalyses) {
-         cachedStrategyAnalyses = result.data.strategyAnalyses;
-      }
-       
-       updateDatalists(); 
-       updateSelfReportDatalist(); 
-       
-       renderDashboard(result.data.stats); 
-       drawCharts(result.data.filters.years, result.data.filters.groups); 
-       
-       applyLocalFilters();
-       
-    } else { 
-       showErrorState(result.message); 
-     }
-  } catch (error) { 
-     showErrorState(error.message || 'การเชื่อมต่อกับฐานข้อมูลขัดข้อง'); 
-   }
-}
-
-function updateSelfReportDatalist() {
-  const dl = document.getElementById('dl-all-users');
-  if(dl) { 
-     dl.innerHTML = cachedPersonnelData.map(p => `<option value="${p.fullName} (${p.uid})">`).join(''); 
-   }
-}
 
 function handleCascadingFilter(changedType) {
   if (!globalFiltersMaster) return;
@@ -2662,68 +2753,4 @@ function showErrorState(message) {
   if(elTotal) elTotal.textContent = 'Err';
   if(elYear) elYear.textContent = 'Err';
   if(elCourse) elCourse.textContent = message;
-}
-
-window.checkOTP = function() { 
-   const inputs = Array.from(document.querySelectorAll('.otp-input')).slice(0, 6); 
-   let pin = ''; 
-   inputs.forEach(input => pin += input.value); 
-   
-  if(pin.length === 6) { 
-       const correctPin = String(globalSettings.adminPin || "336699").trim(); 
-       
-       if(pin === correctPin) { 
-           isAdmin = true; 
-           document.body.classList.add('is-admin'); 
-           
-           const btnLogin = document.getElementById('btnLogin'); 
-          if(btnLogin) { btnLogin.classList.remove('flex'); btnLogin.classList.add('hidden'); }
-          
-           const btnLogout = document.getElementById('btnLogout'); 
-           if(btnLogout) { btnLogout.classList.remove('hidden'); btnLogout.classList.add('flex'); }
-           
-           closeLoginModal(); 
-           switchPage('dashboard'); 
-           renderTablePage(); 
-       } else { 
-           const err = document.getElementById('loginErrorMsg'); 
-          if(err) err.classList.remove('hidden'); 
-           inputs.forEach(input => input.value = ''); 
-           if(inputs.length > 0) inputs[0].focus(); 
-       } 
-   } 
-};
-
-window.logoutAdmin = function() { 
-   isAdmin = false; 
-   document.body.classList.remove('is-admin'); 
-   
-   const btnLogin = document.getElementById('btnLogin'); 
-  if(btnLogin) { btnLogin.classList.remove('hidden'); btnLogin.classList.add('flex'); }
-  
-  const btnLogout = document.getElementById('btnLogout'); 
-   if(btnLogout) { btnLogout.classList.remove('flex'); btnLogout.classList.add('hidden'); }
-   
-  switchPage('report'); 
-   renderTablePage(); 
-};
-
-function setupOTPInputs() { 
-   const inputs = Array.from(document.querySelectorAll('.otp-input')).slice(0, 6); 
-   inputs.forEach((input, index) => { 
-       input.addEventListener('input', (e) => { 
-         if(e.target.value.length === 1 && index < 5) inputs[index + 1].focus(); 
-         checkOTP(); 
-       }); 
-       input.addEventListener('keydown', (e) => { 
-         if(e.key === 'Backspace' && e.target.value === '' && index > 0) inputs[index - 1].focus(); 
-       }); 
-       input.addEventListener('paste', (e) => { 
-         e.preventDefault(); 
-         const pastedData = (e.clipboardData || window.clipboardData).getData('text').slice(0, 6).split(''); 
-         inputs.forEach((inp, i) => { if(pastedData[i]) inp.value = pastedData[i]; }); 
-         if(pastedData.length > 0) inputs[Math.min(pastedData.length, 5)].focus(); 
-         checkOTP(); 
-       }); 
-   }); 
 }
