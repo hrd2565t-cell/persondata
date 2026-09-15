@@ -413,7 +413,7 @@ window.submitEval = async function() {
   const btn = document.getElementById('btnSaveEval'); 
   btn.textContent = 'กำลังบันทึก...'; btn.disabled = true;
   try {
-    const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload = { action: 'saveEval', uid: currentActiveUid, feedback: feedback }), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
+    const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveEval', uid: currentActiveUid, feedback: feedback }), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
     const result = await response.json();
     if(result.status === 'success') { alert('✅ บันทึกสำเร็จ'); document.getElementById('inputEvalFeedback').value = ''; fetchData(); } else { alert(`❌ ข้อผิดพลาด: ${result.message}`); }
   } catch(e) { alert('❌ การเชื่อมต่อล้มเหลว'); }
@@ -611,6 +611,8 @@ function renderStrategyDocStatus(doc) {
 window.triggerAiStrategicAnalysis = async function() {
   const course = document.getElementById('aiAnalysisCourse').value;
   const year = document.getElementById('aiAnalysisYear').value;
+  const quarter = document.getElementById('aiAnalysisQuarter') ? document.getElementById('aiAnalysisQuarter').value : 'all';
+
   if (!course || !year) {
     alert('⚠️ กรุณาเลือกหลักสูตรและปีการศึกษาที่ต้องการวิเคราะห์');
     return;
@@ -625,7 +627,8 @@ window.triggerAiStrategicAnalysis = async function() {
     const payload = {
       action: 'analyzeStrategy',
       course: course.replace(/ทั่วไป/g, 'ไม่ระบุ'),
-      year: year
+      year: year,
+      quarter: quarter
     };
 
     const response = await fetch(API_URL, {
@@ -639,8 +642,8 @@ window.triggerAiStrategicAnalysis = async function() {
       const card = document.getElementById('aiResultCard');
       if (card) card.classList.remove('hidden');
 
-      document.getElementById('aiResultHeading').textContent = `ผลการสังเคราะห์หลักสูตร ${course} (ปี ${year})`;
-      document.getElementById('aiResultMeta').textContent = `วิเคราะห์จากผู้ปฏิบัติหน้าที่จริง ${result.data.evaluatedPeople || 0} คน ตามกรอบกองทุนพัฒนาการกีฬาแห่งชาติ (NSDF)`;
+      document.getElementById('aiResultHeading').textContent = `ผลการสังเคราะห์หลักสูตร ${course} (ปี ${year} - ${result.data.quarterLabel || quarter})`;
+      document.getElementById('aiResultMeta').textContent = `วิเคราะห์เชิงประจักษ์จากผู้ปฏิบัติหน้าที่จริง ${result.data.evaluatedPeople || 0} คน (${result.data.deploymentRate || 0}%) ตามกรอบกองทุนพัฒนาการกีฬาแห่งชาติ (NSDF)`;
       document.getElementById('aiScoreVal').textContent = `${result.data.alignmentScore || 0}%`;
       
       document.getElementById('aiCompetencySummary').textContent = result.data.competencyFit || '-';
@@ -666,6 +669,7 @@ window.triggerAiStrategicAnalysis = async function() {
         }
       }
 
+      cachedStrategyAnalyses[`${course}_${year}_${quarter}`] = result.data;
       cachedStrategyAnalyses[`${course}_${year}`] = result.data;
       showToast('✅ วิเคราะห์และสังเคราะห์ผลสำเร็จ');
     } else {
@@ -1345,7 +1349,7 @@ window.logoutAdmin = function() {
   if(btnLogin) { btnLogin.classList.remove('hidden'); btnLogin.classList.add('flex'); }
   
   const btnLogout = document.getElementById('btnLogout'); 
-   if(btnLogout) { btnLogout.classList.remove('flex'); btnLogout.classList.add('flex'); }
+   if(btnLogout) { btnLogout.classList.remove('flex'); btnLogout.classList.add('hidden'); }
    
   switchPage('report'); 
    renderTablePage(); 
@@ -1855,7 +1859,13 @@ window.openProposalReport = function(encodedCourseName, btnId) {
        });
       yearFilter.innerHTML = optionsHtml;
       yearFilter.value = 'all'; 
-     }
+    }
+
+    const quarterFilter = document.getElementById('reportQuarterFilter');
+    if (quarterFilter) {
+      quarterFilter.value = 'all';
+    }
+
     renderReportData(); 
      btn.innerHTML = originalBtnHTML; 
      const modal = document.getElementById('proposalModal');
@@ -1867,16 +1877,32 @@ window.renderReportData = function() {
   if(!currentReportCourseBase64) return;
   const courseName = base64ToUtf8(currentReportCourseBase64);
   const selectedYear = document.getElementById('reportYearFilter') ? document.getElementById('reportYearFilter').value : 'all';
+  const selectedQuarter = document.getElementById('reportQuarterFilter') ? document.getElementById('reportQuarterFilter').value : 'all';
+
   let courseUsers = cachedPersonnelData.filter(u => u.trainings && u.trainings.some(t => t.course === courseName));
   if(selectedYear !== 'all') { 
      courseUsers = courseUsers.filter(u => u.trainings.some(t => t.course === courseName && String(t.year) === selectedYear)); 
-   }
+  }
+
   let displayCourseName = courseName;
   if(cachedProjectDetails && cachedProjectDetails[courseName] && cachedProjectDetails[courseName].fullCourseName) {
     displayCourseName = cachedProjectDetails[courseName].fullCourseName;
   }
+
+  const quarterLabels = {
+    'all': '',
+    'Q1': ' (ไตรมาส 1: ต.ค. - ธ.ค.)',
+    'Q2': ' (ไตรมาส 2: ม.ค. - มี.ค.)',
+    'Q3': ' (ไตรมาส 3: เม.ย. - มิ.ย.)',
+    'Q4': ' (ไตรมาส 4: ก.ค. - ก.ย.)'
+  };
+  const qSuffix = quarterLabels[selectedQuarter] || '';
+
   const elCourseName = document.getElementById('reportCourseName');
-  if(elCourseName) elCourseName.textContent = displayCourseName + (selectedYear === 'all' ? ' (ภาพรวมทั้งหมด)' : ` (รุ่นปี ${selectedYear})`);
+  if(elCourseName) {
+    elCourseName.textContent = displayCourseName + (selectedYear === 'all' ? ' (ภาพรวมทุกปี)' : ` (รุ่นปี ${selectedYear})`) + qSuffix;
+  }
+
   let projectTargets = {};
   let totalTargetCount = 0;
   
@@ -1976,7 +2002,7 @@ window.renderReportData = function() {
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div class="bg-slate-50 p-5 rounded-xl border border-slate-200 shadow-sm">
         <h4 class="text-xs font-bold text-slate-500 mb-3 uppercase flex items-center gap-1.5">
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2H6a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg> 
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2H-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg> 
           บทบาทหน้าที่หลัก (Top Roles)
         </h4>
         <ul class="text-sm space-y-2">
@@ -2001,12 +2027,19 @@ window.renderReportData = function() {
    
   if(document.getElementById('reportImplementation')) document.getElementById('reportImplementation').innerHTML = implHtml;
 
-  /* 🟢 เชื่อมต่อผลการประเมินกองทุน NSDF และหัวข้อปีถัดไป เข้ากับหน้ารายงาน A4 */
+  /* 🟢 เชื่อมต่อผลการประเมินกองทุน NSDF และหัวข้อปีถัดไป (พร้อมรองรับไตรมาสปีงบประมาณ) */
   let matchedAnalysis = null;
-  if (selectedYear !== 'all') {
-    matchedAnalysis = cachedStrategyAnalyses[`${courseName}_${selectedYear}`];
+  let cacheKeySpecific = `${courseName}_${selectedYear}_${selectedQuarter}`;
+  let cacheKeyYearOnly = `${courseName}_${selectedYear}_all`;
+  let cacheKeyFallback = `${courseName}_${selectedYear}`;
+
+  if (cachedStrategyAnalyses[cacheKeySpecific]) {
+    matchedAnalysis = cachedStrategyAnalyses[cacheKeySpecific];
+  } else if (cachedStrategyAnalyses[cacheKeyYearOnly]) {
+    matchedAnalysis = cachedStrategyAnalyses[cacheKeyYearOnly];
+  } else if (cachedStrategyAnalyses[cacheKeyFallback]) {
+    matchedAnalysis = cachedStrategyAnalyses[cacheKeyFallback];
   } else {
-    // หาผลวิเคราะห์ล่าสุดที่มีของหลักสูตรนี้
     const analysisKeys = Object.keys(cachedStrategyAnalyses).filter(k => k.startsWith(`${courseName}_`));
     if (analysisKeys.length > 0) {
       matchedAnalysis = cachedStrategyAnalyses[analysisKeys[analysisKeys.length - 1]];
@@ -2669,7 +2702,7 @@ window.logoutAdmin = function() {
   if(btnLogin) { btnLogin.classList.remove('hidden'); btnLogin.classList.add('flex'); }
   
   const btnLogout = document.getElementById('btnLogout'); 
-   if(btnLogout) { btnLogout.classList.remove('flex'); btnLogout.classList.add('flex'); }
+   if(btnLogout) { btnLogout.classList.remove('flex'); btnLogout.classList.add('hidden'); }
    
   switchPage('report'); 
    renderTablePage(); 
