@@ -36,7 +36,7 @@ function getDirectDriveImageUrl(url) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  fetchPublicData(); // ⚡ โหลดข้อมูลเบาสำหรับหน้าแรกทันที
+  fetchPublicData();
   setupDragAndDrop();
   setupStrategyUpload();
   setupOTPInputs();
@@ -91,7 +91,7 @@ window.showToast = function(message) {
    setTimeout(() => { toast.classList.add('translate-y-20', 'opacity-0'); }, 3000);
 };
 
-// ⚡ 1. ฟังก์ชันโหลดข้อมูลหน้าแรกแบบความเร็วสูง (Public Fast-Loader)
+// ⚡ 1. ฟังก์ชันโหลดข้อมูลหน้าแรกพร้อมระบบ Smart Auto-Fallback ป้องกันข้อผิดพลาด
 async function fetchPublicData() {
   const statusEl = document.getElementById('srConnStatus');
   const searchInput = document.getElementById('srSearchName');
@@ -101,11 +101,13 @@ async function fetchPublicData() {
     const res = await fetch(`${API_URL}?action=getPublicData`);
     const text = await res.text();
     let result;
+    
     try {
       result = JSON.parse(text);
     } catch (parseError) {
-      if(text.includes('<html')) throw new Error("Google บล็อกการเชื่อมต่อ (กรุณาเช็คสิทธิ์ตอน Deploy)");
-      throw new Error("ระบบหลังบ้านส่งข้อมูลมาผิดรูปแบบ");
+      // หากหลังบ้านยังไม่รู้จักคำสั่ง getPublicData ให้สลับไปใช้ระบบสำรองอัตโนมัติ
+      console.warn("getPublicData ไม่ตอบสนอง กำลังสลับไปใช้ระบบสำรองอัตโนมัติ...");
+      return await fallbackToFullData();
     }
 
     if (result.status === 'success') {
@@ -113,40 +115,70 @@ async function fetchPublicData() {
       globalSettings.adminPin = result.data.adminPin || '336699';
       publicUsersList = result.data.users || [];
 
-      // อัปเดตรอบปีงบประมาณบนหน้าจอ
       const srYearInput = document.getElementById('srActiveYear');
       if (srYearInput) srYearInput.value = globalSettings.activeReportYear;
 
-      // เติมรายชื่อบุคลากรลงใน Datalist
       const dl = document.getElementById('dl-all-users');
       if (dl) {
         dl.innerHTML = publicUsersList.map(u => `<option value="${u.fullName} (${u.uid})">`).join('');
       }
 
-      // ปลดล็อกช่องค้นหาและเปลี่ยนสถานะเป็นพร้อมใช้งาน
-      if (statusEl) {
-        statusEl.className = "text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full flex items-center gap-1.5 transition-all";
-        statusEl.innerHTML = `<span>✅ ฐานข้อมูลพร้อมใช้งาน</span>`;
-      }
-      if (searchInput) {
-        searchInput.disabled = false;
-        searchInput.classList.remove('disabled:bg-slate-100', 'disabled:text-slate-400', 'disabled:cursor-not-allowed');
-        searchInput.classList.add('bg-slate-50');
-        searchInput.placeholder = "พิมพ์ชื่อเพื่อค้นหาประวัติการอบรม...";
-      }
-      if (searchBtn) {
-        searchBtn.disabled = false;
-        searchBtn.classList.remove('disabled:bg-blue-300', 'disabled:cursor-not-allowed');
-      }
+      unlockSearchUI();
     } else {
-      throw new Error(result.message);
+      return await fallbackToFullData();
     }
   } catch (err) {
+    console.warn("การเชื่อมต่อ getPublicData ขัดข้อง กำลังสลับไปใช้ระบบสำรอง...", err);
+    return await fallbackToFullData();
+  }
+}
+
+// 🛡️ ฟังก์ชันสำรองอัตโนมัติ (Fallback Engine) ดึงข้อมูลผ่าน action=getData
+async function fallbackToFullData() {
+  const statusEl = document.getElementById('srConnStatus');
+  try {
+    if (!hasFullDataLoaded) {
+      await fetchData();
+    }
+    
+    publicUsersList = cachedPersonnelData.map(p => ({ uid: p.uid, fullName: p.fullName }));
+    const dl = document.getElementById('dl-all-users');
+    if (dl) {
+      dl.innerHTML = publicUsersList.map(u => `<option value="${u.fullName} (${u.uid})">`).join('');
+    }
+
+    const srYearInput = document.getElementById('srActiveYear');
+    if (srYearInput) srYearInput.value = globalSettings.activeReportYear;
+
+    unlockSearchUI();
+  } catch (fallbackErr) {
     if (statusEl) {
       statusEl.className = "text-xs font-semibold text-red-600 bg-red-50 border border-red-200 px-3 py-1 rounded-full flex items-center gap-1.5";
-      statusEl.innerHTML = `<span>❌ เชื่อมต่อล้มเหลว: ${err.message}</span>`;
+      statusEl.innerHTML = `<span>❌ เชื่อมต่อล้มเหลว: ${fallbackErr.message}</span>`;
     }
+    const searchInput = document.getElementById('srSearchName');
     if (searchInput) searchInput.placeholder = "การเชื่อมต่อล้มเหลว กรุณารีเฟรชหน้าจอ";
+  }
+}
+
+function unlockSearchUI() {
+  const statusEl = document.getElementById('srConnStatus');
+  const searchInput = document.getElementById('srSearchName');
+  const searchBtn = document.getElementById('btnSrSearch');
+
+  if (statusEl) {
+    statusEl.className = "text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full flex items-center gap-1.5 transition-all";
+    statusEl.innerHTML = `<span>✅ ฐานข้อมูลพร้อมใช้งาน</span>`;
+  }
+  if (searchInput) {
+    searchInput.disabled = false;
+    searchInput.classList.remove('disabled:bg-slate-100', 'disabled:text-slate-400', 'disabled:cursor-not-allowed');
+    searchInput.classList.add('bg-slate-50');
+    searchInput.placeholder = "พิมพ์ชื่อเพื่อค้นหาประวัติการอบรม...";
+  }
+  if (searchBtn) {
+    searchBtn.disabled = false;
+    searchBtn.classList.remove('disabled:bg-blue-300', 'disabled:cursor-not-allowed');
   }
 }
 
@@ -156,7 +188,6 @@ window.handleSelfReportUserSelect = async function() {
   const warnText = document.getElementById('srUserWarn'); 
   const formContainer = document.getElementById('srFormContainer'); 
   const btnSearch = document.getElementById('btnSrSearch');
-  const btnText = document.getElementById('btnSrSearchText');
   const activeYear = globalSettings.activeReportYear;
 
   if (!inputVal) {
@@ -184,7 +215,16 @@ window.handleSelfReportUserSelect = async function() {
     return;
   }
 
-  // ล็อกปุ่มและแสดงสถานะกำลังค้นหา
+  // หากข้อมูลหลักโหลดไว้อยู่แล้ว ให้ใช้จากแคชได้ทันที
+  if (hasFullDataLoaded && cachedPersonnelData.length > 0) {
+    const cachedUser = cachedPersonnelData.find(p => p.uid === selectedUid);
+    if (cachedUser) {
+      processUserReportState(cachedUser, activeYear);
+      return;
+    }
+  }
+
+  // หากยังไม่มีข้อมูลประวัติ ให้ส่งคำขอดึงเฉพาะบุคคล
   btnSearch.disabled = true;
   const originalBtnContent = btnSearch.innerHTML;
   btnSearch.innerHTML = `<svg class="animate-spin w-5 h-5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> <span>กำลังค้นหา...</span>`;
@@ -194,52 +234,72 @@ window.handleSelfReportUserSelect = async function() {
     const result = await res.json();
 
     if (result.status === 'success' && result.data) {
-      srSelectedUser = result.data;
-      const filteredCourses = (srSelectedUser.trainings || []).filter(t => String(t.year).trim() === String(activeYear).trim());
-      
-      if (filteredCourses.length === 0) { 
-        warnText.textContent = `⚠️ ท่านไม่มีประวัติการอบรมในปีงบประมาณ ${activeYear} จึงไม่ต้องรายงานผลในรอบนี้`; 
-        warnText.classList.remove('hidden');
-        formContainer.classList.add('hidden'); 
-        srFormState = [];
-      } else {
-        warnText.classList.add('hidden'); 
-        formContainer.classList.remove('hidden');
-        srFormState = []; 
-        
-        filteredCourses.forEach(c => { 
-          const existingDuties = (srSelectedUser.duties || []).filter(d => 
-            String(d.year).trim() === String(activeYear).trim() && 
-            String(d.course).trim() === String(c.course).trim() 
-          );
-          
-          if (existingDuties.length > 0) {
-            existingDuties.forEach(d => { 
-              srFormState.push({ course: c.course, data: d, isReported: true, tempData: null });
-            });
-          } else {
-            srFormState.push({ course: c.course, data: null, isReported: false, tempData: null });
-          }
-        });
-        
-        renderSrForms();
-      }
+      processUserReportState(result.data, activeYear);
     } else {
-      warnText.textContent = '❌ ' + (result.message || 'ไม่สามารถดึงข้อมูลประวัติได้');
+      // หาก getUserHistory ยังไม่พร้อม ให้ดึงข้อมูลเต็มผ่าน fetchData สำรอง
+      await fetchData();
+      const fallbackUser = cachedPersonnelData.find(p => p.uid === selectedUid);
+      if (fallbackUser) {
+        processUserReportState(fallbackUser, activeYear);
+      } else {
+        warnText.textContent = '❌ ไม่พบข้อมูลประวัติการอบรม';
+        warnText.classList.remove('hidden');
+        formContainer.classList.add('hidden');
+      }
+    }
+  } catch (err) {
+    await fetchData();
+    const fallbackUser = cachedPersonnelData.find(p => p.uid === selectedUid);
+    if (fallbackUser) {
+      processUserReportState(fallbackUser, activeYear);
+    } else {
+      warnText.textContent = '❌ การเชื่อมต่อล้มเหลว กรุณาลองใหม่อีกครั้ง';
       warnText.classList.remove('hidden');
       formContainer.classList.add('hidden');
     }
-  } catch (err) {
-    warnText.textContent = '❌ การเชื่อมต่อล้มเหลว กรุณาลองใหม่อีกครั้ง';
-    warnText.classList.remove('hidden');
-    formContainer.classList.add('hidden');
   }
 
   btnSearch.innerHTML = originalBtnContent;
   btnSearch.disabled = false;
 };
 
-// 📊 3. ฟังก์ชันโหลดข้อมูลระบบทั้งหมด (สำหรับ Admin เท่านั้น)
+function processUserReportState(user, activeYear) {
+  const warnText = document.getElementById('srUserWarn'); 
+  const formContainer = document.getElementById('srFormContainer'); 
+  srSelectedUser = user;
+
+  const filteredCourses = (srSelectedUser.trainings || []).filter(t => String(t.year).trim() === String(activeYear).trim());
+  
+  if (filteredCourses.length === 0) { 
+    warnText.textContent = `⚠️ ท่านไม่มีประวัติการอบรมในปีงบประมาณ ${activeYear} จึงไม่ต้องรายงานผลในรอบนี้`; 
+    warnText.classList.remove('hidden');
+    formContainer.classList.add('hidden'); 
+    srFormState = [];
+  } else {
+    warnText.classList.add('hidden'); 
+    formContainer.classList.remove('hidden');
+    srFormState = []; 
+    
+    filteredCourses.forEach(c => { 
+      const existingDuties = (srSelectedUser.duties || []).filter(d => 
+        String(d.year).trim() === String(activeYear).trim() && 
+        String(d.course).trim() === String(c.course).trim() 
+      );
+      
+      if (existingDuties.length > 0) {
+        existingDuties.forEach(d => { 
+          srFormState.push({ course: c.course, data: d, isReported: true, tempData: null });
+        });
+      } else {
+        srFormState.push({ course: c.course, data: null, isReported: false, tempData: null });
+      }
+    });
+    
+    renderSrForms();
+  }
+}
+
+// 📊 3. ฟังก์ชันโหลดข้อมูลระบบทั้งหมด (สำหรับ Admin)
 async function fetchData() {
   showLoadingState(); 
   try {
@@ -251,7 +311,7 @@ async function fetchData() {
     try {
       result = JSON.parse(text);
     } catch (parseError) {
-      if(text.includes('<html')) throw new Error("Google บล็อกการเชื่อมต่อ (กรุณาเช็คสิทธิ์ตอน Deploy)");
+      if(text.includes('<html')) throw new Error("Google บล็อกการเชื่อมต่อ (กรุณาเช็คสิทธิ์ตอน Deploy เป็น 'ทุกคน')"); 
       throw new Error("ระบบหลังบ้านส่งข้อมูลมาผิดรูปแบบ"); 
     }
     
@@ -291,6 +351,7 @@ async function fetchData() {
     }
   } catch (error) { 
     showErrorState(error.message || 'การเชื่อมต่อกับฐานข้อมูลขัดข้อง'); 
+    throw error;
   }
 }
 
@@ -1486,7 +1547,6 @@ window.checkOTP = function() {
            closeLoginModal(); 
            switchPage('dashboard'); 
            
-           // โหลดข้อมูลแบบเต็มเฉพาะเมื่อ Admin เข้าสู่ระบบ
            if (!hasFullDataLoaded) {
              fetchData();
            } else {
@@ -2118,7 +2178,6 @@ window.renderReportData = function() {
    
   if(document.getElementById('reportImplementation')) document.getElementById('reportImplementation').innerHTML = implHtml;
 
-  /* 🟢 เชื่อมต่อผลการประเมินกองทุน NSDF และหัวข้อปีถัดไป (พร้อมรองรับไตรมาสปีงบประมาณ) */
   let matchedAnalysis = null;
   let cacheKeySpecific = `${courseName}_${selectedYear}_${selectedQuarter}`;
   let cacheKeyYearOnly = `${courseName}_${selectedYear}_all`;
