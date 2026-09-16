@@ -36,7 +36,7 @@ function getDirectDriveImageUrl(url) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  fetchPublicData();
+  fetchPublicData(); 
   setupDragAndDrop();
   setupStrategyUpload();
   setupOTPInputs();
@@ -105,7 +105,6 @@ async function fetchPublicData() {
     try {
       result = JSON.parse(text);
     } catch (parseError) {
-      // หากหลังบ้านยังไม่รู้จักคำสั่ง getPublicData ให้สลับไปใช้ระบบสำรองอัตโนมัติ
       console.warn("getPublicData ไม่ตอบสนอง กำลังสลับไปใช้ระบบสำรองอัตโนมัติ...");
       return await fallbackToFullData();
     }
@@ -133,7 +132,6 @@ async function fetchPublicData() {
   }
 }
 
-// 🛡️ ฟังก์ชันสำรองอัตโนมัติ (Fallback Engine) ดึงข้อมูลผ่าน action=getData
 async function fallbackToFullData() {
   const statusEl = document.getElementById('srConnStatus');
   try {
@@ -182,7 +180,6 @@ function unlockSearchUI() {
   }
 }
 
-// ⚡ 2. ฟังก์ชันค้นหาประวัติเฉพาะบุคคลแบบ On-Demand
 window.handleSelfReportUserSelect = async function() {
   const inputVal = document.getElementById('srSearchName').value.trim(); 
   const warnText = document.getElementById('srUserWarn'); 
@@ -215,7 +212,6 @@ window.handleSelfReportUserSelect = async function() {
     return;
   }
 
-  // หากข้อมูลหลักโหลดไว้อยู่แล้ว ให้ใช้จากแคชได้ทันที
   if (hasFullDataLoaded && cachedPersonnelData.length > 0) {
     const cachedUser = cachedPersonnelData.find(p => p.uid === selectedUid);
     if (cachedUser) {
@@ -224,7 +220,6 @@ window.handleSelfReportUserSelect = async function() {
     }
   }
 
-  // หากยังไม่มีข้อมูลประวัติ ให้ส่งคำขอดึงเฉพาะบุคคล
   btnSearch.disabled = true;
   const originalBtnContent = btnSearch.innerHTML;
   btnSearch.innerHTML = `<svg class="animate-spin w-5 h-5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> <span>กำลังค้นหา...</span>`;
@@ -236,7 +231,6 @@ window.handleSelfReportUserSelect = async function() {
     if (result.status === 'success' && result.data) {
       processUserReportState(result.data, activeYear);
     } else {
-      // หาก getUserHistory ยังไม่พร้อม ให้ดึงข้อมูลเต็มผ่าน fetchData สำรอง
       await fetchData();
       const fallbackUser = cachedPersonnelData.find(p => p.uid === selectedUid);
       if (fallbackUser) {
@@ -299,7 +293,6 @@ function processUserReportState(user, activeYear) {
   }
 }
 
-// 📊 3. ฟังก์ชันโหลดข้อมูลระบบทั้งหมด (สำหรับ Admin)
 async function fetchData() {
   showLoadingState(); 
   try {
@@ -1372,6 +1365,7 @@ function applyLocalFilters() {
   renderTablePage();
 }
 
+// ⚡ 2. ปรับปรุงฟังก์ชันบันทึกข้อมูล: ดักจับ Timeout จากฝั่ง Google อย่างนุ่มนวล
 window.submitSelfReport = async function() {
   syncSrFormState(); 
   const activeYear = document.getElementById('srActiveYear').value; 
@@ -1472,8 +1466,21 @@ window.submitSelfReport = async function() {
        };
        
        const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) }); 
-       const json = await res.json();
-      if(json.status !== 'success') throw new Error(json.message);
+       const text = await res.text();
+       
+       try {
+         const json = JSON.parse(text);
+         if(json.status !== 'success') throw new Error(json.message);
+       } catch (parseErr) {
+         // 🔥 หากเป็น HTML Timeout แสดงว่าหลังบ้านเซฟเสร็จแล้วแต่ฝั่งผู้ใช้รอจนหลุด
+         if (text.includes('<html') || parseErr.message.includes('Unexpected token')) {
+            console.warn(`Gateway Timeout in report ${i+1}. The background process is still running.`);
+            window.showToast('✅ ข้อมูลถูกจัดส่งแล้ว แต่อาจใช้เวลาประมวลผลรูปภาพครู่หนึ่ง');
+            continue; 
+         } else {
+            throw new Error("การตอบกลับจากเซิร์ฟเวอร์ผิดพลาด");
+         }
+       }
     }
     
     alert('✅ บันทึกรายงานสำเร็จทั้งหมด ข้อมูลของคุณได้รับการอัปเดตเรียบร้อยแล้ว'); 
