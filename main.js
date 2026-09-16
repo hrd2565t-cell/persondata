@@ -1121,6 +1121,18 @@ window.removeOldImage = function(formIdx, slotNum) {
 window.renderSrForms = function() {
   const dynamicForms = document.getElementById('srDynamicForms');
   let html = '';
+
+  // 🛡️ ตรวจสอบว่าผู้ใช้นี้เคยอัปโหลดรูปประจำตัวในระบบหรือยัง
+  let hasExistingProfilePic = false;
+  if (srSelectedUser && srSelectedUser.duties) {
+      hasExistingProfilePic = srSelectedUser.duties.some(d => {
+          if (d.images) {
+              let imgs = d.images.split(',');
+              return imgs[0] && imgs[0].trim() !== '';
+          }
+          return false;
+      });
+  }
   
   const uniqueCourses = [...new Set(srFormState.map(s => s.course))];
   
@@ -1176,12 +1188,18 @@ window.renderSrForms = function() {
       let oldEvidence1Preview = '';
       let oldEvidence2Preview = '';
       
+      let currentFormHasProfilePic = false;
+
       if (form.data && form.data.images) { 
          let imgs = form.data.images.split(',').map(s=>s.trim());
          
          keepImg1Value = (imgs[0] && imgs[0] !== '') ? imgs[0] : '';
          keepImg2Value = (imgs[1] && imgs[1] !== '') ? imgs[1] : '';
          keepImg3Value = (imgs[2] && imgs[2] !== '') ? imgs[2] : '';
+
+         if (keepImg1Value) {
+             currentFormHasProfilePic = true;
+         }
 
          if(keepImg1Value || keepImg2Value || keepImg3Value) {
              imageAlert = `<div class="mt-2 text-xs font-semibold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">✅ พบรูปภาพเดิมที่เคยอัปโหลดไว้ หากต้องการเปลี่ยนสามารถกดกากบาท (X) ลบทิ้งได้ครับ</div>`;
@@ -1213,6 +1231,36 @@ window.renderSrForms = function() {
                  </div>`;
              }
          }
+      }
+
+      // 🛡️ ตรรกะตัดสินใจว่าจะแสดงช่องอัปโหลดรูปหน้าตรงหรือไม่
+      // แสดงถ้า: (1) งานนี้เคยอัปโหลดไว้แล้วและกำลังกดแก้ไข หรือ (2) ผู้ใช้นี้ไม่เคยมีรูปในระบบเลย และเป็นฟอร์มแรกสุดบนหน้าจอ
+      let showProfileUpload = currentFormHasProfilePic || (!hasExistingProfilePic && i === 0);
+      let profileUploadHtml = '';
+
+      if (showProfileUpload) {
+          profileUploadHtml = `
+            <label class="block text-xs font-bold text-slate-700 mb-2">📷 รูปถ่ายประจำตัว (สำหรับทำบัตร / หน้าตรง)</label>
+            <div class="flex flex-col mb-4"> 
+               <input type="file" id="srFile1_${i}" accept="image/jpeg, image/png, image/jpg" onchange="previewImage(this, 'preview1_${i}')" class="w-full text-xs text-slate-500 file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 bg-white border border-slate-200 rounded p-1 cursor-pointer">
+               <div id="preview1_${i}_container" class="hidden mt-2 bg-white rounded-lg border border-slate-200 p-2 flex justify-center items-center overflow-hidden h-32 shadow-sm w-max">
+                   <img id="preview1_${i}" src="" class="hidden max-h-full max-w-full object-contain rounded">
+               </div>
+               ${oldProfilePreview}
+            </div>
+          `;
+      } else {
+          // ซ่อนช่องอัปโหลดแต่ยังต้องมี tag input เพื่อไม่ให้โค้ดการบันทึก Error
+          profileUploadHtml = `
+            <input type="file" id="srFile1_${i}" class="hidden">
+            <div class="mb-4 bg-emerald-50 border border-emerald-200 p-3 rounded-xl flex items-start gap-2 shadow-sm">
+                <svg class="w-5 h-5 text-emerald-600 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <div>
+                    <p class="text-xs font-bold text-emerald-800">รูปถ่ายประจำตัวมีในระบบแล้ว</p>
+                    <p class="text-[10px] text-emerald-600 mt-0.5">ระบบจะใช้รูปเดิมของท่านในการทำบัตรอัตโนมัติ (ท่านไม่ต้องอัปโหลดซ้ำเพื่อประหยัดพื้นที่)</p>
+                </div>
+            </div>
+          `;
       }
 
       html += `
@@ -1267,14 +1315,8 @@ window.renderSrForms = function() {
             <textarea id="srKnowledge_${i}" rows="3" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-4 outline-none focus:ring-2 focus:ring-blue-500 resize-none" placeholder="อธิบายสั้นๆ...">${d.knowledge || ''}</textarea>
           </div>
           <div class="bg-blue-50/50 border border-blue-100 p-4 rounded-xl">
-            <label class="block text-xs font-bold text-slate-700 mb-2">📷 รูปถ่ายประจำตัว (สำหรับทำบัตร / หน้าตรง)</label>
-            <div class="flex flex-col mb-4"> 
-               <input type="file" id="srFile1_${i}" accept="image/jpeg, image/png, image/jpg" onchange="previewImage(this, 'preview1_${i}')" class="w-full text-xs text-slate-500 file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 bg-white border border-slate-200 rounded p-1 cursor-pointer">
-               <div id="preview1_${i}_container" class="hidden mt-2 bg-white rounded-lg border border-slate-200 p-2 flex justify-center items-center overflow-hidden h-32 shadow-sm w-max">
-                   <img id="preview1_${i}" src="" class="hidden max-h-full max-w-full object-contain rounded">
-               </div>
-               ${oldProfilePreview}
-            </div>
+            
+            ${profileUploadHtml}
 
             <label class="block text-xs font-bold text-slate-700 mb-2">📂 รูปภาพหลักฐานการปฏิบัติหน้าที่ (ไม่เกิน 5MB ต่อภาพ)</label>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1438,13 +1480,13 @@ window.submitSelfReport = async function() {
     }
   }
 
-  // ระดับที่ 2: ตรวจสอบการทับซ้อนกับประวัติเดิมในฐานข้อมูล
+  // ระดับที่ 2: ตรวจสอบทับซ้อนกับประวัติเดิมในระบบ
   if (srSelectedUser && srSelectedUser.duties) {
     for (let i = 0; i < allReports.length; i++) {
       let currentReport = allReports[i];
       let conflictDuty = srSelectedUser.duties.find(oldDuty => {
         if (String(oldDuty.year) !== String(activeYear)) return false;
-        if (currentReport.recordId && String(oldDuty.recordId) === String(currentReport.recordId)) return false; // ข้ามการตรวจสอบตัวเอง
+        if (currentReport.recordId && String(oldDuty.recordId) === String(currentReport.recordId)) return false; // ข้ามการตรวจสอบตัวเองถ้ากำลังแก้ไข
         return isDateOverlap(currentReport.startDate, currentReport.endDate, oldDuty.startDate, oldDuty.endDate);
       });
 
@@ -2521,7 +2563,7 @@ function formatThaiName(rawPrefix, rawName) {
    
   if (prefix === "น.ส.") prefix = "นางสาว"; 
    name = name.split(/\s+/).join(' ');
-  return { prefix: prefix, fullName: name };
+  return { prefix: prefix, name: name, fullName: name };
 }
 
 function isSmartMatch(importName, existingName) {
@@ -2840,169 +2882,6 @@ window.confirmImport = async function() {
    
   btn.innerHTML = originalText; 
    btn.disabled = false;
-};
-
-window.submitSelfReport = async function() {
-  syncSrFormState(); 
-  const activeYear = document.getElementById('srActiveYear').value; 
-  let allReports = [];
-  let keptRecordIds = []; 
-  
-  for (let i = 0; i < srFormState.length; i++) {
-    let course = document.getElementById(`srCourse_${i}`).value; 
-    course = course.replace(/ทั่วไป/g, 'ไม่ระบุ');
-    
-    let eventType = document.getElementById(`srEventType_${i}`).value; 
-    const eventName = document.getElementById(`srEventName_${i}`).value.trim(); 
-    let role = document.getElementById(`srRole_${i}`).value; 
-    const sport = document.getElementById(`srSport_${i}`).value.trim(); 
-    const startDate = document.getElementById(`srStartDate_${i}`).value; 
-    const endDate = document.getElementById(`srEndDate_${i}`).value; 
-    const province = document.getElementById(`srProvince_${i}`).value; 
-    const location = document.getElementById(`srLocation_${i}`).value.trim(); 
-    const knowledge = document.getElementById(`srKnowledge_${i}`).value.trim();
-    
-    const keepImg1 = document.getElementById(`keepImg1_${i}`).value;
-    const keepImg2 = document.getElementById(`keepImg2_${i}`).value;
-    const keepImg3 = document.getElementById(`keepImg3_${i}`).value;
-    const recordId = document.getElementById(`srRecordId_${i}`) ? document.getElementById(`srRecordId_${i}`).value : '';
-    
-    if (recordId) keptRecordIds.push(recordId);
-    
-    if (eventType === 'อื่นๆ') {
-      const otherVal = document.getElementById(`srEventTypeOther_${i}`).value.trim();
-      if(!otherVal) return alert(`⚠️ กรุณาระบุรูปแบบงานใน ${course} งานที่ ${i+1}`);
-      eventType = 'อื่นๆ: ' + otherVal;
-    }
-    if (role === 'อื่นๆ') {
-      const otherVal = document.getElementById(`srRoleOther_${i}`).value.trim();
-      if(!otherVal) return alert(`⚠️ กรุณาระบุตำแหน่งใน ${course} งานที่ ${i+1}`);
-      role = 'อื่นๆ: ' + otherVal;
-    }
-
-    if(!eventType || !eventName || !role || !sport || !startDate || !endDate || !province || !location || !knowledge) { 
-       return alert(`⚠️ กรุณากรอกข้อมูลสำคัญที่มีดอกจันสีแดงให้ครบถ้วนในหลักสูตร ${course} งานที่ ${i+1}`); 
-    }
-    
-    const file1 = document.getElementById(`srFile1_${i}`).files[0]; 
-    const file2 = document.getElementById(`srFile2_${i}`).files[0];
-    const file3 = document.getElementById(`srFile3_${i}`).files[0];
-    
-    allReports.push({ originalIndex: i+1, recordId, course, eventType, eventName, role, sport, startDate, endDate, province, location, knowledge, keepImg1, keepImg2, keepImg3, file1, file2, file3 });
-  }
-
-  // 🛡️ Data Validation: ตรวจสอบวันที่
-  for (let i = 0; i < allReports.length; i++) {
-    if (new Date(allReports[i].startDate).getTime() > new Date(allReports[i].endDate).getTime()) {
-       return alert(`⚠️ ข้อมูลวันที่ผิดพลาด!\nงานที่ ${i+1} (${allReports[i].course})\nวันที่เริ่มต้นต้องไม่มาทีหลังวันที่สิ้นสุดครับ`);
-    }
-  }
-
-  // ระดับที่ 1: ตรวจสอบการทับซ้อนกันเองในฟอร์มที่กำลังกรอก
-  for (let i = 0; i < allReports.length; i++) {
-    for (let j = i + 1; j < allReports.length; j++) {
-      if (isDateOverlap(allReports[i].startDate, allReports[i].endDate, allReports[j].startDate, allReports[j].endDate)) {
-        return alert(`⚠️ พบข้อมูลวันปฏิบัติงานทับซ้อนกันเอง!\n\nงานที่ ${i+1} (${allReports[i].eventName})\nทับซ้อนกับ\nงานที่ ${j+1} (${allReports[j].eventName})\n\nกรุณาตรวจสอบและแก้ไขวันที่ให้ถูกต้องก่อนส่งข้อมูลครับ`);
-      }
-    }
-  }
-
-  // ระดับที่ 2: ตรวจสอบทับซ้อนกับประวัติเดิมในระบบ
-  if (srSelectedUser && srSelectedUser.duties) {
-    for (let i = 0; i < allReports.length; i++) {
-      let currentReport = allReports[i];
-      let conflictDuty = srSelectedUser.duties.find(oldDuty => {
-        if (String(oldDuty.year) !== String(activeYear)) return false;
-        if (currentReport.recordId && String(oldDuty.recordId) === String(currentReport.recordId)) return false;
-        return isDateOverlap(currentReport.startDate, currentReport.endDate, oldDuty.startDate, oldDuty.endDate);
-      });
-
-      if (conflictDuty) {
-        return alert(`⚠️ พบข้อมูลวันปฏิบัติงานทับซ้อนกับประวัติเดิมในระบบ!\n\nงานที่ ${i+1} (${currentReport.eventName})\nวันที่ทับซ้อนกับงาน: ${conflictDuty.event}\nซึ่งเคยบันทึกไว้เมื่อวันที่ ${conflictDuty.startDate} ถึง ${conflictDuty.endDate}\n\nกรุณาตรวจสอบความถูกต้องอีกครั้งครับ`);
-      }
-    }
-  }
-
-  document.getElementById('srLoadingOverlay').classList.remove('hidden');
-  
-  try {
-    for (let r of allReports) { 
-       if(r.file1) { r.file1Data = await getBase64(r.file1); r.file1Name = r.file1.name; r.file1Mime = r.file1.type; } 
-       if(r.file2) { r.file2Data = await getBase64(r.file2); r.file2Name = r.file2.name; r.file2Mime = r.file2.type; }
-       if(r.file3) { r.file3Data = await getBase64(r.file3); r.file3Name = r.file3.name; r.file3Mime = r.file3.type; }
-    }
-
-    document.getElementById('srLoadingTitle').textContent = `กำลังเคลียร์ข้อมูลเดิม...`;
-    
-    await fetch(API_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'deleteMissingDutyRecords', uid: srSelectedUser.uid, year: activeYear, keptRecordIds: keptRecordIds }),
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-    });
-
-    for (let i = 0; i < allReports.length; i++) {
-      document.getElementById('srLoadingTitle').textContent = `กำลังบันทึกข้อมูลงานที่ ${i+1} / ${allReports.length}`;
-      let r = allReports[i]; 
-      
-      const payload = { 
-         action: 'saveSelfReport', 
-         uid: srSelectedUser.uid, 
-         fullName: srSelectedUser.fullName,
-         recordId: r.recordId, 
-         course: r.course, 
-         eventType: r.eventType, 
-         eventName: r.eventName, 
-         role: r.role, 
-         sport: r.sport, 
-         startDate: r.startDate, 
-         endDate: r.endDate, 
-         year: activeYear, 
-         province: r.province, 
-         location: r.location, 
-         knowledge: r.knowledge, 
-         keepImg1: r.keepImg1, 
-         keepImg2: r.keepImg2, 
-         keepImg3: r.keepImg3, 
-         file1Data: r.file1Data || null, 
-         file1Name: r.file1Name || '', 
-         file1Mime: r.file1Mime || '', 
-         file2Data: r.file2Data || null, 
-         file2Name: r.file2Name || '', 
-         file2Mime: r.file2Mime || '',
-         file3Data: r.file3Data || null, 
-         file3Name: r.file3Name || '', 
-         file3Mime: r.file3Mime || ''
-       };
-       
-       const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) }); 
-       const text = await res.text();
-       
-       try {
-         const json = JSON.parse(text);
-         if(json.status !== 'success') throw new Error(json.message);
-       } catch (parseErr) {
-         if (text.includes('<html') || parseErr.message.includes('Unexpected token')) {
-            console.warn(`Gateway Timeout in report ${i+1}. The background process is still running.`);
-            window.showToast('✅ ข้อมูลถูกจัดส่งแล้ว แต่อาจใช้เวลาประมวลผลรูปภาพครู่หนึ่ง');
-            continue; 
-         } else {
-            throw new Error("การตอบกลับจากเซิร์ฟเวอร์ผิดพลาด");
-         }
-       }
-    }
-    
-    alert('✅ บันทึกรายงานสำเร็จทั้งหมด ข้อมูลของคุณได้รับการอัปเดตเรียบร้อยแล้ว'); 
-    document.getElementById('srSearchName').value = ''; 
-    document.getElementById('srFormContainer').classList.add('hidden'); 
-    srSelectedUser = null; 
-    srFormState = [];
-    if (isAdmin) fetchData(); 
-  } catch(err) {
-    if(err.message === 'ขนาดไฟล์เกิน 5MB') alert('❌ ' + err.message); 
-    else alert('❌ เกิดข้อผิดพลาดในการบันทึก: ' + err.message);
-  }
-  
-  document.getElementById('srLoadingOverlay').classList.add('hidden');
 };
 
 function showLoadingState() { 
