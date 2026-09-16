@@ -35,6 +35,16 @@ function getDirectDriveImageUrl(url) {
   return url; 
 }
 
+// 🛡️ ฟังก์ชันตรวจสอบการทับซ้อนของช่วงเวลา (Date Overlap Checker)
+function isDateOverlap(start1, end1, start2, end2) {
+  if (!start1 || !end1 || !start2 || !end2) return false;
+  const s1 = new Date(start1).setHours(0,0,0,0);
+  const e1 = new Date(end1).setHours(0,0,0,0);
+  const s2 = new Date(start2).setHours(0,0,0,0);
+  const e2 = new Date(end2).setHours(0,0,0,0);
+  return (s1 <= e2 && e1 >= s2);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   fetchPublicData(); 
   setupDragAndDrop();
@@ -91,7 +101,6 @@ window.showToast = function(message) {
    setTimeout(() => { toast.classList.add('translate-y-20', 'opacity-0'); }, 3000);
 };
 
-// ⚡ 1. ฟังก์ชันโหลดข้อมูลหน้าแรกพร้อมระบบ Smart Auto-Fallback ป้องกันข้อผิดพลาด
 async function fetchPublicData() {
   const statusEl = document.getElementById('srConnStatus');
   const searchInput = document.getElementById('srSearchName');
@@ -1365,7 +1374,6 @@ function applyLocalFilters() {
   renderTablePage();
 }
 
-// ⚡ 2. ปรับปรุงฟังก์ชันบันทึกข้อมูล: ดักจับ Timeout จากฝั่ง Google อย่างนุ่มนวล
 window.submitSelfReport = async function() {
   syncSrFormState(); 
   const activeYear = document.getElementById('srActiveYear').value; 
@@ -1403,15 +1411,47 @@ window.submitSelfReport = async function() {
       if(!otherVal) return alert(`⚠️ กรุณาระบุตำแหน่งใน ${course} งานที่ ${i+1}`);
       role = 'อื่นๆ: ' + otherVal;
     }
+
     if(!eventType || !eventName || !role || !sport || !startDate || !endDate || !province || !location || !knowledge) { 
-       return alert(`⚠️ กรุณากรอกข้อมูลสำคัญที่มีดอกจันสีแดงให้ครบถ้วนในหลักสูตร ${course}`); 
+       return alert(`⚠️ กรุณากรอกข้อมูลสำคัญที่มีดอกจันสีแดงให้ครบถ้วนในหลักสูตร ${course} งานที่ ${i+1}`); 
+    }
+
+    // 🛡️ Data Validation: ตรวจสอบความถูกต้องของวันที่เบื้องต้น
+    if(new Date(startDate).getTime() > new Date(endDate).getTime()) {
+       return alert(`⚠️ ข้อมูลวันที่ผิดพลาด!\nงานที่ ${i+1} (${course})\nวันที่เริ่มต้นปฏิบัติงานต้องไม่มาทีหลังวันที่สิ้นสุดครับ`);
     }
     
     const file1 = document.getElementById(`srFile1_${i}`).files[0]; 
     const file2 = document.getElementById(`srFile2_${i}`).files[0];
     const file3 = document.getElementById(`srFile3_${i}`).files[0];
     
-    allReports.push({ recordId, course, eventType, eventName, role, sport, startDate, endDate, province, location, knowledge, keepImg1, keepImg2, keepImg3, file1, file2, file3 });
+    allReports.push({ originalIndex: i+1, recordId, course, eventType, eventName, role, sport, startDate, endDate, province, location, knowledge, keepImg1, keepImg2, keepImg3, file1, file2, file3 });
+  }
+
+  // 🛡️ Data Validation: ตรวจสอบการทับซ้อนของช่วงเวลา
+  // ระดับที่ 1: ตรวจสอบการทับซ้อนกันเองในฟอร์มที่กำลังกรอก
+  for (let i = 0; i < allReports.length; i++) {
+    for (let j = i + 1; j < allReports.length; j++) {
+      if (isDateOverlap(allReports[i].startDate, allReports[i].endDate, allReports[j].startDate, allReports[j].endDate)) {
+        return alert(`⚠️ พบข้อมูลวันปฏิบัติงานทับซ้อนกันเอง!\n\nงานที่ ${allReports[i].originalIndex} (${allReports[i].eventName})\nทับซ้อนกับ\nงานที่ ${allReports[j].originalIndex} (${allReports[j].eventName})\n\nกรุณาตรวจสอบและแก้ไขวันที่ให้ถูกต้องก่อนส่งข้อมูลครับ`);
+      }
+    }
+  }
+
+  // ระดับที่ 2: ตรวจสอบการทับซ้อนกับประวัติเดิมในฐานข้อมูล
+  if (srSelectedUser && srSelectedUser.duties) {
+    for (let i = 0; i < allReports.length; i++) {
+      let currentReport = allReports[i];
+      let conflictDuty = srSelectedUser.duties.find(oldDuty => {
+        if (String(oldDuty.year) !== String(activeYear)) return false;
+        if (currentReport.recordId && String(oldDuty.recordId) === String(currentReport.recordId)) return false; // ข้ามการตรวจสอบตัวเอง
+        return isDateOverlap(currentReport.startDate, currentReport.endDate, oldDuty.startDate, oldDuty.endDate);
+      });
+
+      if (conflictDuty) {
+        return alert(`⚠️ พบข้อมูลวันปฏิบัติงานทับซ้อนกับประวัติเดิมในระบบ!\n\nงานที่ ${currentReport.originalIndex} (${currentReport.eventName})\nวันที่ทับซ้อนกับงาน: ${conflictDuty.event}\nซึ่งเคยบันทึกไว้เมื่อวันที่ ${conflictDuty.startDate} ถึง ${conflictDuty.endDate}\n\nกรุณาตรวจสอบความถูกต้องอีกครั้งครับ`);
+      }
+    }
   }
 
   document.getElementById('srLoadingOverlay').classList.remove('hidden');
@@ -1472,7 +1512,6 @@ window.submitSelfReport = async function() {
          const json = JSON.parse(text);
          if(json.status !== 'success') throw new Error(json.message);
        } catch (parseErr) {
-         // 🔥 หากเป็น HTML Timeout แสดงว่าหลังบ้านเซฟเสร็จแล้วแต่ฝั่งผู้ใช้รอจนหลุด
          if (text.includes('<html') || parseErr.message.includes('Unexpected token')) {
             console.warn(`Gateway Timeout in report ${i+1}. The background process is still running.`);
             window.showToast('✅ ข้อมูลถูกจัดส่งแล้ว แต่อาจใช้เวลาประมวลผลรูปภาพครู่หนึ่ง');
@@ -2801,6 +2840,169 @@ window.confirmImport = async function() {
    
   btn.innerHTML = originalText; 
    btn.disabled = false;
+};
+
+window.submitSelfReport = async function() {
+  syncSrFormState(); 
+  const activeYear = document.getElementById('srActiveYear').value; 
+  let allReports = [];
+  let keptRecordIds = []; 
+  
+  for (let i = 0; i < srFormState.length; i++) {
+    let course = document.getElementById(`srCourse_${i}`).value; 
+    course = course.replace(/ทั่วไป/g, 'ไม่ระบุ');
+    
+    let eventType = document.getElementById(`srEventType_${i}`).value; 
+    const eventName = document.getElementById(`srEventName_${i}`).value.trim(); 
+    let role = document.getElementById(`srRole_${i}`).value; 
+    const sport = document.getElementById(`srSport_${i}`).value.trim(); 
+    const startDate = document.getElementById(`srStartDate_${i}`).value; 
+    const endDate = document.getElementById(`srEndDate_${i}`).value; 
+    const province = document.getElementById(`srProvince_${i}`).value; 
+    const location = document.getElementById(`srLocation_${i}`).value.trim(); 
+    const knowledge = document.getElementById(`srKnowledge_${i}`).value.trim();
+    
+    const keepImg1 = document.getElementById(`keepImg1_${i}`).value;
+    const keepImg2 = document.getElementById(`keepImg2_${i}`).value;
+    const keepImg3 = document.getElementById(`keepImg3_${i}`).value;
+    const recordId = document.getElementById(`srRecordId_${i}`) ? document.getElementById(`srRecordId_${i}`).value : '';
+    
+    if (recordId) keptRecordIds.push(recordId);
+    
+    if (eventType === 'อื่นๆ') {
+      const otherVal = document.getElementById(`srEventTypeOther_${i}`).value.trim();
+      if(!otherVal) return alert(`⚠️ กรุณาระบุรูปแบบงานใน ${course} งานที่ ${i+1}`);
+      eventType = 'อื่นๆ: ' + otherVal;
+    }
+    if (role === 'อื่นๆ') {
+      const otherVal = document.getElementById(`srRoleOther_${i}`).value.trim();
+      if(!otherVal) return alert(`⚠️ กรุณาระบุตำแหน่งใน ${course} งานที่ ${i+1}`);
+      role = 'อื่นๆ: ' + otherVal;
+    }
+
+    if(!eventType || !eventName || !role || !sport || !startDate || !endDate || !province || !location || !knowledge) { 
+       return alert(`⚠️ กรุณากรอกข้อมูลสำคัญที่มีดอกจันสีแดงให้ครบถ้วนในหลักสูตร ${course} งานที่ ${i+1}`); 
+    }
+    
+    const file1 = document.getElementById(`srFile1_${i}`).files[0]; 
+    const file2 = document.getElementById(`srFile2_${i}`).files[0];
+    const file3 = document.getElementById(`srFile3_${i}`).files[0];
+    
+    allReports.push({ originalIndex: i+1, recordId, course, eventType, eventName, role, sport, startDate, endDate, province, location, knowledge, keepImg1, keepImg2, keepImg3, file1, file2, file3 });
+  }
+
+  // 🛡️ Data Validation: ตรวจสอบวันที่
+  for (let i = 0; i < allReports.length; i++) {
+    if (new Date(allReports[i].startDate).getTime() > new Date(allReports[i].endDate).getTime()) {
+       return alert(`⚠️ ข้อมูลวันที่ผิดพลาด!\nงานที่ ${i+1} (${allReports[i].course})\nวันที่เริ่มต้นต้องไม่มาทีหลังวันที่สิ้นสุดครับ`);
+    }
+  }
+
+  // ระดับที่ 1: ตรวจสอบการทับซ้อนกันเองในฟอร์มที่กำลังกรอก
+  for (let i = 0; i < allReports.length; i++) {
+    for (let j = i + 1; j < allReports.length; j++) {
+      if (isDateOverlap(allReports[i].startDate, allReports[i].endDate, allReports[j].startDate, allReports[j].endDate)) {
+        return alert(`⚠️ พบข้อมูลวันปฏิบัติงานทับซ้อนกันเอง!\n\nงานที่ ${i+1} (${allReports[i].eventName})\nทับซ้อนกับ\nงานที่ ${j+1} (${allReports[j].eventName})\n\nกรุณาตรวจสอบและแก้ไขวันที่ให้ถูกต้องก่อนส่งข้อมูลครับ`);
+      }
+    }
+  }
+
+  // ระดับที่ 2: ตรวจสอบทับซ้อนกับประวัติเดิมในระบบ
+  if (srSelectedUser && srSelectedUser.duties) {
+    for (let i = 0; i < allReports.length; i++) {
+      let currentReport = allReports[i];
+      let conflictDuty = srSelectedUser.duties.find(oldDuty => {
+        if (String(oldDuty.year) !== String(activeYear)) return false;
+        if (currentReport.recordId && String(oldDuty.recordId) === String(currentReport.recordId)) return false;
+        return isDateOverlap(currentReport.startDate, currentReport.endDate, oldDuty.startDate, oldDuty.endDate);
+      });
+
+      if (conflictDuty) {
+        return alert(`⚠️ พบข้อมูลวันปฏิบัติงานทับซ้อนกับประวัติเดิมในระบบ!\n\nงานที่ ${i+1} (${currentReport.eventName})\nวันที่ทับซ้อนกับงาน: ${conflictDuty.event}\nซึ่งเคยบันทึกไว้เมื่อวันที่ ${conflictDuty.startDate} ถึง ${conflictDuty.endDate}\n\nกรุณาตรวจสอบความถูกต้องอีกครั้งครับ`);
+      }
+    }
+  }
+
+  document.getElementById('srLoadingOverlay').classList.remove('hidden');
+  
+  try {
+    for (let r of allReports) { 
+       if(r.file1) { r.file1Data = await getBase64(r.file1); r.file1Name = r.file1.name; r.file1Mime = r.file1.type; } 
+       if(r.file2) { r.file2Data = await getBase64(r.file2); r.file2Name = r.file2.name; r.file2Mime = r.file2.type; }
+       if(r.file3) { r.file3Data = await getBase64(r.file3); r.file3Name = r.file3.name; r.file3Mime = r.file3.type; }
+    }
+
+    document.getElementById('srLoadingTitle').textContent = `กำลังเคลียร์ข้อมูลเดิม...`;
+    
+    await fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'deleteMissingDutyRecords', uid: srSelectedUser.uid, year: activeYear, keptRecordIds: keptRecordIds }),
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+    });
+
+    for (let i = 0; i < allReports.length; i++) {
+      document.getElementById('srLoadingTitle').textContent = `กำลังบันทึกข้อมูลงานที่ ${i+1} / ${allReports.length}`;
+      let r = allReports[i]; 
+      
+      const payload = { 
+         action: 'saveSelfReport', 
+         uid: srSelectedUser.uid, 
+         fullName: srSelectedUser.fullName,
+         recordId: r.recordId, 
+         course: r.course, 
+         eventType: r.eventType, 
+         eventName: r.eventName, 
+         role: r.role, 
+         sport: r.sport, 
+         startDate: r.startDate, 
+         endDate: r.endDate, 
+         year: activeYear, 
+         province: r.province, 
+         location: r.location, 
+         knowledge: r.knowledge, 
+         keepImg1: r.keepImg1, 
+         keepImg2: r.keepImg2, 
+         keepImg3: r.keepImg3, 
+         file1Data: r.file1Data || null, 
+         file1Name: r.file1Name || '', 
+         file1Mime: r.file1Mime || '', 
+         file2Data: r.file2Data || null, 
+         file2Name: r.file2Name || '', 
+         file2Mime: r.file2Mime || '',
+         file3Data: r.file3Data || null, 
+         file3Name: r.file3Name || '', 
+         file3Mime: r.file3Mime || ''
+       };
+       
+       const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) }); 
+       const text = await res.text();
+       
+       try {
+         const json = JSON.parse(text);
+         if(json.status !== 'success') throw new Error(json.message);
+       } catch (parseErr) {
+         if (text.includes('<html') || parseErr.message.includes('Unexpected token')) {
+            console.warn(`Gateway Timeout in report ${i+1}. The background process is still running.`);
+            window.showToast('✅ ข้อมูลถูกจัดส่งแล้ว แต่อาจใช้เวลาประมวลผลรูปภาพครู่หนึ่ง');
+            continue; 
+         } else {
+            throw new Error("การตอบกลับจากเซิร์ฟเวอร์ผิดพลาด");
+         }
+       }
+    }
+    
+    alert('✅ บันทึกรายงานสำเร็จทั้งหมด ข้อมูลของคุณได้รับการอัปเดตเรียบร้อยแล้ว'); 
+    document.getElementById('srSearchName').value = ''; 
+    document.getElementById('srFormContainer').classList.add('hidden'); 
+    srSelectedUser = null; 
+    srFormState = [];
+    if (isAdmin) fetchData(); 
+  } catch(err) {
+    if(err.message === 'ขนาดไฟล์เกิน 5MB') alert('❌ ' + err.message); 
+    else alert('❌ เกิดข้อผิดพลาดในการบันทึก: ' + err.message);
+  }
+  
+  document.getElementById('srLoadingOverlay').classList.add('hidden');
 };
 
 function showLoadingState() { 
