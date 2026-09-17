@@ -82,6 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupOTPInputs();
   switchPage('report');
   
+  // ตรวจสอบข้อมูลออฟไลน์ทันทีที่เปิดเว็บ
   checkOfflineData();
   window.addEventListener('online', updateNetworkStatus);
   window.addEventListener('offline', updateNetworkStatus);
@@ -135,15 +136,17 @@ window.showToast = function(message) {
    setTimeout(() => { toast.classList.add('translate-y-20', 'opacity-0'); }, 3000);
 };
 
+// 📡 ฟังก์ชันสำหรับอัปเดตสถานะอินเทอร์เน็ต
 function updateNetworkStatus() {
   if (navigator.onLine) {
     window.showToast('📶 ระบบเชื่อมต่ออินเทอร์เน็ตแล้ว');
-    checkOfflineData(); 
+    checkOfflineData(); // แจ้งเตือนให้ซิงค์ข้อมูลถ้ามี
   } else {
     window.showToast('⚠️ ขาดการเชื่อมต่ออินเทอร์เน็ต (ใช้งานโหมดออฟไลน์)');
   }
 }
 
+// 📦 ฟังก์ชันจัดการ Offline LocalStorage
 function checkOfflineData() {
   const offlineData = JSON.parse(localStorage.getItem('sportsHROfflineData') || '[]');
   let banner = document.getElementById('offlineSyncBanner');
@@ -227,7 +230,6 @@ async function fetchPublicData() {
   const searchBtn = document.getElementById('btnSrSearch');
 
   try {
-    // ⚡ เปลี่ยนมาใช้ฟังก์ชัน Auto-Retry
     const result = await fetchJsonWithRetry(`${API_URL}?action=getPublicData`, {}, 3, 1500);
 
     if (result && result.status === 'success') {
@@ -346,7 +348,6 @@ window.handleSelfReportUserSelect = async function() {
   btnSearch.innerHTML = `<svg class="animate-spin w-5 h-5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> <span>กำลังค้นหา...</span>`;
 
   try {
-    // ⚡ เปลี่ยนมาใช้ฟังก์ชัน Auto-Retry
     const result = await fetchJsonWithRetry(`${API_URL}?action=getUserHistory&uid=${encodeURIComponent(selectedUid)}`, {}, 3, 1000);
 
     if (result && result.status === 'success' && result.data) {
@@ -421,7 +422,6 @@ function processUserReportState(user, activeYear) {
 async function fetchData() {
   showLoadingState(); 
   try {
-    // ⚡ เปลี่ยนมาใช้ฟังก์ชัน Auto-Retry
     const result = await fetchJsonWithRetry(`${API_URL}?action=getData`, {}, 3, 2000);
     
     if (result && result.status === 'success') {
@@ -1795,7 +1795,7 @@ window.logoutAdmin = function() {
    document.body.classList.remove('is-admin'); 
    
    const btnLogin = document.getElementById('btnLogin'); 
-   if(btnLogin) { btnLogin.classList.remove('flex'); btnLogin.classList.add('hidden'); }
+   if(btnLogin) { btnLogin.classList.remove('hidden'); btnLogin.classList.add('flex'); }
   
    const btnLogout = document.getElementById('btnLogout'); 
    if(btnLogout) { btnLogout.classList.remove('hidden'); btnLogout.classList.add('flex'); }
