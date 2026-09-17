@@ -140,7 +140,7 @@ window.showToast = function(message) {
 function updateNetworkStatus() {
   if (navigator.onLine) {
     window.showToast('📶 ระบบเชื่อมต่ออินเทอร์เน็ตแล้ว');
-    checkOfflineData(); // แจ้งเตือนให้ซิงค์ข้อมูลถ้ามี
+    checkOfflineData(); 
   } else {
     window.showToast('⚠️ ขาดการเชื่อมต่ออินเทอร์เน็ต (ใช้งานโหมดออฟไลน์)');
   }
@@ -468,7 +468,11 @@ window.updatePersonnelStatus = async function(uid, newStatus, selectElement) {
   selectElement.disabled = true; selectElement.classList.add('opacity-50', 'animate-pulse');
   try {
     const payload = { action: 'updateStatus', uid: uid, status: newStatus };
-    const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
+    const response = await fetch(API_URL, { 
+        method: 'POST', 
+        body: JSON.stringify(payload), 
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' } 
+    });
     const result = await response.json();
     if (result.status === 'success') {
       const userIndex = cachedPersonnelData.findIndex(u => u.uid === uid);
@@ -551,7 +555,12 @@ window.generatePDF = async function(uid, fullName, course, year, sport, role, bt
 
   try {
     const payload = { action: 'generatePDF', uid: uid, fullName: fullName, course: course, year: year, sport: sport, role: role };
-    const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+    // 🛠️ BUG FIX: เพิ่ม Header ป้องกัน CORS Error
+    const response = await fetch(API_URL, { 
+        method: 'POST', 
+        body: JSON.stringify(payload),
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+    });
     const result = await response.json();
 
     if (result.status === 'success' && result.base64) {
@@ -762,7 +771,11 @@ window.submitDuty = async function() {
   btn.textContent = 'กำลังบันทึก...'; btn.disabled = true;
   try {
     const payload = { action: 'saveDuty', uid: currentActiveUid, sport: sport, role: role, event: event, year: year, rowIndex: rowIndex };
-    const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
+    const response = await fetch(API_URL, { 
+        method: 'POST', 
+        body: JSON.stringify(payload), 
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' } 
+    });
     const result = await response.json();
     if(result.status === 'success') { 
        alert('✅ ' + result.message); 
@@ -787,7 +800,11 @@ window.submitEval = async function() {
   const btn = document.getElementById('btnSaveEval'); 
   btn.textContent = 'กำลังบันทึก...'; btn.disabled = true;
   try {
-    const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveEval', uid: currentActiveUid, feedback: feedback }), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
+    const response = await fetch(API_URL, { 
+        method: 'POST', 
+        body: JSON.stringify({ action: 'saveEval', uid: currentActiveUid, feedback: feedback }), 
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' } 
+    });
     const result = await response.json();
     if(result.status === 'success') { alert('✅ บันทึกสำเร็จ'); document.getElementById('inputEvalFeedback').value = ''; fetchData(); } else { alert(`❌ ข้อผิดพลาด: ${result.message}`); }
   } catch(e) { alert('❌ การเชื่อมต่อล้มเหลว'); }
@@ -1676,7 +1693,12 @@ async function sendPayloadToServer(payload, showSuccessAlert) {
             file3Mime: r.file3Mime || ''
         };
         
-        const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(sendData) }); 
+        // 🛠️ BUG FIX: เพิ่ม Header ในฝั่งส่งข้อมูล เพื่อป้องกัน CORS
+        const res = await fetch(API_URL, { 
+            method: 'POST', 
+            body: JSON.stringify(sendData),
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+        }); 
         const text = await res.text();
         
         try {
