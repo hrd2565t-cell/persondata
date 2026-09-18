@@ -12,7 +12,7 @@ let pendingImportData = [];
 let currentPreviewPage = 1;
 const previewItemsPerPage = 10;
 let matrixAvailableYears = [];
-let isAdmin = false;
+let isAdmin = true; // เปิดสิทธิ์การจัดการระบบทันทีเนื่องจากปลดระบบล็อกอินออกแล้ว
 let barChartObj = null;
 let donutChartObj = null;
 let srSelectedUser = null; 
@@ -37,8 +37,8 @@ function getDirectDriveImageUrl(url) {
 
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
-// ระบบดึงข้อมูลพร้อม AbortController ตัด Timeout อัตโนมัติ (ไม่ปล่อยให้ค้าง)
-async function fetchJsonWithRetry(url, options = {}, retries = 2, backoff = 1000, timeoutMs = 4500) {
+// ระบบดึงข้อมูลพร้อม AbortController ตัด Timeout อัตโนมัติ ป้องกันหน้าเว็บค้าง
+async function fetchJsonWithRetry(url, options = {}, retries = 2, backoff = 1000, timeoutMs = 6000) {
   for (let i = 0; i < retries; i++) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -78,12 +78,12 @@ function isDateOverlap(start1, end1, start2, end2) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  unlockSearchUI(); // ปลดล็อก UI ทันที ผู้ใช้สามารถพิมพ์ค้นหาได้เลย ไม่ต้องรอโหลด
+  unlockSearchUI(); 
   loadCachedPublicDataFirst(); 
   fetchPublicData(); 
+  fetchData(); // 🚀 เรียกโหลดข้อมูลเต็มระบบสำหรับแดชบอร์ด ค้นหา และไทม์ไลน์ทันที
   setupDragAndDrop();
   setupStrategyUpload();
-  setupOTPInputs();
   switchPage('report');
   
   checkOfflineData();
@@ -218,7 +218,7 @@ window.syncOfflineData = async function() {
 
   if (successCount > 0) {
     alert(`✅ ซิงค์ข้อมูลออฟไลน์เข้าระบบสำเร็จ ${successCount} รายการ`);
-    if (isAdmin) fetchData(); 
+    fetchData(); 
   } else {
     alert(`❌ การซิงค์ข้อมูลล้มเหลว กรุณาลองใหม่อีกครั้ง`);
   }
@@ -392,17 +392,16 @@ function processUserReportState(user, activeYear) {
 async function fetchData() {
   showLoadingState(); 
   try {
-    const result = await fetchJsonWithRetry(`${API_URL}?action=getData`, {}, 2, 1000, 7000);
+    const result = await fetchJsonWithRetry(`${API_URL}?action=getData`, {}, 2, 1000, 8000);
     
     if (result && result.status === 'success') {
       cachedPersonnelData = result.data.list;
       currentFilteredData = result.data.list;
       hasFullDataLoaded = true;
       
-      if (!globalFiltersMaster) { 
-        globalFiltersMaster = result.data.filters; 
-        updateDropdownUI(); 
-      }
+      globalFiltersMaster = result.data.filters; 
+      updateDropdownUI(); 
+
       if(result.data.settings) { 
         globalSettings = result.data.settings; 
         const adminYearInput = document.getElementById('adminActiveYear');
@@ -430,7 +429,6 @@ async function fetchData() {
     }
   } catch (error) { 
     showErrorState(error.message || 'การเชื่อมต่อกับฐานข้อมูลขัดข้อง'); 
-    throw error;
   }
 }
 
@@ -1404,9 +1402,7 @@ window.renderSrForms = function() {
             <textarea id="srKnowledge_${i}" rows="3" class="w-full text-sm bg-slate-50 border border-slate-300 rounded-xl p-4 outline-none focus:ring-2 focus:ring-blue-500 resize-none" placeholder="อธิบายสั้นๆ...">${d.knowledge || ''}</textarea>
           </div>
           <div class="bg-blue-50/50 border border-blue-100 p-4 rounded-xl">
-            
             ${profileUploadHtml}
-
             <label class="block text-xs font-bold text-slate-700 mb-2">📂 รูปภาพหลักฐานการปฏิบัติหน้าที่ (ไม่เกิน 5MB ต่อภาพ)</label>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div class="flex flex-col"> 
@@ -1685,7 +1681,7 @@ async function sendPayloadToServer(payload, showSuccessAlert) {
     if (showSuccessAlert) {
         alert('✅ บันทึกรายงานสำเร็จทั้งหมด ข้อมูลของคุณได้รับการอัปเดตเรียบร้อยแล้ว'); 
         clearSelfReportSearch(); 
-        if (isAdmin) fetchData(); 
+        fetchData(); 
         document.getElementById('srLoadingOverlay').classList.add('hidden');
     }
 }
@@ -1707,90 +1703,6 @@ function showErrorState(message) {
   if(elYear) elYear.textContent = 'Err';
   if(elCourse) elCourse.textContent = message;
 }
-
-window.openLoginModal = function() { 
-   const modal = document.getElementById('loginModal'); 
-   if(modal) modal.classList.remove('hidden'); 
-   const err = document.getElementById('loginErrorMsg'); 
-   if(err) err.classList.add('hidden'); 
-   
-   const inputs = Array.from(document.querySelectorAll('.otp-input')).slice(0, 6); 
-   inputs.forEach(input => input.value = ''); 
-   setTimeout(() => { if (inputs.length > 0) inputs[0].focus(); }, 100); 
-};
-
-window.closeLoginModal = function() { 
-   const modal = document.getElementById('loginModal'); 
-   if(modal) modal.classList.add('hidden'); 
-};
-
-function setupOTPInputs() { 
-   const inputs = Array.from(document.querySelectorAll('.otp-input')).slice(0, 6); 
-   inputs.forEach((input, index) => { 
-       input.addEventListener('input', (e) => { 
-         if(e.target.value.length === 1 && index < 5) inputs[index + 1].focus(); 
-         checkOTP(); 
-       }); 
-       input.addEventListener('keydown', (e) => { 
-         if(e.key === 'Backspace' && e.target.value === '' && index > 0) inputs[index - 1].focus(); 
-       }); 
-       input.addEventListener('paste', (e) => { 
-         e.preventDefault(); 
-         const pastedData = (e.clipboardData || window.clipboardData).getData('text').slice(0, 6).split(''); 
-         inputs.forEach((inp, i) => { if(pastedData[i]) inp.value = pastedData[i]; }); 
-         if(pastedData.length > 0) inputs[Math.min(pastedData.length, 5)].focus(); 
-         checkOTP(); 
-       }); 
-   }); 
-}
-
-window.checkOTP = function() { 
-   const inputs = Array.from(document.querySelectorAll('.otp-input')).slice(0, 6); 
-   let pin = ''; 
-   inputs.forEach(input => pin += input.value); 
-   
-   if(pin.length === 6) { 
-       const correctPin = String(globalSettings.adminPin || "336699").trim(); 
-       
-       if(pin === correctPin) { 
-           isAdmin = true; 
-           document.body.classList.add('is-admin'); 
-           
-           const btnLogin = document.getElementById('btnLogin'); 
-           if(btnLogin) { btnLogin.classList.remove('flex'); btnLogin.classList.add('hidden'); }
-          
-           const btnLogout = document.getElementById('btnLogout'); 
-           if(btnLogout) { btnLogout.classList.remove('hidden'); btnLogout.classList.add('flex'); }
-           
-           closeLoginModal(); 
-           switchPage('dashboard'); 
-           
-           if (!hasFullDataLoaded) {
-             fetchData();
-           } else {
-             renderTablePage();
-           }
-       } else { 
-           const err = document.getElementById('loginErrorMsg'); 
-           if(err) err.classList.remove('hidden'); 
-           inputs.forEach(input => input.value = ''); 
-           if(inputs.length > 0) inputs[0].focus(); 
-       } 
-   } 
-};
-
-window.logoutAdmin = function() { 
-   isAdmin = false; 
-   document.body.classList.remove('is-admin'); 
-   
-   const btnLogin = document.getElementById('btnLogin'); 
-   if(btnLogin) { btnLogin.classList.remove('hidden'); btnLogin.classList.add('flex'); }
-  
-   const btnLogout = document.getElementById('btnLogout'); 
-   if(btnLogout) { btnLogout.classList.remove('hidden'); btnLogout.classList.add('flex'); }
-   
-   switchPage('report'); 
-};
 
 window.switchPage = function(pageId) {
   const pages = ['dashboard', 'search', 'timeline', 'import', 'report', 'project', 'strategy'];
@@ -1818,8 +1730,19 @@ window.switchPage = function(pageId) {
       }
     }
   });
-  if (pageId === 'timeline' && globalFiltersMaster) {
-    renderTimeline(globalFiltersMaster.relations, globalFiltersMaster.years, globalFiltersMaster.courses);
+
+  // 🎯 เรนเดอร์หน้าจอตามแท็บที่กดเลือกทันที
+  if (hasFullDataLoaded) {
+    if (pageId === 'dashboard' && globalFiltersMaster) {
+      drawCharts(globalFiltersMaster.years, globalFiltersMaster.groups);
+    } else if (pageId === 'search') {
+      renderTablePage();
+    } else if (pageId === 'timeline' && globalFiltersMaster) {
+      renderTimeline(globalFiltersMaster.relations, globalFiltersMaster.years, globalFiltersMaster.courses);
+    }
+  } else {
+    // หากข้อมูลยังโหลดไม่เสร็จ ให้สั่งดึงข้อมูล
+    fetchData();
   }
 };
 
@@ -2016,6 +1939,7 @@ function drawCharts(allYears, allGroups) {
 }
 
 function renderDashboard(stats) {
+  if (!stats) return;
   const elTotal = document.getElementById('stat-total');
   const elYear = document.getElementById('stat-top-year');
   const elCourse = document.getElementById('stat-top-course');
@@ -2555,21 +2479,14 @@ function renderTablePage() {
       const initials = item.fullName.substring(0, 2).toUpperCase() || 'U';
       const isResigned = item.status === 'พ้นสภาพ';
       
-      let statusBadge = '';
-      if (isAdmin) {
-        statusBadge = `
+      let statusBadge = `
         <select onchange="updatePersonnelStatus('${item.uid}', this.value, this)" class="text-xs font-bold bg-white border ${isResigned ? 'border-slate-300 text-slate-500' : 'border-amber-300 text-amber-600'} rounded-full px-2 py-1.5 outline-none cursor-pointer shadow-sm text-center w-[110px] mx-auto block transition-colors">
           <option value="ปฏิบัติงาน" ${!isResigned ? 'selected' : ''}>🟢 ปฏิบัติงาน</option>
           <option value="พ้นสภาพ" ${isResigned ? 'selected' : ''}>⚪ พ้นสภาพ</option>
         </select>`;
-      } else {
-        statusBadge = isResigned ? 
-           `<span class="inline-flex items-center justify-center px-3 py-1.5 rounded-full text-xs font-medium border border-slate-300 text-slate-500 bg-white w-[110px]"><span class="w-1.5 h-1.5 rounded-full mr-2 bg-slate-400"></span>พ้นสภาพ</span>` : 
-           `<span class="inline-flex items-center justify-center px-3 py-1.5 rounded-full text-xs font-medium border border-amber-300 text-amber-600 bg-white w-[110px]"><span class="w-1.5 h-1.5 rounded-full mr-2 bg-amber-500"></span>ปฏิบัติงาน</span>`;
-      }
-      const btnText = isAdmin ? 
-         `<svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg> จัดการ` : 
-         `<svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg> ดูประวัติ`;
+
+      const btnText = `<svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg> จัดการ`;
+
       return `
         <tr class="hover:bg-slate-50 border-b border-slate-100">
           <td class="px-6 py-4 text-blue-600 font-medium text-sm">${item.uid}</td>
@@ -2582,7 +2499,7 @@ function renderTablePage() {
           <td class="px-6 py-4 text-slate-600 text-sm truncate max-w-[200px]">${item.agency}</td>
           <td class="px-6 py-4 text-center">${statusBadge}</td>
           <td class="px-6 py-4 text-center">
-            <button onclick="viewProfile('${item.uid}')" class="${isAdmin?'text-amber-500 hover:bg-amber-50':'text-blue-500 hover:bg-blue-50'} p-2 rounded-lg font-bold text-xs flex items-center justify-center mx-auto transition-colors cursor-pointer">
+            <button onclick="viewProfile('${item.uid}')" class="text-amber-500 hover:bg-amber-50 p-2 rounded-lg font-bold text-xs flex items-center justify-center mx-auto transition-colors cursor-pointer">
               ${btnText}
             </button>
           </td>
