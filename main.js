@@ -37,8 +37,8 @@ function getDirectDriveImageUrl(url) {
 
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
-// ระบบดึงข้อมูลพร้อม AbortController ตัด Timeout 8 วินาที ป้องกันหน้าเว็บค้าง
-async function fetchJsonWithRetry(url, options = {}, retries = 2, backoff = 1000, timeoutMs = 8000) {
+// ระบบดึงข้อมูลพร้อม AbortController ตัด Timeout อัตโนมัติ (ไม่ปล่อยให้ค้าง)
+async function fetchJsonWithRetry(url, options = {}, retries = 2, backoff = 1000, timeoutMs = 4500) {
   for (let i = 0; i < retries; i++) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -78,7 +78,8 @@ function isDateOverlap(start1, end1, start2, end2) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  loadCachedPublicDataFirst(); // โหลดแคชทันที ปลดล็อก UI ทันที
+  unlockSearchUI(); // ปลดล็อก UI ทันที ผู้ใช้สามารถพิมพ์ค้นหาได้เลย ไม่ต้องรอโหลด
+  loadCachedPublicDataFirst(); 
   fetchPublicData(); 
   setupDragAndDrop();
   setupStrategyUpload();
@@ -184,7 +185,7 @@ function saveToOfflineStorage(payload) {
     localStorage.setItem('sportsHROfflineData', JSON.stringify(offlineData));
     checkOfflineData();
   } catch (e) {
-    alert('❌ พื้นที่จัดเก็บในเบราว์เซอร์เต็ม ไม่สามารถบันทึกข้อมูลแบบออฟไลน์ได้ กรุณาเชื่อมต่ออินเทอร์เน็ต');
+    alert('❌ พื้นที่จัดเก็บในเบราว์เซอร์เต็ม ไม่สามารถบันทึกข้อมูลแบบออฟไลน์ได้');
   }
 }
 
@@ -223,7 +224,6 @@ window.syncOfflineData = async function() {
   }
 };
 
-// ดึงข้อมูลแคชจาก LocalStorage ทันทีที่เปิดหน้า ป้องกันอาการค้างรอ
 function loadCachedPublicDataFirst() {
   try {
     const raw = localStorage.getItem('SPORTS_HR_PUBLIC_USERS');
@@ -241,7 +241,6 @@ function loadCachedPublicDataFirst() {
         if (dl) {
           dl.innerHTML = publicUsersList.map(u => `<option value="${u.fullName} (${u.uid})">`).join('');
         }
-        unlockSearchUI();
       }
     }
   } catch (e) {}
@@ -251,7 +250,7 @@ async function fetchPublicData() {
   const statusEl = document.getElementById('srConnStatus');
 
   try {
-    const result = await fetchJsonWithRetry(`${API_URL}?action=getPublicData`, {}, 2, 1000, 7000);
+    const result = await fetchJsonWithRetry(`${API_URL}?action=getPublicData`, {}, 1, 1000, 4000);
 
     if (result && result.status === 'success') {
       globalSettings.activeReportYear = result.data.activeReportYear || '2569';
@@ -270,67 +269,35 @@ async function fetchPublicData() {
         dl.innerHTML = publicUsersList.map(u => `<option value="${u.fullName} (${u.uid})">`).join('');
       }
 
-      unlockSearchUI();
+      if (statusEl) {
+        statusEl.className = "text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full flex items-center gap-1.5 transition-all";
+        statusEl.innerHTML = `<span>✅ ฐานข้อมูลพร้อมใช้งาน</span>`;
+      }
     } else {
-      await fallbackToFullData();
+      handleConnectionSlow();
     }
   } catch (err) {
-    if (publicUsersList.length === 0) {
-      await fallbackToFullData();
-    } else {
-      if (statusEl) {
-        statusEl.className = "text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full flex items-center gap-1.5";
-        statusEl.innerHTML = `<span>⚡ ข้อมูลพร้อมใช้ (โหมดออฟไลน์)</span>`;
-      }
-    }
+    handleConnectionSlow();
   }
 }
 
-async function fallbackToFullData() {
+function handleConnectionSlow() {
   const statusEl = document.getElementById('srConnStatus');
-  try {
-    if (!hasFullDataLoaded) {
-      await fetchData();
-    }
-    
-    publicUsersList = cachedPersonnelData.map(p => ({ uid: p.uid, fullName: p.fullName }));
-    const dl = document.getElementById('dl-all-users');
-    if (dl) {
-      dl.innerHTML = publicUsersList.map(u => `<option value="${u.fullName} (${u.uid})">`).join('');
-    }
-
-    const srYearInput = document.getElementById('srActiveYear');
-    if (srYearInput) srYearInput.value = globalSettings.activeReportYear;
-
-    unlockSearchUI();
-  } catch (fallbackErr) {
-    if (publicUsersList.length > 0) {
-      unlockSearchUI();
-      return;
-    }
-    if (statusEl) {
-      statusEl.className = "text-xs font-semibold text-red-600 bg-red-50 border border-red-200 px-3 py-1 rounded-full flex items-center gap-1.5";
-      statusEl.innerHTML = `<span>❌ เชื่อมต่อล้มเหลว กดปุ่มล้างเพื่อลองใหม่</span>`;
-    }
-    const searchInput = document.getElementById('srSearchName');
-    if (searchInput) searchInput.placeholder = "การเชื่อมต่อขัดข้อง กรุณากดปุ่มล้าง";
+  if (statusEl) {
+    statusEl.className = "text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-3 py-1 rounded-full flex items-center gap-1.5";
+    statusEl.innerHTML = `<span>⚡ พิมพ์ชื่อแล้วกดค้นหาได้ทันที</span>`;
   }
 }
 
 function unlockSearchUI() {
-  const statusEl = document.getElementById('srConnStatus');
   const searchInput = document.getElementById('srSearchName');
   const searchBtn = document.getElementById('btnSrSearch');
 
-  if (statusEl) {
-    statusEl.className = "text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full flex items-center gap-1.5 transition-all";
-    statusEl.innerHTML = `<span>✅ ฐานข้อมูลพร้อมใช้งาน</span>`;
-  }
   if (searchInput) {
     searchInput.disabled = false;
     searchInput.classList.remove('disabled:bg-slate-100', 'disabled:text-slate-400', 'disabled:cursor-not-allowed');
     searchInput.classList.add('bg-slate-50');
-    searchInput.placeholder = "พิมพ์ชื่อเพื่อค้นหาประวัติการอบรม...";
+    searchInput.placeholder = "พิมพ์ชื่อ-นามสกุลเพื่อค้นหาประวัติ...";
   }
   if (searchBtn) {
     searchBtn.disabled = false;
@@ -356,26 +323,9 @@ window.handleSelfReportUserSelect = async function() {
   const match = inputVal.match(/\((USR-\d{4}-\d{4})\)/);
   if (match) {
     selectedUid = match[1];
-  } else {
+  } else if (publicUsersList.length > 0) {
     const foundUser = publicUsersList.find(u => u.fullName.toLowerCase() === inputVal.toLowerCase());
     if (foundUser) selectedUid = foundUser.uid;
-  }
-
-  if (!selectedUid) {
-    srSelectedUser = null;
-    srFormState = [];
-    warnText.textContent = '⚠️ ไม่พบประวัติการอบรมของชื่อนี้ กรุณาตรวจสอบการสะกดคำหรือเลือกจากรายการแนะนำ'; 
-    warnText.classList.remove('hidden');
-    formContainer.classList.add('hidden');
-    return;
-  }
-
-  if (hasFullDataLoaded && cachedPersonnelData.length > 0) {
-    const cachedUser = cachedPersonnelData.find(p => p.uid === selectedUid);
-    if (cachedUser) {
-      processUserReportState(cachedUser, activeYear);
-      return;
-    }
   }
 
   btnSearch.disabled = true;
@@ -383,33 +333,18 @@ window.handleSelfReportUserSelect = async function() {
   btnSearch.innerHTML = `<svg class="animate-spin w-5 h-5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> <span>กำลังค้นหา...</span>`;
 
   try {
-    const result = await fetchJsonWithRetry(`${API_URL}?action=getUserHistory&uid=${encodeURIComponent(selectedUid)}`, {}, 2, 1000, 7000);
+    let queryParam = selectedUid ? `uid=${encodeURIComponent(selectedUid)}` : `name=${encodeURIComponent(inputVal)}`;
+    const result = await fetchJsonWithRetry(`${API_URL}?action=getUserHistory&${queryParam}`, {}, 2, 1000, 6000);
 
     if (result && result.status === 'success' && result.data) {
       processUserReportState(result.data, activeYear);
     } else {
-      await fetchData();
-      const fallbackUser = cachedPersonnelData.find(p => p.uid === selectedUid);
-      if (fallbackUser) {
-        processUserReportState(fallbackUser, activeYear);
-      } else {
-        warnText.textContent = '❌ ไม่พบข้อมูลประวัติการอบรม';
-        warnText.classList.remove('hidden');
-        formContainer.classList.add('hidden');
-      }
+      warnText.textContent = '⚠️ ไม่พบข้อมูลประวัติการอบรม กรุณาตรวจสอบการสะกดชื่อ-นามสกุล';
+      warnText.classList.remove('hidden');
+      formContainer.classList.add('hidden');
     }
   } catch (err) {
-    if (hasFullDataLoaded) {
-      const fallbackUser = cachedPersonnelData.find(p => p.uid === selectedUid);
-      if (fallbackUser) {
-        processUserReportState(fallbackUser, activeYear);
-        btnSearch.innerHTML = originalBtnContent;
-        btnSearch.disabled = false;
-        return;
-      }
-    }
-
-    warnText.textContent = '❌ การเชื่อมต่อล้มเหลว กรุณาลองใหม่อีกครั้ง';
+    warnText.textContent = '❌ การเชื่อมต่อล้มเหลว กรุณากดปุ่มค้นหาอีกครั้ง';
     warnText.classList.remove('hidden');
     formContainer.classList.add('hidden');
   }
@@ -457,7 +392,7 @@ function processUserReportState(user, activeYear) {
 async function fetchData() {
   showLoadingState(); 
   try {
-    const result = await fetchJsonWithRetry(`${API_URL}?action=getData`, {}, 2, 1000, 9000);
+    const result = await fetchJsonWithRetry(`${API_URL}?action=getData`, {}, 2, 1000, 7000);
     
     if (result && result.status === 'success') {
       cachedPersonnelData = result.data.list;
@@ -836,7 +771,7 @@ window.submitEval = async function() {
   try {
     const response = await fetch(API_URL, { 
         method: 'POST', 
-        body: JSON.stringify(payload), 
+        body: JSON.stringify({ action: 'saveEval', uid: currentActiveUid, feedback: feedback }), 
         headers: { 'Content-Type': 'text/plain;charset=utf-8' } 
     });
     const result = await response.json();
